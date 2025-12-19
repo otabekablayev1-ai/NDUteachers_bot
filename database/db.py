@@ -5,6 +5,12 @@ import os
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 DB_PATH = os.path.join(BASE_DIR, "database", "bot.db")
 from data.config import DB_PATH
+
+def get_connection():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
 # =============================
 # 🔧 BAZA YARATISH
 # =============================
@@ -94,6 +100,14 @@ def init_db():
             rated_at TEXT DEFAULT (datetime('now','localtime'))
         )
         """)
+
+        c.execute("""
+        CREATE TABLE IF NOT EXISTS managers (
+            user_id INTEGER PRIMARY KEY,
+            full_name TEXT
+        )
+        """)
+
         conn.commit()
         print("✅ Barcha jadvallar tekshirildi yoki yaratildi.")
 
@@ -311,67 +325,51 @@ def user_already_rated(teacher_id: int, manager_id: int, question_id: int) -> bo
         result = cur.fetchone()[0]
         return result > 0
 
-
-import sqlite3
-from data.config import DB_PATH
-
 def get_manager_rating_table():
-    import sqlite3
-    from data.config import MANAGERS_BY_FACULTY, DB_PATH
-
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
+    from data.config import MANAGERS_BY_FACULTY
+    conn = get_connection()
     cur = conn.cursor()
 
-    # Barcha menejer ID larini yig‘ib olamiz
+    # 1️⃣ Faqat haqiqiy menejer ID larni yig‘amiz
     manager_ids = set()
-    manager_faculty = {}
+    faculty_by_manager = {}
 
-    for faculty, fac in MANAGERS_BY_FACULTY.items():
-        for mid in fac.get("student", []) + fac.get("teacher", []):
-            manager_ids.add(mid)
-            manager_faculty[mid] = faculty
+    for faculty, roles in MANAGERS_BY_FACULTY.items():
+        for uid in roles.get("student", []) + roles.get("teacher", []):
+            manager_ids.add(uid)
+            faculty_by_manager[uid] = faculty
 
     if not manager_ids:
         return []
 
     placeholders = ",".join("?" for _ in manager_ids)
 
+    # 2️⃣ Reyting va javoblar statistikasi
     cur.execute(f"""
         SELECT
-            q.manager_id                              AS manager_id,
-            ROUND(AVG(r.rating), 2)                  AS avg_rating,
-            COUNT(r.id)                              AS rating_count,
-            SUM(CASE WHEN q.answered = 1 THEN 1 ELSE 0 END) AS answered_count,
-            SUM(CASE WHEN q.answered = 0 THEN 1 ELSE 0 END) AS unanswered_count
-        FROM questions q
-        LEFT JOIN manager_ratings r ON r.manager_id = q.manager_id
-        WHERE q.manager_id IN ({placeholders})
-        GROUP BY q.manager_id
-    """, list(manager_ids))
+            a.manager_id,
+            COUNT(DISTINCT a.question_id) AS answered_count,
+            COALESCE(AVG(mr.rating), 0) AS avg_rating
+        FROM answers a
+        LEFT JOIN manager_ratings mr ON mr.manager_id = a.manager_id
+        WHERE a.manager_id IN ({placeholders})
+        GROUP BY a.manager_id
+    """, tuple(manager_ids))
 
-    rows = []
-    for r in cur.fetchall():
-        manager_id = r["manager_id"]
+    rows = cur.fetchall()
+    conn.close()
 
-        # FIO olishga harakat qilamiz
-        cur.execute("SELECT fio FROM teachers WHERE user_id=?", (manager_id,))
-        t = cur.fetchone()
-        fio = t["fio"] if t else f"Menejer ({manager_id})"
-
-        rows.append({
-            "manager_id": manager_id,
-            "manager_name": fio,
-            "faculty": manager_faculty.get(manager_id, "—"),
-            "avg_rating": r["avg_rating"] or 0,
-            "rating_count": r["rating_count"],
+    result = []
+    for r in rows:
+        result.append({
+            "manager_id": r["manager_id"],
+            "faculty": faculty_by_manager.get(r["manager_id"], ""),
             "answered_count": r["answered_count"],
-            "unanswered_count": r["unanswered_count"],
+            "unanswered_count": 0,  # keyin hisoblanadi
+            "avg_rating": round(r["avg_rating"], 2),
         })
 
-    conn.close()
-    return rows
-
+    return result
 
 def get_manager_rating_table_by_faculty():
     """
@@ -1040,6 +1038,26 @@ def get_manager_name(manager_id: int):
     # agar ustozlar jadvalida topilmasa, oddiy ID sifatida qaytaramiz
     return str(manager_id)
 
+def save_manager_name(user_id: int, full_name: str):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS managers (
+            user_id INTEGER PRIMARY KEY,
+            full_name TEXT
+        )
+    """)
+
+    cur.execute("""
+        INSERT INTO managers (user_id, full_name)
+        VALUES (?, ?)
+        ON CONFLICT(user_id) DO UPDATE SET full_name=excluded.full_name
+    """, (user_id, full_name))
+
+    conn.commit()
+    conn.close()
+
 def search_users_by_fio_or_id(text: str, numeric_id: int = None):
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
@@ -1127,6 +1145,26 @@ def save_question_message_id(question_id: int, manager_id: int, message_id: int)
         )
         conn.commit()
 
+def get_manager_fio(manager_id: int) -> str:
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        SELECT fio
+        FROM teachers
+        WHERE user_id = ?
+        """,
+        (manager_id,)
+    )
+
+    row = cur.fetchone()
+    conn.close()
+
+    if row:
+        return row["fio"]
+
+    return "Noma’lum menejer"
 
 # =============================
 # 🚀 Dastur ishga tushganda

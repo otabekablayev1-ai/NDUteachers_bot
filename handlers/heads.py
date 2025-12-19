@@ -7,11 +7,8 @@ from aiogram.types import (
 )
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
-import sqlite3
-import asyncio
 from data.config import MANAGERS_BY_FACULTY, RAHBARLAR
 from database.db import (
-    DB_PATH,
     get_latest_questions,
     save_answer,
     mark_question_answered,
@@ -184,6 +181,9 @@ async def send_reply(message: Message, state: FSMContext):
     sender_id = data.get("sender_id")
     manager_id = message.from_user.id
 
+    from database.db import save_manager_name
+    save_manager_name(manager_id, message.from_user.full_name)
+
     if not question_id or not sender_id:
         await message.answer("❗ Xatolik: savol topilmadi.")
         return
@@ -213,8 +213,14 @@ async def send_reply(message: Message, state: FSMContext):
     # 2️⃣ DB ga yozish
     save_answer(question_id, manager_id, answer_text)
     mark_question_answered(question_id)
+    from database.db import save_manager_name
 
-       # 3️⃣ FAQAT FAKULTET MENEJERI BO‘LSA — BAHOLASH
+    save_manager_name(
+        user_id=manager_id,
+        full_name=message.from_user.full_name
+    )
+
+    # 3️⃣ FAQAT FAKULTET MENEJERI BO‘LSA — BAHOLASH
     from data.config import is_manager_id
 
     if is_manager_id(manager_id):
@@ -281,27 +287,18 @@ async def handle_rating(call: CallbackQuery):
         f"📊 Javobingizga berilgan reyting — ⭐ {rating} ball"
     )
 
-from aiogram.types import FSInputFile
-import csv
-import os
-import tempfile
-
-
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-
-
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.types import FSInputFile
 from aiogram import F
 from aiogram.types import Message, CallbackQuery
 import openpyxl
 from openpyxl.utils import get_column_letter
-import os
 
 @router.message(F.text == "🏆 Menejerlar reytingi")
 async def show_managers_rating(message: Message):
-    rows = get_manager_rating_table()
+    from database.db import get_manager_rating_table
 
+    rows = get_manager_rating_table()
     if not rows:
         await message.answer("📭 Hozircha menejerlar reytingi mavjud emas.")
         return
@@ -309,18 +306,24 @@ async def show_managers_rating(message: Message):
     text = (
         "🏆 <b>Menejerlar reytingi</b>\n\n"
         "<pre>"
-        "№  Menejer           Reyt  ✔️  ❌  Fakultet\n"
+        "№  Menejer            Reyt  ✔️  ❌  Fakultet\n"
         "---------------------------------------------\n"
     )
 
-    for i, row in enumerate(rows, 1):
+    for i, r in enumerate(rows, 1):
+        try:
+            chat = await message.bot.get_chat(r["manager_id"])
+            name = chat.full_name
+        except:
+            name = str(r["manager_id"])
+
         text += (
             f"{i:<2} "
-            f"{row['manager_name'][:15]:<15} "
-            f"{(row['avg_rating'] or 0):<5} "
-            f"{row['answered_count']:<3} "
-            f"{row['unanswered_count']:<3} "
-            f"{row['faculty']}\n"
+            f"{name[:16]:<16} "
+            f"{r['avg_rating']:<5} "
+            f"{r['answered_count']:<3} "
+            f"{r['unanswered_count']:<3} "
+            f"{r['faculty']}\n"
         )
 
     text += "</pre>"
@@ -338,51 +341,42 @@ async def show_managers_rating(message: Message):
 
 @router.callback_query(F.data == "export_manager_rating_excel")
 async def export_manager_rating_excel(call: CallbackQuery):
-        rows = get_manager_rating_table()
+    from database.db import get_manager_rating_table
+    import openpyxl
 
-        if not rows:
-            await call.answer("Maʼlumot topilmadi", show_alert=True)
-            return
+    rows = get_manager_rating_table()
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Menejerlar reytingi"
 
-        wb = openpyxl.Workbook()
-        ws = wb.active
-        ws.title = "Menejerlar reytingi"
+    ws.append([
+        "T/r", "Menejer", "Reyting", "Javob berilgan", "Javob berilmagan", "Fakultet"
+    ])
 
-        headers = [
-            "T/r",
-            "Menejer",
-            "Reyting ball",
-            "Javob berilgan",
-            "Javob berilmagan",
-            "Fakultet"
-        ]
-        ws.append(headers)
+    for i, r in enumerate(rows, 1):
+        try:
+            chat = await call.bot.get_chat(r["manager_id"])
+            name = chat.full_name
+        except:
+            name = str(r["manager_id"])
 
-        for i, r in enumerate(rows, 1):
-            ws.append([
-                i,
-                r["manager_name"],
-                r["avg_rating"] or 0,
-                r["answered_count"],
-                r["unanswered_count"],
-                r["faculty"],
-            ])
+        ws.append([
+            i,
+            name,
+            r["avg_rating"],
+            r["answered_count"],
+            r["unanswered_count"],
+            r["faculty"]
+        ])
 
-        # ustun eni — kichikroq va chiroyli
-        widths = [6, 24, 14, 18, 20, 26]
-        for i, w in enumerate(widths, 1):
-            ws.column_dimensions[get_column_letter(i)].width = w
+    path = "menejerlar_reytingi.xlsx"
+    wb.save(path)
 
-        path = "menejerlar_reytingi.xlsx"
-        wb.save(path)
-
-        file = FSInputFile(path)
-        await call.message.answer_document(
-            file,
-            caption="📊 Menejerlar reytingi (Excel)"
-        )
-
-        await call.answer()
+    await call.message.answer_document(
+        FSInputFile(path),
+        caption="📊 Menejerlar reytingi (Excel)"
+    )
+    await call.answer()
 
 # ==============================
 #   📊 UNIVERSITET SUPER STATISTIKASI
