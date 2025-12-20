@@ -102,15 +102,10 @@ def init_db():
         """)
 
         c.execute("""
-        CREATE TABLE IF NOT EXISTS manager_ratings (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,        -- baho qo‘ygan (talaba/o‘qituvchi)
-            manager_id INTEGER NOT NULL,     -- menejer
-            question_id INTEGER NOT NULL,    -- qaysi savol
-            rating INTEGER NOT NULL CHECK(rating BETWEEN 1 AND 5),
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE(user_id, manager_id, question_id)
-        );
+        CREATE TABLE IF NOT EXISTS managers (
+            user_id INTEGER PRIMARY KEY,
+            full_name TEXT
+        )
         """)
 
         conn.commit()
@@ -303,56 +298,78 @@ def delete_teacher(user_id: int):
 # =============================
 # ⭐ Menejer bahosi
 # =============================
-def save_manager_rating(user_id: int, manager_id: int, question_id: int, rating: int):
-    conn = sqlite3.connect(DB_PATH)
-    cur = conn.cursor()
-    cur.execute("""
-        INSERT INTO manager_ratings (user_id, manager_id, question_id, rating)
-        VALUES (?, ?, ?, ?)
-    """, (user_id, manager_id, question_id, rating))
-    conn.commit()
-    conn.close()
-
+def save_manager_rating(teacher_id, manager_id, question_id, rating):
+    with sqlite3.connect(DB_PATH) as conn:
+        c = conn.cursor()
+        c.execute("""
+        INSERT INTO ratings (teacher_id, manager_id, question_id, rating, rated_at)
+        VALUES (?, ?, ?, ?, ?)
+        """, (teacher_id, manager_id, question_id, rating,
+              datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+        conn.commit()
 
 # =============================
 # 🔍 Foydalanuvchi allaqachon baho berganmi?
 # =============================
-def user_already_rated(user_id: int, manager_id: int, question_id: int) -> bool:
-    conn = sqlite3.connect(DB_PATH)
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT 1 FROM manager_ratings
-        WHERE user_id=? AND manager_id=? AND question_id=?
-    """, (user_id, manager_id, question_id))
-    exists = cur.fetchone() is not None
-    conn.close()
-    return exists
+def user_already_rated(teacher_id: int, manager_id: int, question_id: int) -> bool:
+    """
+    Foydalanuvchi (teacher_id) shu menejerga (manager_id)
+    shu savol (question_id) bo‘yicha allaqachon baho berganmi – tekshiradi.
+    """
+    with sqlite3.connect(DB_PATH) as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT COUNT(*) FROM ratings
+            WHERE teacher_id = ? AND manager_id = ? AND question_id = ?
+        """, (teacher_id, manager_id, question_id))
+        result = cur.fetchone()[0]
+        return result > 0
 
 def get_manager_rating_table():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
+    from data.config import MANAGERS_BY_FACULTY
+    conn = get_connection()
     cur = conn.cursor()
 
-    cur.execute("""
-        SELECT
-            manager_id,
-            COUNT(rating) AS answered_count,
-            ROUND(AVG(rating), 2) AS avg_rating
-        FROM manager_ratings
-        GROUP BY manager_id
-        ORDER BY avg_rating DESC
-    """)
+    # 1️⃣ Faqat haqiqiy menejer ID larni yig‘amiz
+    manager_ids = set()
+    faculty_by_manager = {}
 
-    rows = []
-    for r in cur.fetchall():
-        rows.append({
+    for faculty, roles in MANAGERS_BY_FACULTY.items():
+        for uid in roles.get("student", []) + roles.get("teacher", []):
+            manager_ids.add(uid)
+            faculty_by_manager[uid] = faculty
+
+    if not manager_ids:
+        return []
+
+    placeholders = ",".join("?" for _ in manager_ids)
+
+    # 2️⃣ Reyting va javoblar statistikasi
+    cur.execute(f"""
+        SELECT
+            a.manager_id,
+            COUNT(DISTINCT a.question_id) AS answered_count,
+            COALESCE(AVG(mr.rating), 0) AS avg_rating
+        FROM answers a
+        LEFT JOIN manager_ratings mr ON mr.manager_id = a.manager_id
+        WHERE a.manager_id IN ({placeholders})
+        GROUP BY a.manager_id
+    """, tuple(manager_ids))
+
+    rows = cur.fetchall()
+    conn.close()
+
+    result = []
+    for r in rows:
+        result.append({
             "manager_id": r["manager_id"],
-            "avg_rating": r["avg_rating"] or 0,
+            "faculty": faculty_by_manager.get(r["manager_id"], ""),
             "answered_count": r["answered_count"],
+            "unanswered_count": 0,  # keyin hisoblanadi
+            "avg_rating": round(r["avg_rating"], 2),
         })
 
-    conn.close()
-    return rows
+    return result
 
 def get_manager_rating_table_by_faculty():
     """
@@ -1148,24 +1165,6 @@ def get_manager_fio(manager_id: int) -> str:
         return row["fio"]
 
     return "Noma’lum menejer"
-
-def migrate_questions_table():
-    conn = sqlite3.connect(DB_PATH)
-    cur = conn.cursor()
-
-    cur.execute("PRAGMA table_info(questions)")
-    columns = [row[1] for row in cur.fetchall()]
-
-    if "manager_id" not in columns:
-        cur.execute("ALTER TABLE questions ADD COLUMN manager_id INTEGER")
-        print("✅ manager_id ustuni qo‘shildi")
-
-    if "answered" not in columns:
-        cur.execute("ALTER TABLE questions ADD COLUMN answered INTEGER DEFAULT 0")
-        print("✅ answered ustuni qo‘shildi")
-
-    conn.commit()
-    conn.close()
 
 # =============================
 # 🚀 Dastur ishga tushganda
