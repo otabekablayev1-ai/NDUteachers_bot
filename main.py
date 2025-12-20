@@ -9,7 +9,7 @@ from handlers import commands_orders
 # === Importlar ===
 from data.config import BOT_TOKEN
 from database.db import create_tables_if_not_exist, init_db
-
+from database.db import migrate_questions_table
 # Routerlar
 from handlers import (
     start,
@@ -28,6 +28,8 @@ from handlers import (
 # ========================
 create_tables_if_not_exist()
 init_db()
+
+migrate_questions_table()
 
 # ========================
 # 🚀 BOTNI ISHGA TUSHIRISH

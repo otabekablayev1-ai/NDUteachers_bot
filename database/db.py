@@ -1166,6 +1166,24 @@ def get_manager_fio(manager_id: int) -> str:
 
     return "Noma’lum menejer"
 
+def migrate_questions_table():
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+
+    cur.execute("PRAGMA table_info(questions)")
+    columns = [row[1] for row in cur.fetchall()]
+
+    if "manager_id" not in columns:
+        cur.execute("ALTER TABLE questions ADD COLUMN manager_id INTEGER")
+        print("✅ manager_id ustuni qo‘shildi")
+
+    if "answered" not in columns:
+        cur.execute("ALTER TABLE questions ADD COLUMN answered INTEGER DEFAULT 0")
+        print("✅ answered ustuni qo‘shildi")
+
+    conn.commit()
+    conn.close()
+
 # =============================
 # 🚀 Dastur ishga tushganda
 # =============================
