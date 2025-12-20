@@ -223,14 +223,15 @@ async def send_reply(message: Message, state: FSMContext):
     # 3️⃣ FAQAT FAKULTET MENEJERI BO‘LSA — BAHOLASH
     from data.config import is_manager_id
 
-    if is_manager_id(manager_id):
+    # FAQAT MENEJER JAVOB BERGANDA
+    if is_faculty_manager(manager_id):
         stars_kb = InlineKeyboardMarkup(
             inline_keyboard=[[
-                InlineKeyboardButton(text="⭐", callback_data=f"rate_{question_id}_{manager_id}_1"),
-                InlineKeyboardButton(text="⭐⭐", callback_data=f"rate_{question_id}_{manager_id}_2"),
-                InlineKeyboardButton(text="⭐⭐⭐", callback_data=f"rate_{question_id}_{manager_id}_3"),
-                InlineKeyboardButton(text="⭐⭐⭐⭐", callback_data=f"rate_{question_id}_{manager_id}_4"),
-                InlineKeyboardButton(text="⭐⭐⭐⭐⭐", callback_data=f"rate_{question_id}_{manager_id}_5"),
+                InlineKeyboardButton(text="⭐", callback_data=f"rate:{question_id}:{manager_id}:1"),
+                InlineKeyboardButton(text="⭐⭐", callback_data=f"rate:{question_id}:{manager_id}:2"),
+                InlineKeyboardButton(text="⭐⭐⭐", callback_data=f"rate:{question_id}:{manager_id}:3"),
+                InlineKeyboardButton(text="⭐⭐⭐⭐", callback_data=f"rate:{question_id}:{manager_id}:4"),
+                InlineKeyboardButton(text="⭐⭐⭐⭐⭐", callback_data=f"rate:{question_id}:{manager_id}:5"),
             ]]
         )
 
@@ -248,44 +249,48 @@ async def send_reply(message: Message, state: FSMContext):
 ## =========================
 #   JAVOBGA BAHO QO‘YISH
 # =========================
-@router.callback_query(F.data.startswith("rate_"))
+@router.callback_query(F.data.startswith("rate:"))
 async def handle_rating(call: CallbackQuery):
-    _, qid, manager_id, rating = call.data.split("_")
-
-    question_id = int(qid)
-    manager_id = int(manager_id)
-    rating = int(rating)
-    user_id = call.from_user.id
-
-    print(f"[DEBUG] Rating: manager={manager_id}, rating={rating}")
-
-    # ✅ FAQAT HAQIQIY MENEJERLARNI TEKSHIRAMIZ
-    is_real_manager = False
-    for fac in MANAGERS_BY_FACULTY.values():
-        if manager_id in fac.get("teacher", []) or manager_id in fac.get("student", []):
-            is_real_manager = True
-            break
-    if not is_manager_id(manager_id):
-        await call.answer("❌ Bu rahbar baholanmaydi", show_alert=True)
+    try:
+        _, qid, manager_id, rating = call.data.split(":")
+        question_id = int(qid)
+        manager_id = int(manager_id)
+        rating = int(rating)
+        user_id = call.from_user.id
+    except Exception:
+        await call.answer("❌ Noto‘g‘ri format", show_alert=True)
         return
 
-    # ❌ 1 martadan ortiq baholashni bloklaymiz
+    from database.db import (
+        save_manager_rating,
+        user_already_rated
+    )
+
+    # 1️⃣ Oldin baholanganmi?
     if user_already_rated(user_id, manager_id, question_id):
-        await call.answer("✅ Siz allaqachon baho qo‘ygan ekansiz.", show_alert=True)
+        await call.answer("✅ Siz allaqachon baho qo‘ygan ekansiz", show_alert=True)
         return
 
-    # ✅ Bahoni saqlaymiz
-    save_manager_rating(user_id, manager_id, question_id, rating)
+    # 2️⃣ DB ga yozamiz
+    save_manager_rating(
+        user_id=user_id,
+        manager_id=manager_id,
+        question_id=question_id,
+        rating=rating
+    )
 
-    # ✅ Foydalanuvchiga tasdiq
+    # 3️⃣ Tugmalarni o‘chiramiz
     await call.message.edit_reply_markup(reply_markup=None)
+
+    # 4️⃣ Tasdiq
     await call.answer("⭐ Bahoyingiz qabul qilindi!", show_alert=True)
 
-    # ✅ FAQAT MENEJERGA XABAR BORADI
+    # 5️⃣ Menejerga xabar
     await call.bot.send_message(
         manager_id,
-        f"📊 Javobingizga berilgan reyting — ⭐ {rating} ball"
+        f"📊 Javobingizga {rating} ⭐ berildi"
     )
+
 
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.types import FSInputFile

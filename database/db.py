@@ -6,6 +6,29 @@ BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 DB_PATH = os.path.join(BASE_DIR, "database", "bot.db")
 from data.config import DB_PATH
 
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, declarative_base
+import os
+
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+engine = create_engine(DATABASE_URL, echo=False)
+SessionLocal = sessionmaker(bind=engine)
+Base = declarative_base()
+
+from sqlalchemy import Column, Integer, DateTime, ForeignKey
+from datetime import datetime
+
+class ManagerRating(Base):
+    __tablename__ = "manager_ratings"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, nullable=False)
+    manager_id = Column(Integer, nullable=False)
+    question_id = Column(Integer, nullable=False)
+    rating = Column(Integer, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
 def get_connection():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
@@ -1175,5 +1198,8 @@ create_orders_table()
 create_orders_links_table()
 create_manager_ratings_table()
 
+def init_db():
+    Base.metadata.create_all(bind=engine)
+    print("✅ PostgreSQL jadvallar yaratildi")
 
 

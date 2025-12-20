@@ -24,10 +24,11 @@ DB_PATH = os.getenv(
     os.path.join(os.path.dirname(__file__), "..", "database", "bot.db")
 )
 
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    f"sqlite+aiosqlite:///{DB_PATH}"
-)
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if not DATABASE_URL:
+    raise RuntimeError("❌ DATABASE_URL topilmadi")
+
 
 # ===============================================
 # 🏫 FAKULTET MENEJERLARI (Talaba va O‘qituvchi yo‘nalishida)
