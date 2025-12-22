@@ -1,33 +1,40 @@
 import sqlite3
 from datetime import datetime
 from data.config import MANAGERS_BY_FACULTY
-import os
-BASE_DIR = os.path.dirname(os.path.dirname(__file__))
-DB_PATH = os.path.join(BASE_DIR, "database", "bot.db")
 from data.config import DB_PATH
-
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 import os
+DATABASE_URL = os.getenv("DATABASE_URL")
+USE_SQLITE = not bool(DATABASE_URL)
+if not USE_SQLITE:
+    engine = create_engine(DATABASE_URL, echo=False)
+    SessionLocal = sessionmaker(bind=engine)
+    Base = declarative_base()
+
+if not USE_SQLITE:
+    from sqlalchemy import Column, Integer, DateTime
+    from datetime import datetime
+
+    class ManagerRating(Base):
+        __tablename__ = "manager_ratings"
+
+        id = Column(Integer, primary_key=True)
+        user_id = Column(Integer, nullable=False)
+        manager_id = Column(Integer, nullable=False)
+        question_id = Column(Integer, nullable=False)
+        rating = Column(Integer, nullable=False)
+        created_at = Column(DateTime, default=datetime.utcnow)
+
+import os
 
 DATABASE_URL = os.getenv("DATABASE_URL")
+USE_SQLITE = DATABASE_URL is None
 
-engine = create_engine(DATABASE_URL, echo=False)
-SessionLocal = sessionmaker(bind=engine)
-Base = declarative_base()
+if USE_SQLITE:
+    BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+    DB_PATH = os.path.join(BASE_DIR, "database", "bot.db")
 
-from sqlalchemy import Column, Integer, DateTime, ForeignKey
-from datetime import datetime
-
-class ManagerRating(Base):
-    __tablename__ = "manager_ratings"
-
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, nullable=False)
-    manager_id = Column(Integer, nullable=False)
-    question_id = Column(Integer, nullable=False)
-    rating = Column(Integer, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
 
 def get_connection():
     conn = sqlite3.connect(DB_PATH)
@@ -350,33 +357,33 @@ def user_already_rated(teacher_id: int, manager_id: int, question_id: int) -> bo
 
 def get_manager_rating_table():
     from data.config import MANAGERS_BY_FACULTY
-    conn = get_connection()
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
     cur = conn.cursor()
 
-    # 1️⃣ Faqat haqiqiy menejer ID larni yig‘amiz
+    # 1️⃣ Faqat haqiqiy menejer ID lar
     manager_ids = set()
     faculty_by_manager = {}
 
     for faculty, roles in MANAGERS_BY_FACULTY.items():
-        for uid in roles.get("student", []) + roles.get("teacher", []):
-            manager_ids.add(uid)
-            faculty_by_manager[uid] = faculty
+        for mid in (roles.get("teacher", []) + roles.get("student", [])):
+            manager_ids.add(mid)
+            faculty_by_manager[mid] = faculty
 
     if not manager_ids:
         return []
 
-    placeholders = ",".join("?" for _ in manager_ids)
+    placeholders = ",".join("?" * len(manager_ids))
 
-    # 2️⃣ Reyting va javoblar statistikasi
+    # 2️⃣ REYTINGNI TO‘G‘RI JADVALDAN O‘QIYMIZ
     cur.execute(f"""
         SELECT
-            a.manager_id,
-            COUNT(DISTINCT a.question_id) AS answered_count,
-            COALESCE(AVG(mr.rating), 0) AS avg_rating
-        FROM answers a
-        LEFT JOIN manager_ratings mr ON mr.manager_id = a.manager_id
-        WHERE a.manager_id IN ({placeholders})
-        GROUP BY a.manager_id
+            manager_id,
+            COUNT(DISTINCT question_id) AS answered_count,
+            ROUND(AVG(rating), 2) AS avg_rating
+        FROM ratings
+        WHERE manager_id IN ({placeholders})
+        GROUP BY manager_id
     """, tuple(manager_ids))
 
     rows = cur.fetchall()
@@ -388,13 +395,13 @@ def get_manager_rating_table():
             "manager_id": r["manager_id"],
             "faculty": faculty_by_manager.get(r["manager_id"], ""),
             "answered_count": r["answered_count"],
-            "unanswered_count": 0,  # keyin hisoblanadi
-            "avg_rating": round(r["avg_rating"], 2),
+            "unanswered_count": 0,
+            "avg_rating": r["avg_rating"] or 0,
         })
 
     return result
 
-def get_manager_rating_table_by_faculty():
+def get_rating_table_by_faculty():
     """
     7 ta fakultet bo‘yicha:
     - menejer(lar) FIO (teachers jadvalidan)
@@ -1197,9 +1204,5 @@ create_tables_if_not_exist()
 create_orders_table()
 create_orders_links_table()
 create_manager_ratings_table()
-
-def init_db():
-    Base.metadata.create_all(bind=engine)
-    print("✅ PostgreSQL jadvallar yaratildi")
 
 

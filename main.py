@@ -34,6 +34,7 @@ async def main():
 create_tables_if_not_exist()
 init_db()
 
+
 # ========================
 # 🚀 BOTNI ISHGA TUSHIRISH
 # ========================
@@ -84,10 +85,10 @@ async def main():
     await dp.start_polling(bot)
 
 
+from database.db import init_db
+
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except (KeyboardInterrupt, SystemExit):
-        logger.warning("🛑 Bot to‘xtatildi.")
+    init_db()
+    asyncio.run(main())
 
 

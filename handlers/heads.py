@@ -222,7 +222,7 @@ async def send_reply(message: Message, state: FSMContext):
 
     # 3️⃣ FAQAT FAKULTET MENEJERI BO‘LSA — BAHOLASH
     from data.config import is_manager_id
-
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
     # FAQAT MENEJER JAVOB BERGANDA
     if is_faculty_manager(manager_id):
         stars_kb = InlineKeyboardMarkup(
@@ -240,7 +240,6 @@ async def send_reply(message: Message, state: FSMContext):
             "⭐ Iltimos, javobni baholang:",
             reply_markup=stars_kb
         )
-
     # 4️⃣ Rahbarga tasdiq
     await message.answer("✅ Javob foydalanuvchiga yuborildi.")
 
@@ -251,46 +250,38 @@ async def send_reply(message: Message, state: FSMContext):
 # =========================
 @router.callback_query(F.data.startswith("rate:"))
 async def handle_rating(call: CallbackQuery):
-    try:
-        _, qid, manager_id, rating = call.data.split(":")
-        question_id = int(qid)
-        manager_id = int(manager_id)
-        rating = int(rating)
-        user_id = call.from_user.id
-    except Exception:
-        await call.answer("❌ Noto‘g‘ri format", show_alert=True)
-        return
+    await call.answer()  # ⭐ MUHIM! Tugma "bosildi" deb his qilinadi
 
-    from database.db import (
-        save_manager_rating,
-        user_already_rated
-    )
+    _, qid, manager_id, rating = call.data.split(":")
 
-    # 1️⃣ Oldin baholanganmi?
+    question_id = int(qid)
+    manager_id = int(manager_id)
+    rating = int(rating)
+    user_id = call.from_user.id
+
+    # ❌ qayta baholashni oldini olish
     if user_already_rated(user_id, manager_id, question_id):
-        await call.answer("✅ Siz allaqachon baho qo‘ygan ekansiz", show_alert=True)
+        await call.answer("❗ Siz allaqachon baho bergansiz", show_alert=True)
         return
 
-    # 2️⃣ DB ga yozamiz
+    # 💾 DB ga yozish
     save_manager_rating(
-        user_id=user_id,
+        teacher_id=user_id,
         manager_id=manager_id,
         question_id=question_id,
         rating=rating
     )
 
-    # 3️⃣ Tugmalarni o‘chiramiz
+    # ✅ tugmani o‘chiramiz
     await call.message.edit_reply_markup(reply_markup=None)
 
-    # 4️⃣ Tasdiq
     await call.answer("⭐ Bahoyingiz qabul qilindi!", show_alert=True)
 
-    # 5️⃣ Menejerga xabar
+    # 📩 menejerga xabar
     await call.bot.send_message(
         manager_id,
-        f"📊 Javobingizga {rating} ⭐ berildi"
+        f"📊 Javobingizga ⭐ {rating} ball berildi"
     )
-
 
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.types import FSInputFile
