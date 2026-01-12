@@ -1,3 +1,6 @@
+# teacher_panel.py TO'LIQ
+import asyncio
+
 from aiogram import Router, F
 from aiogram.types import (
     Message, ReplyKeyboardMarkup, KeyboardButton,
@@ -10,9 +13,6 @@ from database.db import get_teacher, save_manager_rating
 from database.db import save_question
 from keyboards.send_to_head import get_send_to_head_panel
 from data.config import MANAGERS_BY_FACULTY
-
-import asyncio
-
 
 router = Router()
 
@@ -73,98 +73,108 @@ async def start_send_message(message: Message, state: FSMContext):
 # ===========================================================
 @router.message(TeacherSendFSM.faculty)
 async def ask_question(message: Message, state: FSMContext):
-    print("[TEACHER HANDLER TUSHDI]")
     faculty = message.text.strip()
     await state.update_data(faculty=faculty)
 
-    if "fakulteti" in faculty.lower():
-        msg = f"✏️ Iltimos, o‘z savolingizni yozing.\n\nSizning xabaringiz {faculty} menejeriga yuboriladi."
-    else:
-        msg = f"✏️ Iltimos, o‘z savolingizni yozing.\n\nSizning xabaringiz “{faculty}” ga yuboriladi."
-
-    await message.answer(msg, reply_markup=ReplyKeyboardRemove())
+    await message.answer(
+        "✏️ Iltimos, savolingizni yozing.\n\n"
+        "Xabaringiz fakultet rahbariga yuboriladi.",
+        reply_markup=ReplyKeyboardRemove()
+    )
     await state.set_state(TeacherSendFSM.waiting_message)
+
+def normalize_faculty(name: str | None) -> str:
+    if not name:
+        return "Noma'lum"
+    return " ".join(name.strip().split())
 
 # ===========================================================
 # 3️⃣ O‘QITUVCHI / TYUTOR — RAHBARGA SAVOL YUBORISH
 # ===========================================================
 @router.message(TeacherSendFSM.waiting_message, F.text | F.photo | F.video | F.document)
 async def send_to_head(message: Message, state: FSMContext):
-    print("[TEACHER HANDLER TUSHDI]")
+    print("[TEACHER SEND] handler ishladi")
+
+    # 🔴 MUHIM: data ENG BOSHIDA olinadi
     data = await state.get_data()
-    faculty = data.get("faculty")
-
-    # 🔹 TALABA ma’lumotini students jadvalidan olamiz
-    sender = get_teacher(message.from_user.id)
-
-    if not sender:
-        print("[DEBUG] TEACHER topilmadi. ID:", message.from_user.id)
-        await message.answer("⚠️ Avval ro‘yxatdan o‘ting.")
-        await state.clear()
-        return
-    else:
-        print("[DEBUG] TEACHER topildi:", sender)
-
-    # student tuple tartibi – sizdagi db.py ga moslashgan variant:
-    # (user_id, fio, phone, faculty, edu_type, edu_form, course, student_group, passport, created_at)
-    fio = sender[1] or message.from_user.full_name
-    fakultet = sender[3] or "Noma’lum"
-    phone = sender[2] or "Noma’lum"
-
-    # ============================
-    #   QABUL QILUVCHI RAHBARLAR
-    # ============================
-    from data.config import MANAGERS_BY_FACULTY, RAHBARLAR, normalize_faculty
 
     faculty_raw = data.get("faculty")
     faculty = normalize_faculty(faculty_raw)
 
+    print("==== SEND TO HEAD DEBUG ====")
+    print("RAW faculty:", faculty_raw)
+    print("NORMALIZED faculty:", faculty)
+    print("MANAGERS_BY_FACULTY KEYS:", list(MANAGERS_BY_FACULTY.keys()))
+
+    teacher = get_teacher(message.from_user.id)
+    if not teacher:
+        await message.answer("⚠️ Avval ro‘yxatdan o‘ting.")
+        await state.clear()
+        return
+
+    fio = teacher.fio or message.from_user.full_name
+    phone = getattr(teacher, "phone", "Noma’lum")
+
+    # ============================
+    # RAHBARLARNI ANIQLASH
+    # ============================
     recipients = []
 
-    # 1️⃣ AVVAL — FAKULTET MENEJERI (O‘QITUVCHI / TYUTOR)
-    fac = MANAGERS_BY_FACULTY.get(faculty)
-    if fac:
-        recipients = fac.get("teacher", [])
+    for key, value in MANAGERS_BY_FACULTY.items():
+        if key.lower().strip() == faculty.lower().strip():
+            recipients = value.get("teacher", [])
+            break
 
-    # 2️⃣ AGAR YO‘Q BO‘LSA — UMUMIY RAHBARLAR
     if not recipients:
         for ids in RAHBARLAR.values():
             recipients.extend(ids)
 
-    # ============================
-    #   RAHBARGA YUBORILADIGAN XABAR
-    # ============================
-    from database.db import save_question
+    recipients = list(set(recipients))
+    print("[DEBUG] FINAL RECIPIENTS:", recipients)
 
-    # ...
-    qid = save_question(
+    if not recipients:
+        await message.answer("❌ Rahbar topilmadi.")
+        await state.clear()
+        return
+
+    # ============================
+    # SAVOLNI DB GA SAQLASH
+    # ============================
+    question_id = save_question(
         sender_id=message.from_user.id,
+        sender_role="teacher",  # 🔥 MUHIM
         faculty=faculty,
-        message_text=message.text,
+        message_text=message.text if message.text else "[FAYL]",
         fio=fio
     )
 
-    reply_kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(
-            text="✉️ Javob yozish",
-            callback_data=f"reply_q_{qid}"
-        )]
-    ])
-
+    # ============================
+    # RAHBARGA YUBORISH
+    # ============================
     info_text = (
-        f"🎓 <b>{faculty}</b>ga yangi savol:\n\n"
-        f"<b>F.I.Sh:</b> {fio}\n"
-        f"<b>Telefon:</b> {phone}\n"
-        f"<b>Fakultet:</b> {fakultet}\n\n"
+        f"📩 <b>Yangi savol (O‘QITUVCHI / TYUTOR)</b>\n\n"
+        f"👤 <b>{fio}</b>\n"
+        f"📞 {phone}\n"
+        f"🏫 {faculty}\n\n"
+    )
+
+    reply_kb = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(
+                text="✉️ Javob yozish",
+                callback_data=f"reply_{question_id}"
+            )]
+        ]
     )
 
     sent = 0
+
     for head_id in recipients:
         try:
             if message.text:
                 await message.bot.send_message(
                     head_id,
-                    info_text + f"<b>Savol matni:</b>\n{message.text}",
+                    info_text + f"<b>Savol:</b>\n{message.text}",
                     parse_mode="HTML",
                     reply_markup=reply_kb
                 )
@@ -172,35 +182,36 @@ async def send_to_head(message: Message, state: FSMContext):
                 await message.bot.send_document(
                     head_id,
                     message.document.file_id,
-                    caption=info_text + f"<b>Fayl:</b> {message.document.file_name}",
-                    parse_mode="HTML",
+                    caption=info_text,
                     reply_markup=reply_kb
                 )
             elif message.photo:
                 await message.bot.send_photo(
                     head_id,
                     message.photo[-1].file_id,
-                    caption=info_text + "<b>Rasm yuborildi.</b>",
-                    parse_mode="HTML",
+                    caption=info_text,
                     reply_markup=reply_kb
                 )
             elif message.video:
                 await message.bot.send_video(
                     head_id,
                     message.video.file_id,
-                    caption=info_text + "<b>Video yuborildi.</b>",
-                    parse_mode="HTML",
+                    caption=info_text,
                     reply_markup=reply_kb
                 )
+
             sent += 1
             await asyncio.sleep(0.2)
+
         except Exception as e:
-            print(f"[TEACHER_PANEL] Xabar yuborishda xatolik: {e}")
+            print("[SEND ERROR]", e, "HEAD_ID:", head_id)
 
-    if "fakulteti" in faculty.lower():
-        conf_text = f"✅ Savolingiz {faculty} menejeriga yuborildi."
+    # ============================
+    # O‘QITUVCHIGA TASDIQ
+    # ============================
+    if sent > 0:
+        await message.answer("✅ Savolingiz rahbarga yuborildi.")
     else:
-        conf_text = f"✅ Savolingiz “{faculty}” rahbariga yuborildi."
+        await message.answer("⚠️ Savol yuborilmadi. Administratorga murojaat qiling.")
 
-    await message.answer(conf_text)
     await state.clear()

@@ -1,34 +1,26 @@
 import os
 from dotenv import load_dotenv
 
-# .env ni yuklash
-load_dotenv()
+# .env ni ANIQ YO‘L bilan yuklaymiz
+load_dotenv("data/.env")
 
-# ===============================================
-# 🧩 Yordamchi FUNKSIYA (ENG MUHIMI)
-# ===============================================
 def parse_ids(value: str):
-    """Vergul bilan ajratilgan ID-larni int listga aylantiradi."""
     if not value:
         return []
     return [int(x) for x in value.split(",") if x.strip().isdigit()]
 
-# ===============================================
-# 🔐 BOT SOZLAMALARI
-# ===============================================
 BOT_TOKEN = os.getenv("BOT_TOKEN", "")
 ADMINS = parse_ids(os.getenv("ADMINS", ""))
 
-DB_PATH = os.getenv(
-    "DB_PATH",
-    os.path.join(os.path.dirname(__file__), "..", "database", "bot.db")
-)
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    raise RuntimeError("DATABASE_URL is not set")
 
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "sqlite:///database/bot.db"   # ← fallback
+# asyncpg ga majburiy o‘tkazamiz
+DATABASE_URL = DATABASE_URL.replace(
+    "postgresql://",
+    "postgresql+asyncpg://"
 )
-
 # ===============================================
 # 🏫 FAKULTET MENEJERLARI (Talaba va O‘qituvchi yo‘nalishida)
 # ===============================================
@@ -100,15 +92,18 @@ def parse_ids(value: str):
     """Vergul bilan ajratilgan ID-larni int listga aylantiradi."""
     return [int(x) for x in value.split(",") if x.strip().isdigit()]
 
-def normalize_faculty(name: str) -> str:
-    if not name:
+def normalize_faculty(text: str) -> str:
+    if not text:
         return ""
+
     return (
-        name.replace("ga", "")
+        text.lower()
+            .replace("fakulteti", "")
+            .replace("fakultet", "")
+            .replace("ga", "")
             .replace("dan", "")
-            .replace("iga", "")
             .replace("iga", "")
             .replace("  ", " ")
             .strip()
+            .title()
     )
-

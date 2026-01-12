@@ -1,16 +1,14 @@
 import asyncio
+import signal
 from loguru import logger
 from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.client.default import DefaultBotProperties
-from handlers import commands_orders
 
-# === Importlar ===
 from data.config import BOT_TOKEN
-from database.db import create_tables_if_not_exist, init_db
+from database.db import init_db
 
-# Routerlar
 from handlers import (
     start,
     registration,
@@ -19,21 +17,23 @@ from handlers import (
     admin_message,
     heads,
     teacher_panel,
-    student_panel
-
+    student_panel,
+    commands_orders
 )
-from database.db import init_db
-
-async def main():
-    init_db()   # 🔥 MIGRATION
-    ...
 
 # ========================
-# 🔧 BAZANI TAYYORLASH
+# 🔧 DATABASE INIT (FAKAT 1 MARTA)
 # ========================
-create_tables_if_not_exist()
 init_db()
 
+# ========================
+# 🛑 Graceful shutdown
+# ========================
+stop_event = asyncio.Event()
+
+def shutdown():
+    logger.warning("⛔ Bot to‘xtatilmoqda...")
+    stop_event.set()
 
 # ========================
 # 🚀 BOTNI ISHGA TUSHIRISH
@@ -48,47 +48,41 @@ async def main():
 
     dp = Dispatcher(storage=MemoryStorage())
 
-    print("Routers loaded: START")
-
-    # === Router tartibi MUHIM! ===
-    dp.include_router(start.router)  # START
-    print("START OK")
-
-    dp.include_router(admin.router)  # ADMIN
-    print("ADMIN OK")
-
+    # 🔥 Routerlar tartibi juda muhim!
+    dp.include_router(start.router)
+    dp.include_router(admin.router)
     dp.include_router(admin_register_check.router)
-    print("ADMIN CHECK OK")
-
     dp.include_router(admin_message.router)
-    print("ADMIN MSG OK")
-
     dp.include_router(commands_orders.router)
-    print("ORDERS OK")
+    dp.include_router(heads.router)
+    dp.include_router(teacher_panel.router)
+    dp.include_router(student_panel.router)
+    dp.include_router(registration.router)
 
-    dp.include_router(heads.router)  # RAHBARLAR
-    print("HEADS OK")
-
-    dp.include_router(teacher_panel.router)  # O‘QITUVCHI PANEL
-    print("TEACHER OK")
-
-    dp.include_router(student_panel.router)  # TALABA PANEL
-    print("STUDENT OK")
-
-    dp.include_router(registration.router)  # RO‘YXAT
-    print("REG OK")
-
-    # === Polling ===
     await bot.delete_webhook(drop_pending_updates=True)
-    logger.info(f"✅ Bot @{(await bot.get_me()).username} ishga tushdi!")
+    me = await bot.get_me()
+    logger.info(f"✅ Bot @{me.username} ishga tushdi!")
 
-    await dp.start_polling(bot)
+    # Pollingni backgroundda ishga tushiramiz
+    polling_task = asyncio.create_task(dp.start_polling(bot))
 
+    # To‘xtatish signallarini kutamiz
+    await stop_event.wait()
 
-from database.db import init_db
+    polling_task.cancel()
+    await bot.session.close()
+    logger.warning("🛑 Bot to‘xtadi.")
 
+# ========================
+# 🔁 Entry point
+# ========================
 if __name__ == "__main__":
-    init_db()
-    asyncio.run(main())
+    loop = asyncio.get_event_loop()
 
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        loop.add_signal_handler(sig, shutdown)
 
+    try:
+        loop.run_until_complete(main())
+    except Exception as e:
+        logger.exception("❌ Fatal error:", e)

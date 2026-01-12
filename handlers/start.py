@@ -12,7 +12,6 @@ router = Router()
 
 @router.message(F.text == "/start")
 async def start_handler(message: Message, state: FSMContext):   # 👈 state qo‘shildi
-
     print("DEBUG USER:", message.from_user.id)
     print("→ STUDENT:", get_student(message.from_user.id))
     print("→ TEACHER:", get_teacher(message.from_user.id))
@@ -89,31 +88,28 @@ async def start_handler(message: Message, state: FSMContext):   # 👈 state qo�
             return
 
     # ==========================================
-    # O‘QITUVCHI (oldin ro‘yxatdan o‘tgan)
+    # TALABA
     # ==========================================
-    # ✅ AVVAL TALABA
     student = get_student(user_id)
     if student:
-        fio = student[1] or full_name
         kb = ReplyKeyboardMarkup(
-            keyboard=[
-                [KeyboardButton(text="📨 Rahbarlarga savol va murojaatlar yozish")]
-            ],
+            keyboard=[[KeyboardButton(text="📨 Rahbarlarga savol va murojaatlar yozish")]],
             resize_keyboard=True
         )
         await message.answer(
-            f"👋 Assalomu alaykum, hurmatli talaba <b>{fio}</b>!\n"
-            "Siz talaba panelidasiz.",
+            f"👋 Assalomu alaykum, hurmatli talaba <b>{student.fio}</b>!",
             parse_mode="HTML",
             reply_markup=kb
         )
         return
 
-    # ✅ KEYIN O‘QITUVCHI
+    # ==========================================
+    # O‘QITUVCHI / TYUTOR
+    # ==========================================
     teacher = get_teacher(user_id)
     if teacher:
-        fio = teacher[1] or full_name
-        role = teacher[6] or "O‘qituvchi"
+        fio = teacher.fio or full_name
+        role = (teacher.role or "").lower().strip()
 
         kb = ReplyKeyboardMarkup(
             keyboard=[
@@ -122,13 +118,20 @@ async def start_handler(message: Message, state: FSMContext):   # 👈 state qo�
             resize_keyboard=True
         )
 
+        if role == "teacher":
+            title = "o‘qituvchi"
+        elif role == "tutor":
+            title = "tyutor"
+        else:
+            title = "xodim"
+
         await message.answer(
             f"👋 Assalomu alaykum, hurmatli <b>{fio}</b>!\n"
-            "Siz o‘qituvchi panelidasiz.",
+            f"Siz {title} panelidasiz.",
             parse_mode="HTML",
             reply_markup=kb
         )
         return
-    # 5) YANGI FOYDALANUVCHI
-    return await start_registration(message, state)
-    # ==========================================
+
+    # YANGI FOYDALANUVCHI
+    await start_registration(message, state)

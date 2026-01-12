@@ -8,7 +8,7 @@ from aiogram.fsm.state import State, StatesGroup
 import pandas as pd
 import shutil
 from database.db import move_request_to_main_tables
-from data.config import ADMINS, DB_PATH
+from data.config import ADMINS
 from database.db import (
     get_pending_requests,
     find_teachers_by_name,
@@ -41,64 +41,56 @@ async def admin_menu(message: Message):
 
     await message.answer(
         "🔐 <b>Admin panel</b>:\nKerakli bo‘limni tanlang ⤵️",
-        parse_mode="HTML",
-        reply_markup=kb
+        parse_mode="HTML"
     )
 
 
 # =====================================================
 # 📥 RO‘YXAT SO‘ROVLARI (O‘QITUVCHI / TYUTOR / TALABA)
 # =====================================================
+from aiogram import Router, F
+from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
+
+from database.db import get_pending_requests, move_request_to_main_tables, reject_request
+
+router = Router()
+
+
+# ✅ So‘rovlarni ko‘rsatish (admin panel)
 @router.message(F.text == "📥 Ro‘yxat so‘rovlari")
 async def show_register_requests(message: Message):
-    if message.from_user.id not in ADMINS:
-        return
-
     requests = get_pending_requests()
+
     if not requests:
-        await message.answer("📭 Hozircha yangi so‘rovlar yo‘q.")
+        await message.answer("📭 Yangi ro‘yxatdan o‘tish so‘rovlari yo‘q.")
         return
 
-    async def send_block(title: str, rows: list):
-        if not rows:
-            return
-        await message.answer(title, parse_mode="HTML")
+    for req in requests:
+        text = (
+            "🆕 <b>Yangi ro‘yxatdan o‘tish so‘rovi</b>\n\n"
+            f"👤 FIO: {req['fio']}\n"
+            f"📞 Telefon: {req['phone']}\n"
+            f"🏫 Fakultet: {req['faculty']}\n"
+            f"🎓 Rol: {req['role']}\n"
+            f"🆔 Telegram ID: <code>{req['user_id']}</code>"
+        )
 
-        for r in rows:
-            text = (
-                f"👤 <b>{r['fio']}</b>\n"
-                f"📞 {r['phone']}\n"
-            )
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="✅ Tasdiqlash",
+                    callback_data=f"approve_{req['user_id']}"
+                ),
+                InlineKeyboardButton(
+                    text="❌ Rad etish",
+                    callback_data=f"reject_{req['user_id']}"
+                )
+            ]
+        ])
 
-            if r.get("faculty"):
-                text += f"🏛 {r['faculty']}\n"
-            if r.get("department"):
-                text += f"🏢 {r['department']}\n"
-            if r.get("edu_type"):
-                text += f"🎓 {r['edu_type']} | {r['edu_form']}\n"
-            if r.get("course"):
-                text += f"📚 {r['course']}-kurs  |  Guruh: {r['student_group']}\n"
+        await message.answer(text, reply_markup=kb, parse_mode="HTML")
 
-            kb = InlineKeyboardMarkup(
-                inline_keyboard=[
-                    [InlineKeyboardButton(text="✔ Tasdiqlash", callback_data=f"approve_{r['user_id']}")],
-                    [InlineKeyboardButton(text="❌ Rad etish", callback_data=f"reject_{r['user_id']}")]
-                ]
-            )
-
-            await message.answer(text, reply_markup=kb, parse_mode="HTML")
-
-    teachers = [r for r in requests if r['role'] == "O‘qituvchi"]
-    tutors = [r for r in requests if r['role'] == "Tyutor"]
-    students = [r for r in requests if r['role'] == "Talaba"]
-
-    await send_block("🧑‍🏫 <b>O‘qituvchilar:</b>", teachers)
-    await send_block("🧑‍🏫 <b>Tyutorlar:</b>", tutors)
-    await send_block("🎓 <b>Talabalar:</b>", students)
-
-# =====================================================
-# ✅ TASDIQLASH / RAD ETISH
-# =====================================================
+# ✅ TASDIQLASH
 @router.callback_query(F.data.startswith("approve_"))
 async def approve_user(call: CallbackQuery):
     user_id = int(call.data.split("_")[1])
@@ -106,12 +98,14 @@ async def approve_user(call: CallbackQuery):
     ok = move_request_to_main_tables(user_id)
 
     if not ok:
-        await call.answer("⚠️ So‘rov topilmadi yoki allaqachon tasdiqlangan.", show_alert=True)
+        await call.answer(
+            "⚠️ So‘rov topilmadi yoki allaqachon tasdiqlangan.",
+            show_alert=True
+        )
         return
 
     await call.message.edit_text("✅ Foydalanuvchi tasdiqlandi.")
 
-    # Foydalanuvchiga xabar yuborish
     try:
         await call.bot.send_message(
             user_id,
@@ -130,30 +124,31 @@ async def approve_user(call: CallbackQuery):
             "👤 Rahbarlar tugmalari orqali — fakultet yoki bo‘lim rahbarlariga murojaat qilishingiz mumkin.\n\n"
             "🤖 Ushbu bot Navoiy davlat universiteti Registrator ofisi menejeri "
             "<b>O. Ablayev</b> tomonidan ishlab chiqilgan.\n\n"
-            "✅ Ma’lumotlaringiz tasdiqlandi! Endi botdan to‘liq foydalanishingiz mumkin."
-            ,
-            parse_mode="HTML",
-            disable_web_page_preview=True
+            "✅ Ma’lumotlaringiz tasdiqlandi! Endi botdan to‘liq foydalanishingiz mumkin.",
         )
-
     except:
         pass
 
     await call.answer()
 
-
+# ❌ RAD ETISH
 @router.callback_query(F.data.startswith("reject_"))
 async def reject_user(call: CallbackQuery):
     user_id = int(call.data.split("_")[1])
 
-    delete_register_request(user_id)
+    ok = reject_request(user_id)
+
+    if not ok:
+        await call.answer("⚠️ So‘rov topilmadi.", show_alert=True)
+        return
+
     await call.message.edit_text("❌ Rad etildi.")
     try:
-        await call.bot.send_message(user_id, "❌ Ma’lumotlaringiz rad etildi.")
+        await call.bot.send_message(user_id, "❌ Ro‘yxatdan o‘tish so‘rovingiz rad etildi.")
     except:
         pass
-    await call.answer()
 
+    await call.answer("Rad etildi ❌")
 # =====================================================
 # 🔍 QIDIRISH
 # =====================================================
@@ -293,7 +288,7 @@ async def backup_db(message: Message):
         return
 
     backup_file = "backup_bot.db"
-    shutil.copy(DB_PATH, backup_file)
+    shutil.copy(backup_file)
 
     await message.answer_document(
         FSInputFile(backup_file),

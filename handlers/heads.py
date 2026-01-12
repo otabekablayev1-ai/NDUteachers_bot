@@ -1,10 +1,11 @@
 #heads.py to'liq
 from aiogram import Router, F
-
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.types import (
     ReplyKeyboardMarkup, KeyboardButton,
     Message, CallbackQuery,
 )
+from database.db import get_question_by_id
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from data.config import MANAGERS_BY_FACULTY, RAHBARLAR
@@ -15,26 +16,22 @@ from database.db import (
     save_manager_rating,
     user_already_rated,
     get_all_teachers,
-    get_manager_rating_table,   # 🆕 shu qator
 )
-from database.db import get_filtered_students
-from openpyxl import Workbook
-from aiogram.types import FSInputFile
-import os
+from aiogram.fsm.state import StatesGroup, State
 
-from handlers.constants import FACULTIES  # talabalar uchun fakultetlar ro‘yxati
-from database.db import get_question_by_id
-from database.db import get_manager_rating_table as get_manager_rating
-from database.db import get_teacher
+class ReplyFSM(StatesGroup):
+    waiting = State()   # 🔴 MUHIM
+
+
+from database.db import get_filtered_students
+
 router = Router()
+
+from database.db import get_latest_questions_for_manager
 
 # =========================
 #   FSM HOLATLARI
 # =========================
-class ReplyFSM(StatesGroup):
-    waiting = State()
-
-
 class ReplyQuestionFSM(StatesGroup):  # DB orqali savol
     waiting = State()
 
@@ -68,22 +65,6 @@ def is_faculty_manager(manager_id: int) -> bool:
     return False
 
 # =========================
-#  Rahbar paneli klaviaturasi
-# =========================
-# def get_rahbar_panel() -> ReplyKeyboardMarkup:
-    return ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(text="📥 Savollarni ko‘rish")],
-            [KeyboardButton(text="📨 Xabar yuborish")],
-            [KeyboardButton(text="📊 Statistika")],
-            [KeyboardButton(text="🏆 Menejerlar reytingi")],
-            [KeyboardButton(text="📘 Buyruqlar")],
-        ],
-        resize_keyboard=True
-    )
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-
-# =========================
 #   /rahbar – faqat rahbarlar
 # =========================
 def get_global_managers():
@@ -111,69 +92,65 @@ def get_faculty_manager(role: str, faculty: str):
 # =========================
 @router.message(F.text == "📥 Savollarni ko‘rish")
 async def view_questions(message: Message):
-    questions = get_latest_questions(limit=10)
+    manager_id = message.from_user.id
+
+    questions = get_latest_questions_for_manager(manager_id)
     if not questions:
-        await message.answer("📭 Hozircha yangi savollar mavjud emas.")
+        await message.answer("📭 Siz uchun yangi savollar yo‘q.")
         return
 
     for q in questions:
-        answered = q.get("answered")
+        answered = q["answered"]
         status = "✅ <b>Javob berilgan</b>" if answered else "⚠️ <b>Javob kutilmoqda</b>"
 
         text = (
             f"📩 <b>Yangi savol</b>\n\n"
-            f"👤 <b>F.I.Sh:</b> {q.get('fio')}\n"
-            f"🏫 <b>Fakultet:</b> {q.get('faculty')}\n"
-            f"🕓 <b>Vaqt:</b> {q.get('created_at')}\n\n"
-            f"❓ <b>Savol matni:</b>\n{q.get('message_text')}\n\n"
+            f"👤 <b>F.I.Sh:</b> {q['fio']}\n"
+            f"🏫 <b>Fakultet:</b> {q['faculty']}\n"
+            f"🕓 <b>Vaqt:</b> {q['created_at']}\n\n"
+            f"❓ <b>Savol:</b>\n{q['message_text']}\n\n"
             f"{status}"
         )
 
+        kb = None
         if not answered:
-            reply_kb = InlineKeyboardMarkup(
-                inline_keyboard=[
-                    [
-                        InlineKeyboardButton(
-                            text="✉️ Javob yozish",
-                            callback_data=f"reply_{q['id']}"
-                        )
-                    ]
-                ]
+            kb = InlineKeyboardMarkup(
+                inline_keyboard=[[
+                    InlineKeyboardButton(
+                        text="✉️ Javob yozish",
+                        callback_data=f"reply_{q['id']}"
+                    )
+                ]]
             )
 
-        else:
-            reply_kb = None
-
-        await message.answer(text, parse_mode="HTML", reply_markup=reply_kb)
+        await message.answer(text, parse_mode="HTML", reply_markup=kb)
 
 # =========================
 #   JAVOB YOZISH
 # =========================
 @router.callback_query(F.data.startswith("reply_"))
 async def start_reply(call: CallbackQuery, state: FSMContext):
+    question_id = int(call.data.split("_")[1])
 
-    qid = int(call.data.split("_")[-1])
-
-    q = get_question_by_id(qid)
+    q = get_question_by_id(question_id)
     if not q:
-        await call.answer("❗ Savol topilmadi.", show_alert=True)
+        await call.answer("❗ Savol topilmadi", show_alert=True)
         return
 
-    # 🔑 STATE TO‘LDIRILADI (HAMMASI SHU YERDA)
     await state.update_data(
-        question_id = qid,
-        sender_id   = q["sender_id"],
+        question_id=question_id,
+        sender_id=q.sender_id   # ✅ MUHIM JOY
     )
 
     await call.message.answer(
-        f"✏️ <b>{q['fio']}</b> ga javob yozing:",
+        f"✏️ <b>{q.fio}</b> ga javob yozing:",
         parse_mode="HTML"
     )
 
     await state.set_state(ReplyFSM.waiting)
     await call.answer()
 
-@router.message(ReplyFSM.waiting, F.text | F.document | F.photo | F.video)
+@router.message(ReplyFSM.waiting, F.text | F.photo | F.document | F.video)
 async def send_reply(message: Message, state: FSMContext):
     data = await state.get_data()
 
@@ -181,19 +158,14 @@ async def send_reply(message: Message, state: FSMContext):
     sender_id = data.get("sender_id")
     manager_id = message.from_user.id
 
-    from database.db import save_manager_name
-    save_manager_name(manager_id, message.from_user.full_name)
-
     if not question_id or not sender_id:
         await message.answer("❗ Xatolik: savol topilmadi.")
+        await state.clear()
         return
 
-    # --- LOG ---
-    print(f"[DEBUG] send_reply() manager_id={manager_id}")
-
-    # 1️⃣ Javobni userga yuborish
     header = f"💬 <b>Rahbar javobi</b>\n👤 {message.from_user.full_name}\n\n"
 
+    # 1️⃣ USERGA JAVOB
     if message.text:
         await message.bot.send_message(sender_id, header + message.text, parse_mode="HTML")
         answer_text = message.text
@@ -208,41 +180,42 @@ async def send_reply(message: Message, state: FSMContext):
         answer_text = "Video"
     else:
         await message.answer("❗ Noma’lum format.")
+        await state.clear()
         return
 
     # 2️⃣ DB ga yozish
-    save_answer(question_id, manager_id, answer_text)
-    mark_question_answered(question_id)
-    from database.db import save_manager_name
+    try:
+        save_answer(question_id, manager_id, answer_text)
+        mark_question_answered(question_id)
+    except Exception as e:
+        print("[HEADS] DB error:", e)
 
-    save_manager_name(
-        user_id=manager_id,
-        full_name=message.from_user.full_name
+    # 3️⃣ Baholash tugmalari
+    stars_kb = InlineKeyboardMarkup(
+        inline_keyboard=[[
+            InlineKeyboardButton(text="⭐", callback_data=f"rate:{question_id}:{manager_id}:1"),
+            InlineKeyboardButton(text="⭐⭐", callback_data=f"rate:{question_id}:{manager_id}:2"),
+            InlineKeyboardButton(text="⭐⭐⭐", callback_data=f"rate:{question_id}:{manager_id}:3"),
+            InlineKeyboardButton(text="⭐⭐⭐⭐", callback_data=f"rate:{question_id}:{manager_id}:4"),
+            InlineKeyboardButton(text="⭐⭐⭐⭐⭐", callback_data=f"rate:{question_id}:{manager_id}:5"),
+        ]]
     )
 
-    # 3️⃣ FAQAT FAKULTET MENEJERI BO‘LSA — BAHOLASH
-    from data.config import is_manager_id
-    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-    # FAQAT MENEJER JAVOB BERGANDA
-    if is_faculty_manager(manager_id):
-        stars_kb = InlineKeyboardMarkup(
-            inline_keyboard=[[
-                InlineKeyboardButton(text="⭐", callback_data=f"rate:{question_id}:{manager_id}:1"),
-                InlineKeyboardButton(text="⭐⭐", callback_data=f"rate:{question_id}:{manager_id}:2"),
-                InlineKeyboardButton(text="⭐⭐⭐", callback_data=f"rate:{question_id}:{manager_id}:3"),
-                InlineKeyboardButton(text="⭐⭐⭐⭐", callback_data=f"rate:{question_id}:{manager_id}:4"),
-                InlineKeyboardButton(text="⭐⭐⭐⭐⭐", callback_data=f"rate:{question_id}:{manager_id}:5"),
-            ]]
-        )
-
+    try:
+        print("[DEBUG] ⭐ Baholash userga yuborildi:", sender_id)
         await message.bot.send_message(
             sender_id,
-            "⭐ Iltimos, javobni baholang:",
-            reply_markup=stars_kb
+            "⭐ <b>Javobni baholang:</b>",
+            reply_markup=stars_kb,
+            parse_mode="HTML"
         )
+    except Exception as e:
+        print("[HEADS] Rating yuborishda xato:", e)
+
     # 4️⃣ Rahbarga tasdiq
     await message.answer("✅ Javob foydalanuvchiga yuborildi.")
 
+    # 5️⃣ FSM NI YOPISH (ENG MUHIM!)
     await state.clear()
 
 ## =========================
@@ -250,34 +223,25 @@ async def send_reply(message: Message, state: FSMContext):
 # =========================
 @router.callback_query(F.data.startswith("rate:"))
 async def handle_rating(call: CallbackQuery):
-    await call.answer()  # ⭐ MUHIM! Tugma "bosildi" deb his qilinadi
-
     _, qid, manager_id, rating = call.data.split(":")
-
     question_id = int(qid)
     manager_id = int(manager_id)
     rating = int(rating)
-    user_id = call.from_user.id
 
-    # ❌ qayta baholashni oldini olish
-    if user_already_rated(user_id, manager_id, question_id):
-        await call.answer("❗ Siz allaqachon baho bergansiz", show_alert=True)
+    if user_already_rated(call.from_user.id, manager_id, question_id):
+        await call.answer("❗ Siz allaqachon baholagansiz", show_alert=True)
         return
 
-    # 💾 DB ga yozish
     save_manager_rating(
-        teacher_id=user_id,
+        teacher_id=call.from_user.id,
         manager_id=manager_id,
         question_id=question_id,
         rating=rating
     )
 
-    # ✅ tugmani o‘chiramiz
     await call.message.edit_reply_markup(reply_markup=None)
-
     await call.answer("⭐ Bahoyingiz qabul qilindi!", show_alert=True)
 
-    # 📩 menejerga xabar
     await call.bot.send_message(
         manager_id,
         f"📊 Javobingizga ⭐ {rating} ball berildi"
@@ -287,8 +251,6 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.types import FSInputFile
 from aiogram import F
 from aiogram.types import Message, CallbackQuery
-import openpyxl
-from openpyxl.utils import get_column_letter
 
 @router.message(F.text == "🏆 Menejerlar reytingi")
 async def show_managers_rating(message: Message):
@@ -335,12 +297,14 @@ async def show_managers_rating(message: Message):
 
     await message.answer(text, parse_mode="HTML", reply_markup=kb)
 
+
 @router.callback_query(F.data == "export_manager_rating_excel")
 async def export_manager_rating_excel(call: CallbackQuery):
     from database.db import get_manager_rating_table
     import openpyxl
 
     rows = get_manager_rating_table()
+
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Menejerlar reytingi"
@@ -377,45 +341,49 @@ async def export_manager_rating_excel(call: CallbackQuery):
 # ==============================
 #   📊 UNIVERSITET SUPER STATISTIKASI
 # ==============================
-@router.message(F.text == "📊 Statistika")
+@router.message(lambda m: m.text and "Statistika" in m.text)
 async def full_stat(message: Message):
+    teachers = get_all_teachers()              # dict list
+    students = get_filtered_students({})       # ORM list
 
-    # Semua ustoz va tyutorlar
-    teachers = get_all_teachers()
+    # ============ 1) ROLLAR BO‘YICHA ============
+    teacher_count = 0
+    tutor_count = 0
 
-    # Semua talabalar
-    students = get_filtered_students({})  # barcha ma'lumotlarni olish
-    # ============ 1) ROLLAR BO‘YICHA SANASH ============
-    total_users = len(teachers) + len(students)
+    for t in teachers:
+        role = (t.get("role") or "").lower()
+        if role in ["o‘qituvchi", "teacher"]:
+            teacher_count += 1
+        elif role in ["tyutor", "tutor"]:
+            tutor_count += 1
 
-    teacher_count = sum(1 for t in teachers if t["role"] == "O‘qituvchi")
-    tutor_count   = sum(1 for t in teachers if t["role"] == "Tyutor")
     student_count = len(students)
+    total_users = teacher_count + tutor_count + student_count
 
-    # ============ 2) FAKULTETLAR BO‘YICHA SANASH ============
+    # ============ 2) FAKULTETLAR ============
     faculty_stat = {}
 
-    # O‘qituvchi + tyutorlar
+    # O‘qituvchi + Tyutorlar
     for t in teachers:
-        faculty = t["faculty"] or "Noma’lum"
-        faculty_stat[faculty] = faculty_stat.get(faculty, 0) + 1
+        fac = t.get("faculty") or "Noma’lum"
+        faculty_stat[fac] = faculty_stat.get(fac, 0) + 1
 
     # Talabalar
     for s in students:
-        faculty = s["faculty"] or "Noma’lum"
-        faculty_stat[faculty] = faculty_stat.get(faculty, 0) + 1
+        fac = getattr(s, "faculty", None) or "Noma’lum"
+        faculty_stat[fac] = faculty_stat.get(fac, 0) + 1
 
-    # ============ 3) MATN KO‘RINISHIDA YUBORISH ============
+    # ============ 3) MATN ============
     text = (
         "<b>📊 UNIVERSITET UMUMIY STATISTIKASI</b>\n\n"
         f"👥 <b>Umumiy foydalanuvchilar:</b> {total_users} ta\n"
-        f"👨‍🏫 O‘qituvchilar: {teacher_count} ta\n"
-        f"🧑‍🏫 Tyutorlar: {tutor_count} ta\n"
-        f"🎓 Talabalar: {student_count} ta\n\n"
+        f"👨‍🏫 <b>O‘qituvchilar:</b> {teacher_count} ta\n"
+        f"🧑‍🏫 <b>Tyutorlar:</b> {tutor_count} ta\n"
+        f"🎓 <b>Talabalar:</b> {student_count} ta\n\n"
         "<b>🏫 Fakultetlar bo‘yicha:</b>\n"
     )
 
-    for fac, cnt in faculty_stat.items():
+    for fac, cnt in sorted(faculty_stat.items()):
         text += f"• {fac}: {cnt} ta\n"
 
     await message.answer(text, parse_mode="HTML")

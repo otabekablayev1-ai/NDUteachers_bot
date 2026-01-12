@@ -1,145 +1,58 @@
-import sqlite3
-from datetime import datetime
-from data.config import MANAGERS_BY_FACULTY
-from data.config import DB_PATH
+import os
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
-import os
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy import func, or_
+from database.models import Teacher
+from database.session import AsyncSessionLocal
+
+from database.models import RegisterRequest
+from .models import Base
+from sqlalchemy import text
+
+
+from .models import (
+    Teacher,
+    Student,
+    RegisterRequest,
+    Question,
+    Answer,
+    Rating,
+    ManagerRating,
+    Order,
+    OrderLink,
+    Manager,
+    CommandsFile,
+)
+from data.config import MANAGERS_BY_FACULTY
+
+from datetime import datetime
 DATABASE_URL = os.getenv("DATABASE_URL")
-USE_SQLITE = not bool(DATABASE_URL)
-if not USE_SQLITE:
-    engine = create_engine(DATABASE_URL, echo=False)
-    SessionLocal = sessionmaker(bind=engine)
-    Base = declarative_base()
+if not DATABASE_URL:
+    raise RuntimeError("❌ DATABASE_URL topilmadi")
 
-if not USE_SQLITE:
-    from sqlalchemy import Column, Integer, DateTime
-    from datetime import datetime
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-    class ManagerRating(Base):
-        __tablename__ = "manager_ratings"
+engine = create_engine(
+    DATABASE_URL,
+    pool_pre_ping=True,
+)
 
-        id = Column(Integer, primary_key=True)
-        user_id = Column(Integer, nullable=False)
-        manager_id = Column(Integer, nullable=False)
-        question_id = Column(Integer, nullable=False)
-        rating = Column(Integer, nullable=False)
-        created_at = Column(DateTime, default=datetime.utcnow)
+SessionLocal = sessionmaker(
+    bind=engine,
+    autoflush=False,
+    autocommit=False
+)
 
-import os
+from contextlib import asynccontextmanager
 
-DATABASE_URL = os.getenv("DATABASE_URL")
-USE_SQLITE = DATABASE_URL is None
+@asynccontextmanager
+async def get_db():
+    async with AsyncSessionLocal() as session:
+        yield session
 
-if USE_SQLITE:
-    BASE_DIR = os.path.dirname(os.path.dirname(__file__))
-    DB_PATH = os.path.join(BASE_DIR, "database", "bot.db")
-
-
-def get_connection():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
-
-# =============================
-# 🔧 BAZA YARATISH
-# =============================
 def init_db():
-    with sqlite3.connect(DB_PATH) as conn:
-        c = conn.cursor()
-
-        # 1️⃣ O‘qituvchi / Tyutorlar jadvali
-        c.execute("""
-        CREATE TABLE IF NOT EXISTS teachers (
-            user_id INTEGER PRIMARY KEY,
-            fio TEXT,
-            faculty TEXT,
-            department TEXT,
-            phone TEXT,
-            role TEXT,
-            created_at TEXT DEFAULT (datetime('now','localtime'))
-        )
-        """)
-
-        # 2️⃣ Talabalar jadvali
-        c.execute("""
-        CREATE TABLE IF NOT EXISTS students (
-            user_id INTEGER PRIMARY KEY,
-            fio TEXT,
-            phone TEXT,
-            faculty TEXT,
-            edu_type TEXT,
-            edu_form TEXT,
-            course TEXT,
-            student_group TEXT,
-            passport TEXT,
-            created_at TEXT DEFAULT (datetime('now','localtime'))
-        )
-        """)
-
-        # 3️⃣ Ro‘yxatdan o‘tish so‘rovlari
-        c.execute("""
-        CREATE TABLE IF NOT EXISTS register_requests (
-            user_id INTEGER PRIMARY KEY,
-            fio TEXT,
-            phone TEXT,
-            faculty TEXT,
-            department TEXT,
-            passport TEXT,
-            role TEXT,
-            edu_type TEXT,
-            edu_form TEXT,
-            course TEXT,
-            student_group TEXT,
-            created_at TEXT DEFAULT (datetime('now','localtime'))
-        );
-        """)
-
-        # 4️⃣ Savollar jadvali
-        c.execute("""
-        CREATE TABLE IF NOT EXISTS questions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            sender_id INTEGER,
-            fio TEXT,
-            faculty TEXT,
-            message_text TEXT,
-            created_at TEXT DEFAULT (datetime('now','localtime')),
-            answered INTEGER DEFAULT 0
-        )
-        """)
-
-        # 5️⃣ Javoblar jadvali
-        c.execute("""
-        CREATE TABLE IF NOT EXISTS answers (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            question_id INTEGER,
-            manager_id INTEGER,
-            answer_text TEXT,
-            answered_at TEXT DEFAULT (datetime('now','localtime'))
-        )
-        """)
-
-        # 6️⃣ Baholar jadvali
-        c.execute("""
-        CREATE TABLE IF NOT EXISTS ratings (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            teacher_id INTEGER,
-            manager_id INTEGER,
-            question_id INTEGER,
-            rating INTEGER,
-            rated_at TEXT DEFAULT (datetime('now','localtime'))
-        )
-        """)
-
-        c.execute("""
-        CREATE TABLE IF NOT EXISTS managers (
-            user_id INTEGER PRIMARY KEY,
-            full_name TEXT
-        )
-        """)
-
-        conn.commit()
-        print("✅ Barcha jadvallar tekshirildi yoki yaratildi.")
+    Base.metadata.create_all(bind=engine)
 
 # =============================
 # 📩 RO‘YXAT SO‘ROVINI SAQLASH
@@ -157,211 +70,263 @@ def save_register_request(
     course=None,
     student_group=None
 ):
-    with sqlite3.connect(DB_PATH) as conn:
-        c = conn.cursor()
-
-        c.execute("""
-            INSERT OR REPLACE INTO register_requests 
-            (user_id, fio, phone, faculty, department, passport, role,
-             edu_type, edu_form, course, student_group, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now','localtime'))
-        """, (
-            user_id,
-            fio,
-            phone,
-            faculty,
-            department,
-            passport,
-            role,
-            edu_type,
-            edu_form,
-            course,
-            student_group
-        ))
-
-        conn.commit()
-
+    db = SessionLocal()
+    try:
+        req = RegisterRequest(
+            user_id=user_id,
+            fio=fio,
+            phone=phone,
+            faculty=faculty,
+            department=department,
+            passport=passport,
+            role=role,
+            edu_type=edu_type,
+            edu_form=edu_form,
+            course=course,
+            student_group=student_group,
+            created_at=datetime.utcnow()
+        )
+        db.merge(req)   # INSERT OR REPLACE analogi
+        db.commit()
+    finally:
+        db.close()
 
 # =============================
 # ✅ TASDIQLANGANLARNI ASOSIYGA YOZISH
 # =============================
-def approve_teacher_from_request(user_id):
-    with sqlite3.connect(DB_PATH) as conn:
-        c = conn.cursor()
 
-        c.execute("SELECT fio, phone, faculty, department, passport, role FROM register_requests WHERE user_id = ?", (user_id,))
-        row = c.fetchone()
-
-        if not row:
+def approve_teacher_from_request(user_id: int) -> bool:
+    db = SessionLocal()
+    try:
+        req = db.query(RegisterRequest).filter_by(user_id=user_id).first()
+        if not req:
             return False
 
-        fio, phone, faculty, department, passport, role = row
+        teacher = Teacher(
+            user_id=req.user_id,
+            fio=req.fio,
+            phone=req.phone,
+            faculty=req.faculty,
+            department=req.department,
+            passport=req.passport,
+            role=req.role,
+            created_at=datetime.utcnow()
+        )
 
-        c.execute("""
-        INSERT OR REPLACE INTO teachers
-        (user_id, fio, phone, faculty, department, passport, role, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now','localtime'))
-        """,
-        (user_id, fio, phone, faculty, department, passport, role))
-
-        c.execute("DELETE FROM register_requests WHERE user_id = ?", (user_id,))
-        conn.commit()
-
+        db.merge(teacher)
+        db.delete(req)
+        db.commit()
         return True
-
+    finally:
+        db.close()
 
 # =============================
 # ❌ SO‘ROVNI O‘CHIRISH
 # =============================
-def delete_register_request(user_id):
-    with sqlite3.connect(DB_PATH) as conn:
-        c = conn.cursor()
-        c.execute("DELETE FROM register_requests WHERE user_id = ?", (user_id,))
-        conn.commit()
 
+
+def delete_register_request(user_id: int):
+    db = SessionLocal()
+    try:
+        db.query(RegisterRequest).filter_by(user_id=user_id).delete()
+        db.commit()
+    finally:
+        db.close()
 
 # =============================
 # 📋 KUTILAYOTGAN SO‘ROVLAR
 # =============================
 def get_pending_requests():
-    with sqlite3.connect(DB_PATH) as conn:
-        conn.row_factory = sqlite3.Row
-        c = conn.cursor()
-        c.execute("SELECT * FROM register_requests ORDER BY created_at DESC")
-        return [dict(r) for r in c.fetchall()]
+    db = SessionLocal()
+    try:
+        rows = (
+            db.query(RegisterRequest)
+            .order_by(RegisterRequest.created_at.desc())
+            .all()
+        )
+
+        return [
+            {
+                "user_id": r.user_id,
+                "fio": r.fio,
+                "phone": r.phone,
+                "faculty": r.faculty,
+                "department": r.department,
+                "passport": r.passport,
+                "role": r.role,
+                "edu_type": r.edu_type,
+                "edu_form": r.edu_form,
+                "course": r.course,
+                "student_group": r.student_group,
+                "created_at": r.created_at,
+            }
+            for r in rows
+        ]
+    finally:
+        db.close()
 
 # ============================================================
 # 🟢 register_requests → asosiy jadvallarga ko‘chiruvchi funksiya
 # ============================================================
-def move_request_to_main_tables(user_id):
-    with sqlite3.connect(DB_PATH) as conn:
-        c = conn.cursor()
+from sqlalchemy.orm import Session
+from database.models import RegisterRequest, Student, Teacher  # sizdagi nomlar mos bo‘lsa
 
-        # Pending request olish
-        c.execute("SELECT * FROM register_requests WHERE user_id=?", (user_id,))
-        row = c.fetchone()
+# =====================================================
+# ✅ SO‘ROVNI ASOSIY JADVALGA O‘TKAZISH
+# =====================================================
+def move_request_to_main_tables(user_id: int) -> bool:
+    db = SessionLocal()
+    try:
+        req = db.execute(
+            text("SELECT * FROM register_requests WHERE user_id = :uid"),
+            {"uid": user_id}
+        ).mappings().first()
 
-        if not row:
+        if not req:
             return False
 
-        (user_id, fio, phone, faculty, department, passport, role,
-         edu_type, edu_form, course, student_group, created_at) = row
+        role = req["role"]
 
-        # =========================
-        #   O‘QITUVCHI
-        # =========================
-        if role == "O‘qituvchi":
-            c.execute("""
-                INSERT OR REPLACE INTO teachers
-                (user_id, fio, faculty, department, phone, role, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, datetime('now','localtime'))
-            """, (user_id, fio, faculty, department, phone, role))
+        if role == "Talaba":
+            db.execute(
+                text("""
+                    INSERT INTO students
+                    (user_id, fio, phone, faculty, edu_type, edu_form, course, student_group)
+                    VALUES
+                    (:user_id, :fio, :phone, :faculty, :edu_type, :edu_form, :course, :student_group)
+                """),
+                req
+            )
 
-        # =========================
-        #   TYUTOR
-        # =========================
-        elif role == "Tyutor":
-            c.execute("""
-                INSERT OR REPLACE INTO teachers
-                (user_id, fio, faculty, department, phone, role, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, datetime('now','localtime'))
-            """, (user_id, fio, faculty, None, phone, role))
+        elif role in ("O‘qituvchi", "Tyutor"):
+            db.execute(
+                text("""
+                    INSERT INTO teachers
+                    (user_id, fio, phone, faculty, role)
+                    VALUES
+                    (:user_id, :fio, :phone, :faculty, :role)
+                """),
+                {
+                    **req,
+                    "role": "teacher" if role == "O‘qituvchi" else "tutor"
+                }
+            )
 
-        # =========================
-        #   TALABA
-        # =========================
-        elif role == "Talaba":
-            c.execute("""
-                INSERT OR REPLACE INTO students
-                (user_id, fio, phone, faculty, edu_type, edu_form,
-                 course, student_group, passport, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now','localtime'))
-            """, (
-                user_id, fio, phone, faculty,
-                edu_type, edu_form, course,
-                student_group, passport
-            ))
+        db.execute(
+            text("DELETE FROM register_requests WHERE user_id = :uid"),
+            {"uid": user_id}
+        )
 
-        # Pending so‘rovni o‘chirish
-        c.execute("DELETE FROM register_requests WHERE user_id=?", (user_id,))
-
-        conn.commit()
+        db.commit()
         return True
 
-# =============================
-# 👤 Foydalanuvchini olish
-# =============================
-def get_teacher(user_id):
-    with sqlite3.connect(DB_PATH) as conn:
-        c = conn.cursor()
-        c.execute("SELECT * FROM teachers WHERE user_id = ?", (user_id,))
-        return c.fetchone()
+    except Exception as e:
+        print("[APPROVE ERROR]", e)
+        db.rollback()
+        return False
 
+    finally:
+        db.close()
+
+# =====================================================
+# ❌ RO‘YXATDAN O‘TISH SO‘ROVINI RAD ETISH
+# =====================================================
+def reject_request(user_id: int) -> bool:
+    db = SessionLocal()
+    try:
+        req = db.query(RegisterRequest).filter(
+            RegisterRequest.user_id == user_id
+        ).first()
+
+        if not req:
+            return False
+
+        db.delete(req)
+        db.commit()
+        return True
+
+    except Exception as e:
+        db.rollback()
+        print("[REJECT_REQUEST ERROR]", e)
+        return False
+
+    finally:
+        db.close()
 
 # =============================
 # 🔍 Ism bo‘yicha qidiruv
 # =============================
-def find_teachers_by_name(name):
-    with sqlite3.connect(DB_PATH) as conn:
-        conn.row_factory = sqlite3.Row
-        c = conn.cursor()
-        c.execute("SELECT * FROM teachers WHERE fio LIKE ?", (f"%{name}%",))
-        return [dict(r) for r in c.fetchall()]
 
+def find_teachers_by_name(name: str):
+    db = SessionLocal()
+    try:
+        rows = db.query(Teacher).filter(
+            Teacher.fio.ilike(f"%{name}%")
+        ).all()
 
+        return [
+            {
+                "user_id": t.user_id,
+                "fio": t.fio,
+                "faculty": t.faculty,
+                "department": t.department,
+                "phone": t.phone,
+                "role": t.role,
+            }
+            for t in rows
+        ]
+    finally:
+        db.close()
 
 
 def delete_teacher(user_id: int):
-    """
-    Foydalanuvchini bazadan o‘chiradi.
-    Admin panelidagi 'O‘chirish' tugmasi uchun ishlatiladi.
-    """
-    import sqlite3
-    conn = sqlite3.connect("database/bot.db")
-    cur = conn.cursor()
-    cur.execute("DELETE FROM teachers WHERE user_id = ?", (user_id,))
-    conn.commit()
-    conn.close()
-    print(f"🗑️ Foydalanuvchi {user_id} o‘chirildi.")
-
+    db = SessionLocal()
+    try:
+        db.query(Teacher).filter_by(user_id=user_id).delete()
+        db.commit()
+        print(f"🗑️ Foydalanuvchi {user_id} o‘chirildi.")
+    finally:
+        db.close()
 
 # =============================
 # ⭐ Menejer bahosi
 # =============================
 def save_manager_rating(teacher_id, manager_id, question_id, rating):
-    with sqlite3.connect(DB_PATH) as conn:
-        c = conn.cursor()
-        c.execute("""
-        INSERT INTO ratings (teacher_id, manager_id, question_id, rating, rated_at)
-        VALUES (?, ?, ?, ?, ?)
-        """, (teacher_id, manager_id, question_id, rating,
-              datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
-        conn.commit()
-
+    db = SessionLocal()
+    try:
+        r = Rating(
+            teacher_id=teacher_id,
+            manager_id=manager_id,
+            question_id=question_id,
+            rating=rating,
+            created_at=datetime.utcnow()
+        )
+        db.add(r)
+        db.commit()
+    finally:
+        db.close()
 # =============================
 # 🔍 Foydalanuvchi allaqachon baho berganmi?
 # =============================
 def user_already_rated(teacher_id: int, manager_id: int, question_id: int) -> bool:
-    """
-    Foydalanuvchi (teacher_id) shu menejerga (manager_id)
-    shu savol (question_id) bo‘yicha allaqachon baho berganmi – tekshiradi.
-    """
-    with sqlite3.connect(DB_PATH) as conn:
-        cur = conn.cursor()
-        cur.execute("""
-            SELECT COUNT(*) FROM ratings
-            WHERE teacher_id = ? AND manager_id = ? AND question_id = ?
-        """, (teacher_id, manager_id, question_id))
-        result = cur.fetchone()[0]
-        return result > 0
+    db = SessionLocal()
+    try:
+        return db.query(Rating).filter_by(
+            teacher_id=teacher_id,
+            manager_id=manager_id,
+            question_id=question_id
+        ).count() > 0
+    finally:
+        db.close()
+
+from sqlalchemy import func
+from database.models import Rating, Question
+from data.config import MANAGERS_BY_FACULTY
 
 def get_manager_rating_table():
-    from data.config import MANAGERS_BY_FACULTY
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    cur = conn.cursor()
+    db = SessionLocal()
 
-    # 1️⃣ Faqat haqiqiy menejer ID lar
+    # 1️⃣ FaqAT fakultet menejerlarini yig‘amiz
     manager_ids = set()
     faculty_by_manager = {}
 
@@ -373,52 +338,43 @@ def get_manager_rating_table():
     if not manager_ids:
         return []
 
-    placeholders = ",".join("?" * len(manager_ids))
-
-    # 2️⃣ REYTINGNI TO‘G‘RI JADVALDAN O‘QIYMIZ
-    cur.execute(f"""
-        SELECT
-            manager_id,
-            COUNT(DISTINCT question_id) AS answered_count,
-            ROUND(AVG(rating), 2) AS avg_rating
-        FROM ratings
-        WHERE manager_id IN ({placeholders})
-        GROUP BY manager_id
-    """, tuple(manager_ids))
-
-    rows = cur.fetchall()
-    conn.close()
+    # 2️⃣ FAQAT SHU menejerlar bo‘yicha reyting
+    rows = (
+        db.query(
+            Rating.manager_id,
+            func.count(func.distinct(Rating.question_id)).label("answered_count"),
+            func.round(func.avg(Rating.rating), 2).label("avg_rating")
+        )
+        .filter(Rating.manager_id.in_(manager_ids))   # 🔥 ASOSIY FILTER
+        .group_by(Rating.manager_id)
+        .all()
+    )
 
     result = []
+
     for r in rows:
         result.append({
-            "manager_id": r["manager_id"],
-            "faculty": faculty_by_manager.get(r["manager_id"], ""),
-            "answered_count": r["answered_count"],
+            "manager_id": r.manager_id,
+            "faculty": faculty_by_manager.get(r.manager_id, ""),
+            "answered_count": r.answered_count,
             "unanswered_count": 0,
-            "avg_rating": r["avg_rating"] or 0,
+            "avg_rating": float(r.avg_rating or 0),
         })
 
+    db.close()
     return result
 
 def get_rating_table_by_faculty():
-    """
-    7 ta fakultet bo‘yicha:
-    - menejer(lar) FIO (teachers jadvalidan)
-    - o‘rtacha reyting (manager_ratings)
-    - answered / unanswered (questions)
-    FAQAT MANAGERS_BY_FACULTY dagi IDlar bo‘yicha hisoblaydi.
-    """
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    cur = conn.cursor()
-
+    db = SessionLocal()
     result = []
 
     for faculty_name, roles in MANAGERS_BY_FACULTY.items():
-        manager_ids = list(set((roles.get("teacher") or []) + (roles.get("student") or [])))
+        manager_ids = list(set(
+            (roles.get("teacher") or []) +
+            (roles.get("student") or [])
+        ))
+
         if not manager_ids:
-            # fakultetda menejer yo‘q bo‘lsa ham jadvalda chiqsin
             result.append({
                 "faculty": faculty_name,
                 "manager_name": "—",
@@ -428,781 +384,601 @@ def get_rating_table_by_faculty():
             })
             continue
 
-        placeholders = ",".join(["?"] * len(manager_ids))
+        # 👤 Menejer FIO
+        names = db.query(Teacher.fio).filter(
+            Teacher.user_id.in_(manager_ids)
+        ).all()
+        manager_name = ", ".join(n[0] for n in names if n[0]) or ", ".join(map(str, manager_ids))
 
-        # 1) Menejer(lar) FIO
-        cur.execute(
-            f"SELECT fio FROM teachers WHERE user_id IN ({placeholders})",
-            manager_ids
-        )
-        names = [r["fio"] for r in cur.fetchall() if r["fio"]]
-        manager_name = ", ".join(names) if names else ", ".join(map(str, manager_ids))
+        # ⭐ Reyting
+        avg_rating = db.query(
+            func.round(func.avg(Rating.rating), 2)
+        ).filter(
+            Rating.manager_id.in_(manager_ids)
+        ).scalar() or 0
 
-        # 2) Reyting (o‘rtacha)
-        cur.execute(
-            f"""
-            SELECT ROUND(AVG(rating), 2) AS avg_rating
-            FROM manager_ratings
-            WHERE manager_id IN ({placeholders})
-            """,
-            manager_ids
-        )
-        avg_rating = cur.fetchone()["avg_rating"]
-        avg_rating = avg_rating if avg_rating is not None else 0
-
-        # 3) Savollar (answered / unanswered)
-        cur.execute(
-            f"""
-            SELECT
-                SUM(CASE WHEN answered=1 THEN 1 ELSE 0 END) AS answered_count,
-                SUM(CASE WHEN answered=0 THEN 1 ELSE 0 END) AS unanswered_count
-            FROM questions
-            WHERE manager_id IN ({placeholders})
-            """,
-            manager_ids
-        )
-        row = cur.fetchone()
-        answered_count = row["answered_count"] or 0
-        unanswered_count = row["unanswered_count"] or 0
+        # 📩 Savollar
+        stats = db.query(
+            func.sum(func.case((Question.answered == 1, 1), else_=0)),
+            func.sum(func.case((Question.answered == 0, 1), else_=0))
+        ).filter(
+            Question.manager_id.in_(manager_ids)
+        ).first()
 
         result.append({
             "faculty": faculty_name,
             "manager_name": manager_name,
-            "avg_rating": avg_rating,
-            "answered_count": answered_count,
-            "unanswered_count": unanswered_count,
+            "avg_rating": float(avg_rating),
+            "answered_count": int(stats[0] or 0),
+            "unanswered_count": int(stats[1] or 0),
         })
 
-    conn.close()
+    db.close()
     return result
-
 
 # =============================
 # 🏆 TOP menejerlar
 # =============================
 def get_top_managers(limit: int = 5):
-    """
-    Eng yuqori o'rtacha bahoga ega menejerlar.
-    admin.py dagi 'TOP menejerlar' bo'limi uchun.
-    """
-    with sqlite3.connect(DB_PATH) as conn:
-        conn.row_factory = sqlite3.Row
-        cur = conn.cursor()
-        cur.execute("""
-            SELECT
-                manager_id,
-                '' AS manager_name,
-                '' AS faculty,
-                ROUND(AVG(rating), 2) AS avg_rating
-            FROM ratings
-            GROUP BY manager_id
-            HAVING COUNT(rating) > 0
-            ORDER BY avg_rating DESC
-            LIMIT ?
-        """, (limit,))
-        rows = cur.fetchall()
-        return [dict(r) for r in rows]
+    db = SessionLocal()
 
+    rows = (
+        db.query(
+            Rating.manager_id,
+            func.round(func.avg(Rating.rating), 2).label("avg_rating")
+        )
+        .group_by(Rating.manager_id)
+        .having(func.count(Rating.rating) > 0)
+        .order_by(func.avg(Rating.rating).desc())
+        .limit(limit)
+        .all()
+    )
+
+    db.close()
+
+    return [
+        {
+            "manager_id": r.manager_id,
+            "manager_name": "",
+            "faculty": "",
+            "avg_rating": float(r.avg_rating),
+        }
+        for r in rows
+    ]
 
 # =============================
 # 🧩 Savolga javob berilganini belgilash
 # =============================
-def mark_question_answered(question_id):
-    with sqlite3.connect(DB_PATH) as conn:
-        conn.execute(
-            "UPDATE questions SET answered = 1 WHERE id = ?",
-            (question_id,)
-        )
-        conn.commit()
-
+def mark_question_answered(question_id: int):
+    db = SessionLocal()
+    db.query(Question).filter_by(id=question_id).update(
+        {"answered": 1}
+    )
+    db.commit()
+    db.close()
 
 # =============================
 # 🧾 Javobni saqlash
 # =============================
-def save_answer(question_id, manager_id, answer_text):
-    conn = sqlite3.connect(DB_PATH)
-    cur = conn.cursor()
+from datetime import datetime
+from database.models import Answer, Question  # sizdagi import yo‘liga moslang
 
-    cur.execute("""
-        INSERT INTO answers(question_id, manager_id, answer_text)
-        VALUES (?, ?, ?)
-    """, (question_id, manager_id, answer_text))
+def save_answer(question_id: int, manager_id: int, answer_text: str) -> bool:
+    db = SessionLocal()
+    try:
+        # 1) Answer yozamiz (bu yerda Answer modelingizda qaysi ustunlar bor bo‘lsa, shularni ishlating)
+        answer = Answer(
+            question_id=question_id,
+            manager_id=manager_id,
+            answer_text=answer_text,
+            created_at=datetime.utcnow()
+        )
+        db.add(answer)
 
-    # ✅ mana shu MUHIM: questions.manager_id ni ham to‘ldirish
-    cur.execute("""
-        UPDATE questions
-        SET manager_id = ?
-        WHERE id = ?
-    """, (manager_id, question_id))
+        # 2) Question ni answered=True qilamiz
+        # MUHIM: manager_id ni Question update ga YOZMAYMIZ (sizda u ustun yo‘q!)
+        db.query(Question).filter(Question.id == question_id).update(
+            {"answered": True},
+            synchronize_session=False
+        )
 
-    conn.commit()
-    conn.close()
+        db.commit()
+        return True
+    except Exception as e:
+        db.rollback()
+        print("[DB save_answer ERROR]", e)
+        return False
+    finally:
+        db.close()
+
 
 # =============================
 # 📊 Excel eksport uchun savol-javoblar
 # =============================
 def fetch_answers_range(date_from: str, date_to: str):
-    with sqlite3.connect(DB_PATH) as conn:
-        conn.row_factory = sqlite3.Row
-        cur = conn.cursor()
-        cur.execute("""
-            SELECT 
-                q.id AS question_id,
-                q.sender_id,
-                q.fio,
-                q.faculty,
-                q.message_text,
-                q.created_at,
-                a.answer_text,
-                a.manager_id,
-                a.answered_at
-            FROM questions q
-            LEFT JOIN answers a ON q.id = a.question_id
-            WHERE q.created_at BETWEEN ? AND ?
-            ORDER BY q.created_at DESC
-        """, (date_from, date_to))
-        return [dict(row) for row in cur.fetchall()]
+    db = SessionLocal()
+
+    rows = (
+        db.query(
+            Question.id.label("question_id"),
+            Question.sender_id,
+            Question.fio,
+            Question.faculty,
+            Question.message_text,
+            Question.created_at,
+            Answer.answer_text,
+            Answer.manager_id,
+            Answer.answered_at
+        )
+        .outerjoin(Answer, Question.id == Answer.question_id)
+        .filter(Question.created_at.between(date_from, date_to))
+        .order_by(Question.created_at.desc())
+        .all()
+    )
+
+    db.close()
+
+    return [dict(r._mapping) for r in rows]
 
 # =============================
 # 🕓 So‘nggi yuborilgan savollarni olish
 # =============================
 def get_latest_questions(limit: int = 10):
-    """
-    So‘nggi yuborilgan savollarni olish uchun (rahbarlar paneli uchun).
-    """
-    with sqlite3.connect(DB_PATH) as conn:
-        conn.row_factory = sqlite3.Row
-        cur = conn.cursor()
-        cur.execute("""
-            SELECT id, sender_id, fio, faculty, message_text, created_at, answered
-            FROM questions
-            ORDER BY created_at DESC
-            LIMIT ?
-        """, (limit,))
-        rows = cur.fetchall()
-        return [dict(row) for row in rows]
+    db = SessionLocal()
+    rows = (
+        db.query(Question)
+        .order_by(Question.created_at.desc())
+        .limit(limit)
+        .all()
+    )
+    db.close()
+
+    return [
+        {
+            "id": q.id,
+            "sender_id": q.sender_id,
+            "fio": q.fio,
+            "faculty": q.faculty,
+            "message_text": q.message_text,
+            "created_at": q.created_at,
+            "answered": q.answered,
+        }
+        for q in rows
+    ]
+
+# ==========================================
+# 👔 RAHBAR UCHUN — faqat javob berilmagan savollar
+# ==========================================
+def get_latest_questions_for_manager(limit: int = 10):
+    db = SessionLocal()
+    rows = (
+        db.query(Question)
+        .filter(Question.answered == False)
+        .order_by(Question.created_at.desc())
+        .limit(limit)
+        .all()
+    )
+    db.close()
+
+    return [
+        {
+            "id": q.id,
+            "sender_id": q.sender_id,
+            "fio": q.fio,
+            "faculty": q.faculty,
+            "message_text": q.message_text,
+            "created_at": q.created_at,
+            "answered": q.answered,
+        }
+        for q in rows
+    ]
+
 
 # =============================
 # 👥 Barcha foydalanuvchilarni (filtrlab) olish
 # =============================
-def get_all_teachers(faculty: str = None, department: str = None, fio: str = None, role: str = None):
-    """
-    Fakultet, kafedra yoki rol bo‘yicha foydalanuvchilarni chiqaradi.
-    admin_message.py uchun ishlatiladi.
-    """
-    with sqlite3.connect(DB_PATH) as conn:
-        conn.row_factory = sqlite3.Row
-        cur = conn.cursor()
+def get_all_teachers():
+    db = SessionLocal()
+    rows = db.query(Teacher).all()
+    result = []
+    for t in rows:
+        result.append({
+            "user_id": t.user_id,
+            "fio": t.fio,
+            "role": t.role,
+            "faculty": getattr(t, "faculty", None),
+        })
+    db.close()
+    return result
 
-        query = "SELECT * FROM teachers WHERE 1=1"
-        params = []
-
-        if faculty:
-            query += " AND faculty = ?"
-            params.append(faculty)
-        if department:
-            query += " AND department = ?"
-            params.append(department)
-        if fio:
-            query += " AND fio LIKE ?"
-            params.append(f"%{fio}%")
-        if role:
-            query += " AND role = ?"
-            params.append(role)
-
-        cur.execute(query, params)
-        rows = cur.fetchall()
-        return [dict(r) for r in rows]
-
-# =============================
-# 🧱 Jadval mavjudligini tekshirish / yaratish
-# =============================
-def create_tables_if_not_exist():
-    """
-    Barcha kerakli jadvallar mavjudligini tekshiradi,
-    bo‘lmasa avtomatik yaratadi.
-    """
-    with sqlite3.connect(DB_PATH) as conn:
-        cur = conn.cursor()
-
-        # O‘qituvchilar, tyutorlar, talabalar jadvali
-        cur.execute("""
-        CREATE TABLE IF NOT EXISTS teachers (
-            user_id INTEGER PRIMARY KEY,
-            fio TEXT,
-            phone TEXT,
-            faculty TEXT,
-            department TEXT,
-            passport TEXT,
-            role TEXT,
-            edu_type TEXT,
-            edu_form TEXT,
-            course TEXT,
-            student_group TEXT,
-            created_at TEXT
-        );
-        """)
-
-        # Pending ro‘yxat so‘rovlari
-        cur.execute("""
-        CREATE TABLE IF NOT EXISTS register_requests (
-            user_id INTEGER PRIMARY KEY,
-            fio TEXT,
-            phone TEXT,
-            faculty TEXT,
-            department TEXT,
-            passport TEXT,
-            role TEXT,
-            edu_type TEXT,
-            edu_form TEXT,
-            course TEXT,
-            student_group TEXT,
-            created_at TEXT
-        );
-        """)
-
-        # Savollar jadvali
-        cur.execute("""
-        CREATE TABLE IF NOT EXISTS questions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            sender_id INTEGER,
-            fio TEXT,
-            faculty TEXT,
-            message_text TEXT,
-            created_at TEXT DEFAULT (datetime('now','localtime')),
-            answered INTEGER DEFAULT 0
-        );
-        """)
-
-def create_manager_ratings_table():
-    conn = sqlite3.connect(DB_PATH)
-    cur = conn.cursor()
-
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS manager_ratings (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
-            manager_id INTEGER,
-            question_id INTEGER,
-            rating INTEGER,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
-
-    conn.commit()
-    conn.close()
-
-
-def create_orders_links_table():
-    with sqlite3.connect(DB_PATH) as conn:
-        cur = conn.cursor()
-
-        # Asosiy jadval (agar umuman bo‘lmasa, yaratadi)
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS orders_links (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                title TEXT,
-                link TEXT,
-                year TEXT,
-                faculty TEXT,
-                type TEXT,
-                students TEXT,
-                created_at TEXT DEFAULT (datetime('now','localtime'))
-            )
-        """)
-
-        # Mavjud ustunlarni tekshiramiz
-        cur.execute("PRAGMA table_info(orders_links)")
-        existing_cols = {row[1] for row in cur.fetchall()}
-
-        # Etishmayotgan ustunlarni qo‘shamiz (agar eski jadval bo‘lsa)
-        needed = {
-            "year": "TEXT",
-            "faculty": "TEXT",
-            "type": "TEXT",
-            "students": "TEXT",
-        }
-
-        for col_name, col_type in needed.items():
-            if col_name not in existing_cols:
-                cur.execute(f"ALTER TABLE orders_links ADD COLUMN {col_name} {col_type}")
-
-        conn.commit()
 
 def add_order_link(title, link, year, faculty, type, students):
-    with sqlite3.connect(DB_PATH) as conn:
-        cur = conn.cursor()
-        cur.execute("""
-            INSERT INTO orders_links (title, link, year, faculty, type, students)
-            VALUES (?, ?, ?, ?, ?, ?)
-        """, (title, link, year, faculty, type, students))
-        conn.commit()
+    db = SessionLocal()
+
+    order = OrderLink(
+        title=title,
+        link=link,
+        year=year,
+        faculty=faculty,
+        type=type,
+        students=students,
+    )
+
+    db.add(order)
+    db.commit()
+    db.close()
 
 def get_order_links():
-    with sqlite3.connect(DB_PATH) as conn:
-        cur = conn.cursor()
-        cur.execute("SELECT title, link FROM orders_links ORDER BY id DESC")
-        return cur.fetchall()
+    db = SessionLocal()
+
+    rows = (
+        db.query(OrderLink.title, OrderLink.link)
+        .order_by(OrderLink.id.desc())
+        .all()
+    )
+
+    db.close()
+    return rows
 
 def save_commands_file(file_id: str):
-    import sqlite3
     print(">>> save_commands_file ishlamoqda:", file_id)
 
-    with sqlite3.connect(DB_PATH) as conn:
-        cur = conn.cursor()
+    db = SessionLocal()
 
-        # Jadvalni yaratamiz
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS commands_file (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                file_id TEXT,
-                uploaded_at TEXT DEFAULT (datetime('now','localtime'))
-            )
-        """)
+    # eski faylni o‘chiramiz (faqat 1 ta saqlanadi)
+    db.query(CommandsFile).delete()
 
-        # Eski fayllarni o'chiramiz (faqat 1 ta fayl)
-        cur.execute("DELETE FROM commands_file")
+    new_file = CommandsFile(file_id=file_id)
+    db.add(new_file)
 
-        # Yangi faylni kiritamiz
-        cur.execute("""
-            INSERT INTO commands_file (file_id)
-            VALUES (?)
-        """, (file_id,))
+    db.commit()
+    db.close()
 
-        conn.commit()
-
-        # Javoblar jadvali
-        cur.execute("""
-        CREATE TABLE IF NOT EXISTS answers (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            question_id INTEGER,
-            manager_id INTEGER,
-            answer_text TEXT,
-            answered_at TEXT
-        );
-        """)
-
-        # Reytinglar jadvali
-        cur.execute("""
-        CREATE TABLE IF NOT EXISTS ratings (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            teacher_id INTEGER,
-            manager_id INTEGER,
-            question_id INTEGER,
-            rating INTEGER,
-            created_at TEXT
-        );
-        """)
-
-        conn.commit()
-
-    print("✅ Barcha jadvallar tekshirildi yoki yaratildi.")
+    print("✅ commands_file yangilandi")
 
 # ============================
 # 📘 BUYRUQLAR JADVALLARI
 # ============================
-def create_orders_table():
-    with sqlite3.connect(DB_PATH) as conn:
-        c = conn.cursor()
-        c.execute("""
-            CREATE TABLE IF NOT EXISTS orders (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                title TEXT,
-                file_id TEXT,
-                uploaded_by INTEGER,
-                created_at TEXT DEFAULT (datetime('now','localtime'))
-            )
-        """)
-        conn.commit()
-
 def get_orders():
-    with sqlite3.connect(DB_PATH) as conn:
-        c = conn.cursor()
-        c.execute("SELECT id, title, file_id, created_at FROM orders ORDER BY id DESC")
-        return c.fetchall()
+    db = SessionLocal()
 
-def update_order(order_id, new_title, new_file_id):
-    with sqlite3.connect(DB_PATH) as conn:
-        c = conn.cursor()
-        c.execute("""
-            UPDATE orders 
-            SET title=?, file_id=?, created_at=datetime('now','localtime')
-            WHERE id=?
-        """, (new_title, new_file_id, order_id))
-        conn.commit()
+    rows = (
+        db.query(Order.id, Order.title, Order.file_id, Order.created_at)
+        .order_by(Order.created_at.desc())
+        .all()
+    )
+
+    db.close()
+    return rows
+
+def add_order(title: str, file_id: str, uploaded_by: int):
+    db = SessionLocal()
+
+    order = Order(
+        title=title,
+        file_id=file_id,
+        uploaded_by=uploaded_by
+    )
+
+    db.add(order)
+    db.commit()
+    db.close()
+
+def update_order(order_id: int, new_title: str, new_file_id: str):
+    db = SessionLocal()
+
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order:
+        db.close()
+        return False
+
+    order.title = new_title
+    order.file_id = new_file_id
+    order.created_at = datetime.utcnow()
+
+    db.commit()
+    db.close()
+    return True
 
 def get_commands_file():
-    import sqlite3
-    with sqlite3.connect(DB_PATH) as conn:
-        conn.row_factory = sqlite3.Row
-        cur = conn.cursor()
-
-        cur.execute("SELECT file_id FROM commands_file ORDER BY id DESC LIMIT 1")
-        row = cur.fetchone()
-
-        if row:
-            return row["file_id"]
-        return None
+    db = SessionLocal()
+    row = db.query(CommandsFile.file_id).order_by(CommandsFile.id.desc()).first()
+    db.close()
+    return row[0] if row else None
 
 def commands_file_exists() -> bool:
-    with sqlite3.connect(DB_PATH) as conn:
-        cur = conn.cursor()
-        cur.execute("SELECT COUNT(*) FROM commands_file")
-        return cur.fetchone()[0] > 0
-
-# =============================
-# 📘 Buyruqlar jadvali
-# =============================
-def init_orders_table():
-    with sqlite3.connect(DB_PATH) as conn:
-        cur = conn.cursor()
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS orders (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                title TEXT,
-                file_id TEXT,
-                uploaded_by INTEGER,
-                created_at TEXT DEFAULT (datetime('now','localtime'))
-            );
-        """)
-        conn.commit()
-
-
-# =============================
-# ➕ Buyruq qo‘shish
-# =============================
-def add_order(title: str, file_id: str, uploaded_by: int):
-    with sqlite3.connect(DB_PATH) as conn:
-        cur = conn.cursor()
-        cur.execute("""
-            INSERT INTO orders (title, file_id, uploaded_by, created_at)
-            VALUES (?, ?, ?, datetime('now','localtime'))
-        """, (title, file_id, uploaded_by))
-        conn.commit()
-
-# =============================
-# 📄 Buyruqlar ro‘yxati
-# =============================
-def get_orders():
-    with sqlite3.connect(DB_PATH) as conn:
-        cur = conn.cursor()
-        cur.execute("""
-            SELECT id, title, file_id, created_at
-            FROM orders
-            ORDER BY created_at DESC
-        """)
-        return cur.fetchall()
+    db = SessionLocal()
+    exists = db.query(CommandsFile).count() > 0
+    db.close()
+    return exists
 
 def get_all_order_links():
-    with sqlite3.connect(DB_PATH) as conn:
-        conn.row_factory = sqlite3.Row
-        cur = conn.cursor()
-        cur.execute("""
-            SELECT id, title, link, created_at
-            FROM orders_links
-            ORDER BY created_at DESC
-        """)
-        return [dict(row) for row in cur.fetchall()]
+    db = SessionLocal()
+
+    rows = (
+        db.query(
+            OrderLink.id,
+            OrderLink.title,
+            OrderLink.link,
+            OrderLink.created_at
+        )
+        .order_by(OrderLink.created_at.desc())
+        .all()
+    )
+
+    db.close()
+    return rows
 
 def search_orders_multi(year=None, faculty=None, type=None, lastname=None):
-    """
-    orders_links jadvalidan yil / fakultet / tur / familiya bo‘yicha filterlab qidiradi.
-    """
-    with sqlite3.connect(DB_PATH) as conn:
-        conn.row_factory = sqlite3.Row
-        cur = conn.cursor()
+    db = SessionLocal()
 
-        query = """
-            SELECT id, title, link, year, faculty, type, students, created_at
-            FROM orders_links
-            WHERE 1=1
-        """
-        params = []
+    q = db.query(
+        OrderLink.id,
+        OrderLink.title,
+        OrderLink.link,
+        OrderLink.year,
+        OrderLink.faculty,
+        OrderLink.type,
+        OrderLink.students,
+        OrderLink.created_at
+    )
 
-        if year:
-            query += " AND year = ?"
-            params.append(year)
-        if faculty:
-            query += " AND faculty = ?"
-            params.append(faculty)
-        if type:
-            query += " AND type = ?"
-            params.append(type)
-        if lastname:
-            query += " AND students LIKE ?"
-            params.append(f"%{lastname}%")
+    if year:
+        q = q.filter(OrderLink.year == year)
 
-        query += " ORDER BY created_at DESC"
-        cur.execute(query, params)
-        return [dict(row) for row in cur.fetchall()]
+    if faculty:
+        q = q.filter(OrderLink.faculty == faculty)
+
+    if type:
+        q = q.filter(OrderLink.type == type)
+
+    if lastname:
+        q = q.filter(OrderLink.students.ilike(f"%{lastname}%"))
+
+    rows = q.order_by(OrderLink.created_at.desc()).all()
+    db.close()
+    return rows
 
 # =============================
 # ♻ Buyruqni yangilash
 # =============================
-def update_order(order_id: int, new_file_id: str):
-    with sqlite3.connect(DB_PATH) as conn:
-        cur = conn.cursor()
-        cur.execute("""
-            UPDATE orders
-            SET file_id = ?, created_at = datetime('now','localtime')
-            WHERE id = ?
-        """, (new_file_id, order_id))
-        conn.commit()
-
 def get_filtered_teachers(data: dict):
+    db = SessionLocal()
+    q = db.query(Teacher)
+
     faculty = data.get("faculty")
     department = data.get("department")
     fio = data.get("fio")
 
-    query = "SELECT * FROM teachers WHERE 1=1"
-    params = []
-
     if faculty and faculty != "Barchasi":
-        query += " AND faculty = ?"
-        params.append(faculty)
+        q = q.filter(Teacher.faculty == faculty)
 
     if department and department != "Barchasi":
-        query += " AND department = ?"
-        params.append(department)
+        q = q.filter(Teacher.department == department)
 
     if fio and fio != "Barchasi":
-        query += " AND fio LIKE ?"
-        params.append(f"%{fio}%")
+        q = q.filter(Teacher.fio.ilike(f"%{fio}%"))
 
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    cur = conn.cursor()
-    cur.execute(query, params)
-
-    return cur.fetchall()
+    rows = q.all()
+    db.close()
+    return rows
 
 def get_filtered_tutors(data: dict):
+    db = SessionLocal()
+    q = db.query(Teacher).filter(Teacher.role == "tutor")
+
     faculty = data.get("faculty")
     fio = data.get("fio")
 
-    query = "SELECT * FROM teachers WHERE role = 'tutor'"
-    params = []
-
     if faculty and faculty != "Barchasi":
-        query += " AND faculty = ?"
-        params.append(faculty)
+        q = q.filter(Teacher.faculty == faculty)
 
     if fio and fio != "Barchasi":
-        query += " AND fio LIKE ?"
-        params.append(f"%{fio}%")
+        q = q.filter(Teacher.fio.ilike(f"%{fio}%"))
 
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    cur = conn.cursor()
-    cur.execute(query, params)
-
-    return cur.fetchall()
-
+    rows = q.all()
+    db.close()
+    return rows
 
 def get_filtered_students(data: dict):
-    edu_type = data.get("edu_type")
-    edu_form = data.get("edu_form")
-    faculty = data.get("stu_faculty")
-    course = data.get("course")
-    group = data.get("group")
-    fio = data.get("student_fio")
+    db = SessionLocal()
+    q = db.query(Student)
 
-    query = "SELECT * FROM students WHERE 1=1"
-    params = []
+    if data.get("edu_type") and data["edu_type"] != "all":
+        q = q.filter(Student.edu_type == data["edu_type"])
 
-    if edu_type and edu_type != "all":
-        query += " AND edu_type = ?"
-        params.append(edu_type)
+    if data.get("edu_form") and data["edu_form"] != "Barchasi":
+        q = q.filter(Student.edu_form == data["edu_form"])
 
-    if edu_form and edu_form != "Barchasi":
-        query += " AND edu_form = ?"
-        params.append(edu_form)
+    if data.get("stu_faculty") and data["stu_faculty"] != "Barchasi":
+        q = q.filter(Student.faculty == data["stu_faculty"])
 
-    if faculty and faculty != "Barchasi":
-        query += " AND faculty = ?"
-        params.append(faculty)
+    if data.get("course") and data["course"] != "all":
+        q = q.filter(Student.course == data["course"])
 
-    if course and course != "all":
-        query += " AND course = ?"
-        params.append(course)
+    if data.get("group") and data["group"] != "Barchasi":
+        q = q.filter(Student.student_group == data["group"])
 
-    if group and group != "Barchasi":
-        query += " AND group_name = ?"
-        params.append(group)
+    if data.get("student_fio") and data["student_fio"] != "Barchasi":
+        q = q.filter(Student.fio.ilike(f"%{data['student_fio']}%"))
 
-    if fio and fio != "Barchasi":
-        query += " AND fio LIKE ?"
-        params.append(f"%{fio}%")
-
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    cur = conn.cursor()
-    cur.execute(query, params)
-
-    return cur.fetchall()
+    rows = q.all()
+    db.close()
+    return rows
 
 def get_faculty_teachers_stat():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    cur = conn.cursor()
+    db = SessionLocal()
+    try:
+        rows = (
+            db.query(
+                Teacher.faculty,
+                func.count(Teacher.user_id).label("total")
+            )
+            .group_by(Teacher.faculty)
+            .all()
+        )
+        return rows
+    finally:
+        db.close()
 
-    cur.execute("""
-        SELECT faculty, COUNT(*) AS total
-        FROM teachers
-        GROUP BY faculty
-    """)
-
-    return cur.fetchall()
-
-def get_manager_name(manager_id: int):
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    cur = conn.cursor()
-
-    cur.execute("SELECT fio FROM teachers WHERE user_id = ?", (manager_id,))
-    row = cur.fetchone()
-
-    if row and row["fio"]:
-        return row["fio"]
-
-    # agar ustozlar jadvalida topilmasa, oddiy ID sifatida qaytaramiz
-    return str(manager_id)
+def get_manager_name(manager_id: int) -> str:
+    db = SessionLocal()
+    try:
+        teacher = db.query(Teacher).filter(Teacher.user_id == manager_id).first()
+        return teacher.fio if teacher else str(manager_id)
+    finally:
+        db.close()
 
 def save_manager_name(user_id: int, full_name: str):
-    conn = get_connection()
-    cur = conn.cursor()
-
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS managers (
-            user_id INTEGER PRIMARY KEY,
-            full_name TEXT
-        )
-    """)
-
-    cur.execute("""
-        INSERT INTO managers (user_id, full_name)
-        VALUES (?, ?)
-        ON CONFLICT(user_id) DO UPDATE SET full_name=excluded.full_name
-    """, (user_id, full_name))
-
-    conn.commit()
-    conn.close()
+    db = SessionLocal()
+    try:
+        manager = db.query(Manager).filter(Manager.user_id == user_id).first()
+        if manager:
+            manager.full_name = full_name
+        else:
+            manager = Manager(user_id=user_id, full_name=full_name)
+            db.add(manager)
+        db.commit()
+    finally:
+        db.close()
 
 def search_users_by_fio_or_id(text: str, numeric_id: int = None):
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    cur = conn.cursor()
+    db = SessionLocal()
+    try:
+        result = []
 
-    result = []
+        teachers = db.query(Teacher).filter(
+            or_(
+                Teacher.fio.ilike(f"%{text}%"),
+                Teacher.user_id == numeric_id
+            )
+        ).all()
 
-    # 🔎 O‘qituvchi / Tyutor
-    cur.execute("""
-        SELECT user_id, fio, faculty, 'teacher' AS category
-        FROM teachers
-        WHERE fio LIKE ? OR user_id = ?
-    """, (f"%{text}%", numeric_id))
-    result += cur.fetchall()
+        for t in teachers:
+            result.append({
+                "user_id": t.user_id,
+                "fio": t.fio,
+                "faculty": t.faculty,
+                "category": "teacher"
+            })
 
-    # 🔎 Talaba
-    cur.execute("""
-        SELECT user_id, fio, faculty, 'student' AS category
-        FROM students
-        WHERE fio LIKE ? OR user_id = ?
-    """, (f"%{text}%", numeric_id))
-    result += cur.fetchall()
+        students = db.query(Student).filter(
+            or_(
+                Student.fio.ilike(f"%{text}%"),
+                Student.user_id == numeric_id
+            )
+        ).all()
 
-    conn.close()
-    return result
+        for s in students:
+            result.append({
+                "user_id": s.user_id,
+                "fio": s.fio,
+                "faculty": s.faculty,
+                "category": "student"
+            })
+
+        return result
+    finally:
+        db.close()
 
 def delete_user_by_id(user_id: int):
-    conn = sqlite3.connect(DB_PATH)
-    cur = conn.cursor()
-
-    # O‘qituvchi / Tyutorni o‘chirish
-    cur.execute("DELETE FROM teachers WHERE user_id = ?", (user_id,))
-
-    # Talabani o‘chirish
-    cur.execute("DELETE FROM students WHERE user_id = ?", (user_id,))
-
-    conn.commit()
-    conn.close()
+    db = SessionLocal()
+    try:
+        db.query(Teacher).filter(Teacher.user_id == user_id).delete()
+        db.query(Student).filter(Student.user_id == user_id).delete()
+        db.commit()
+    finally:
+        db.close()
 
 def get_student(user_id: int):
-    conn = sqlite3.connect(DB_PATH)
-    cur = conn.cursor()
-    cur.execute("SELECT * FROM students WHERE user_id = ?", (user_id,))
-    return cur.fetchone()
+    db = SessionLocal()
+    try:
+        return db.query(Student).filter(
+            Student.user_id == user_id
+        ).first()
+    finally:
+        db.close()
 
+# =====================================================
+# 👨‍🏫 O‘QITUVCHINI OLISH
+# =====================================================
+def get_teacher(user_id: int):
+    db = SessionLocal()
+    try:
+        return db.query(Teacher).filter(
+            Teacher.user_id == user_id
+        ).first()
+    finally:
+        db.close()
 
-def get_question_by_id(question_id):
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    cur = conn.cursor()
+def get_question_by_id(question_id: int):
+    db = SessionLocal()
+    try:
+        return db.query(Question).filter(Question.id == question_id).first()
+    finally:
+        db.close()
 
-    cur.execute("""
-        SELECT id, sender_id, fio, faculty, message_text, created_at, answered
-        FROM questions
-        WHERE id = ?
-    """, (question_id,))
+from database.db import SessionLocal  # sizda SessionLocal qayerda bo‘lsa o‘sha import
+from database.models import Question
 
-    row = cur.fetchone()
-    conn.close()
-    return row
-
-def save_question(sender_id, faculty, message_text, fio=None):
-    with sqlite3.connect(DB_PATH) as conn:
-        cur = conn.cursor()
-        cur.execute("""
-            INSERT INTO questions(sender_id, faculty, message_text, fio, answered)
-            VALUES (?, ?, ?, ?, 0)
-        """, (sender_id, faculty, message_text, fio))
-        conn.commit()
-        return cur.lastrowid   # 🔴 MUHIM
-
-
-    # ✅ MUHIM: yangi savol ID sini qaytaramiz
-    return cur.lastrowid
+def save_question(sender_id: int, sender_role: str, faculty: str, message_text: str, fio: str):
+    db = SessionLocal()
+    try:
+        q = Question(
+            sender_id=sender_id,
+            sender_role=sender_role,   # <-- MUHIM
+            faculty=faculty,
+            message_text=message_text,
+            fio=fio,
+            answered=False
+        )
+        db.add(q)
+        db.commit()
+        db.refresh(q)
+        return q.id
+    except Exception as e:
+        db.rollback()
+        print("[DB save_question ERROR]", e)
+        return None
+    finally:
+        db.close()
 
 def save_question_message_id(question_id: int, manager_id: int, message_id: int):
-    with sqlite3.connect(DB_PATH) as conn:
-        conn.execute(
-            """
-            UPDATE questions
-            SET manager_id = ?, manager_msg_id = ?
-            WHERE id = ?
-            """,
-            (manager_id, message_id, question_id)
-        )
-        conn.commit()
+    db = SessionLocal()
+    try:
+        q = db.query(Question).filter(Question.id == question_id).first()
+        if not q:
+            return False
+
+        q.manager_id = manager_id
+        q.manager_msg_id = message_id
+        db.commit()
+        return True
+    finally:
+        db.close()
 
 def get_manager_fio(manager_id: int) -> str:
-    conn = get_connection()
-    cur = conn.cursor()
+    db = SessionLocal()
+    try:
+        teacher = db.query(Teacher).filter(Teacher.user_id == manager_id).first()
+        return teacher.fio if teacher else "Noma’lum menejer"
+    finally:
+        db.close()
 
-    cur.execute(
-        """
-        SELECT fio
-        FROM teachers
-        WHERE user_id = ?
-        """,
-        (manager_id,)
-    )
+from sqlalchemy import select
 
-    row = cur.fetchone()
-    conn.close()
-
-    if row:
-        return row["fio"]
-
-    return "Noma’lum menejer"
+async def get_user_by_id(user_id: int):
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(User).where(User.user_id == user_id)
+        )
+        return result.scalar_one_or_none()
 
 # =============================
 # 🚀 Dastur ishga tushganda
 # =============================
-init_db()
-create_tables_if_not_exist()
-create_orders_table()
-create_orders_links_table()
-create_manager_ratings_table()
+def init_db():
+    Base.metadata.create_all(bind=engine)
+    print("✅ PostgreSQL jadvallar tayyor")
 
 

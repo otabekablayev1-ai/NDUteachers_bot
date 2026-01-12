@@ -1,7 +1,3 @@
-import sqlite3
-from data.config import DB_PATH
-
-conn = sqlite3.connect(DB_PATH)
 cur = conn.cursor()
 
 print("📋 Ustunlar ro‘yxati:")
