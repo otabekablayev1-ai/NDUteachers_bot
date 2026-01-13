@@ -183,7 +183,8 @@ async def filter_search(call: CallbackQuery, state: FSMContext):
     # Bitta oynada chiqarish
     text = "📄 <b>Natijalar:</b>\n\n"
     for row in rows:
-        text += f"👉 <a href=\"{row['link']}\">{row['title']}</a>\n"
+        data = row._mapping  # 🔥 mana shu MUHIM
+        text += f"👉 <a href=\"{data['link']}\">{data['title']}</a>\n"
 
     await call.message.answer(text, parse_mode="HTML")
     await call.answer()
