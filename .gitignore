@@ -7,3 +7,5 @@ database/bot.db-journal
 sqlite3.exe
 *.db
 *.sqlite
+.idea/
+*.iml
