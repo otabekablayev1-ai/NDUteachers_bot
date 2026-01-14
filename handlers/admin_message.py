@@ -289,11 +289,7 @@ async def set_student_fio(message: Message, state: FSMContext):
     await message.answer("Endi yubormoqchi bo‘lgan xabarni yuboring (matn/fayl):")
     await state.set_state(SendMSG.msg)
 
-# =====================================================
-# 5. YAKUNIY XABARNI YUBORISH
-# =====================================================
-
-@router.message(SendMSG.msg, F.text | F.photo | F.video | F.document)
+#@router.message(SendMSG.msg, F.text | F.photo | F.video | F.document)
 async def send_result(message: Message, state: FSMContext):
     data = await state.get_data()
 
@@ -306,7 +302,7 @@ async def send_result(message: Message, state: FSMContext):
         teachers = get_filtered_teachers(data)
         for t in teachers:
             try:
-                await message.send_copy(t["user_id"])
+                await message.send_copy(t.user_id)  # 🔥 tuzatildi
                 teacher_count += 1
             except:
                 pass
@@ -316,27 +312,28 @@ async def send_result(message: Message, state: FSMContext):
         tutors = get_filtered_tutors(data)
         for t in tutors:
             try:
-                await message.send_copy(t["user_id"])
+                await message.send_copy(t.user_id)  # 🔥 tuzatildi
                 tutor_count += 1
             except:
                 pass
 
     # Talabalar
-    if data.get("role") == "student":
+    if data.get("role") in ["student", "all"]:   # 🔥 tuzatildi
         students = get_filtered_students(data)
         for s in students:
             try:
-                await message.send_copy(s["user_id"])
+                await message.send_copy(s.user_id)  # 🔥 tuzatildi
                 student_count += 1
             except:
                 pass
 
-    # Natija xabari
+    # Natija
     await message.answer(
-        f"✅ Xabar yuborildi:\n"
-        f"👨‍🏫 O‘qituvchilar: {teacher_count}\n"
-        f"🧑‍🏫 Tyutorlar: {tutor_count}\n"
-        f"🎓 Talabalar: {student_count}"
+        f"✅ <b>Xabar yuborildi:</b>\n"
+        f"👨‍🏫 O‘qituvchilar: {teacher_count} ta\n"
+        f"🧑‍🏫 Tyutorlar: {tutor_count} ta\n"
+        f"🎓 Talabalar: {student_count} ta",
+        parse_mode="HTML"
     )
 
     await state.clear()
