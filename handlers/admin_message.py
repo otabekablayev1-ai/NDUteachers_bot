@@ -289,7 +289,15 @@ async def set_student_fio(message: Message, state: FSMContext):
     await message.answer("Endi yubormoqchi bo‘lgan xabarni yuboring (matn/fayl):")
     await state.set_state(SendMSG.msg)
 
-#@router.message(SendMSG.msg, F.text | F.photo | F.video | F.document)
+from aiogram.types import Message
+from aiogram.fsm.context import FSMContext
+from aiogram import F
+
+# =====================================================
+# 5. YAKUNIY XABARNI YUBORISH (FIXED)
+# =====================================================
+
+@router.message(SendMSG.msg, F.text | F.photo | F.video | F.document)
 async def send_result(message: Message, state: FSMContext):
     data = await state.get_data()
 
@@ -297,39 +305,70 @@ async def send_result(message: Message, state: FSMContext):
     tutor_count = 0
     student_count = 0
 
-    # O‘qituvchilar
+
+    def _uid(obj):
+        if obj is None:
+            return None
+        if isinstance(obj, dict):
+            return obj.get("user_id")
+        return getattr(obj, "user_id", None)
+
+        teachers = []
+    tutors = []
+    students = []
+
     if data.get("role") in ["teacher", "all"]:
         teachers = get_filtered_teachers(data)
-        for t in teachers:
-            try:
-                await message.send_copy(t.user_id)  # 🔥 tuzatildi
-                teacher_count += 1
-            except:
-                pass
 
-    # Tyutorlar
     if data.get("role") in ["tutor", "all"]:
         tutors = get_filtered_tutors(data)
-        for t in tutors:
-            try:
-                await message.send_copy(t.user_id)  # 🔥 tuzatildi
-                tutor_count += 1
-            except:
-                pass
+
+    # 🔥 MUHIM: "all" bo‘lsa ham talabalarni ham qo‘shamiz
+    if data.get("role") in ["student", "all"]:
+        students = get_filtered_students(data)
+
+    # Debug (xohlasangiz qoldiring)
+    print("[ADMIN MSG] role:", data.get("role"))
+    print("[ADMIN MSG] found teachers:", len(teachers))
+    print("[ADMIN MSG] found tutors:", len(tutors))
+    print("[ADMIN MSG] found students:", len(students))
+
+    # O‘qituvchilar
+    for t in teachers:
+        uid = _uid(t)
+        if not uid:
+            continue
+        try:
+            await message.copy_to(chat_id=uid)
+            teacher_count += 1
+        except Exception as e:
+            print("[ADMIN SEND ERROR][TEACHER]", uid, e)
+
+    # Tyutorlar
+    for t in tutors:
+        uid = _uid(t)
+        if not uid:
+            continue
+        try:
+            await message.copy_to(chat_id=uid)
+            tutor_count += 1
+        except Exception as e:
+            print("[ADMIN SEND ERROR][TUTOR]", uid, e)
 
     # Talabalar
-    if data.get("role") in ["student", "all"]:   # 🔥 tuzatildi
-        students = get_filtered_students(data)
-        for s in students:
-            try:
-                await message.send_copy(s.user_id)  # 🔥 tuzatildi
-                student_count += 1
-            except:
-                pass
+    for s in students:
+        uid = _uid(s)
+        if not uid:
+            continue
+        try:
+            await message.copy_to(chat_id=uid)
+            student_count += 1
+        except Exception as e:
+            print("[ADMIN SEND ERROR][STUDENT]", uid, e)
 
-    # Natija
+    # --- 3) Natija xabari (har doim chiqadi) ---
     await message.answer(
-        f"✅ <b>Xabar yuborildi:</b>\n"
+        "✅ <b>Xabar yuborildi:</b>\n"
         f"👨‍🏫 O‘qituvchilar: {teacher_count} ta\n"
         f"🧑‍🏫 Tyutorlar: {tutor_count} ta\n"
         f"🎓 Talabalar: {student_count} ta",
