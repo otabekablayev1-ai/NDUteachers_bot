@@ -1,5 +1,6 @@
 from aiogram import Router, F
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.fsm.context import FSMContext
 from data.config import RAHBARLAR, ADMINS
 from database.db import (
@@ -92,14 +93,39 @@ async def start_handler(message: Message, state: FSMContext):   # 👈 state qo�
     # ==========================================
     student = get_student(user_id)
     if student:
-        kb = ReplyKeyboardMarkup(
-            keyboard=[[KeyboardButton(text="📨 Rahbarlarga savol va murojaatlar yozish")]],
+        reply_kb = ReplyKeyboardMarkup(
+            keyboard=[
+                [KeyboardButton(text="📨 Rahbarlarga savol va murojaatlar yozish")]
+            ],
             resize_keyboard=True
         )
+
+        inline_kb = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(
+                        text="📄 Mening buyruqlarim",
+                        callback_data="student_my_orders"
+                    )
+                ],
+                [
+                    InlineKeyboardButton(
+                        text="🎓 Hemis",
+                        url="https://student.nspi.uz/dashboard/login"
+                    )
+                ]
+            ]
+        )
+
         await message.answer(
             f"👋 Assalomu alaykum, hurmatli talaba <b>{student.fio}</b>!",
             parse_mode="HTML",
-            reply_markup=kb
+            reply_markup=reply_kb
+        )
+
+        await message.answer(
+            "👇 Quyidagi xizmatlardan foydalanishingiz mumkin:",
+            reply_markup=inline_kb
         )
         return
 
