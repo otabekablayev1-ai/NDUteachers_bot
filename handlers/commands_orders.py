@@ -59,11 +59,9 @@ async def orders_menu(message: Message):
 # 🔎 FILTER FSM
 # ==========================
 class OrderFilterState(StatesGroup):
-    year = State()
     faculty = State()
     type = State()
     lastname = State()
-
 
 # ==========================
 # 📘 FILTR MENYUSI (yonma-yon)
@@ -73,7 +71,6 @@ async def orders_filter_menu(call: CallbackQuery):
     kb = InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(text="📅 Yil", callback_data="open_years"),
                 InlineKeyboardButton(text="🏛 Fakultet", callback_data="open_faculties"),
                 InlineKeyboardButton(text="📑 Buyruq turi", callback_data="open_types"),
             ],
@@ -88,21 +85,21 @@ async def orders_filter_menu(call: CallbackQuery):
 # ==========================
 # 📅 YIL DROPDOWN
 # ==========================
-@router.callback_query(F.data == "open_years")
-async def dropdown_years(call: CallbackQuery):
-    kb = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text=year, callback_data=f"set_year_{year}")]
-            for year in YEARS
-        ] + [[InlineKeyboardButton(text="⬅ Orqaga", callback_data="orders_filter")]]
-    )
-    await call.message.edit_reply_markup(reply_markup=kb)
-    await call.answer()
+# @router.callback_query(F.data == "open_years")
+# async def dropdown_years(call: CallbackQuery):
+    #kb = InlineKeyboardMarkup(
+        #inline_keyboard=[
+            #[InlineKeyboardButton(text=year, callback_data=f"set_year_{year}")]
+            #for year in YEARS
+        #] + [[InlineKeyboardButton(text="⬅ Orqaga", callback_data="orders_filter")]]
+    #)
+    #await call.message.edit_reply_markup(reply_markup=kb)
+    #await call.answer()
 
-@router.callback_query(F.data.startswith("set_year_"))
-async def set_year(call: CallbackQuery, state: FSMContext):
-    await state.update_data(year=call.data.replace("set_year_", ""))
-    await call.answer("✔ Yil tanlandi")
+#@router.callback_query(F.data.startswith("set_year_"))
+# async def set_year(call: CallbackQuery, state: FSMContext):
+    #await state.update_data(year=call.data.replace("set_year_", ""))
+    #await call.answer("✔ Yil tanlandi")
 
 
 # ==========================
@@ -167,13 +164,12 @@ async def set_lastname(message: Message, state: FSMContext):
 async def filter_search(call: CallbackQuery, state: FSMContext):
     data = await state.get_data()
 
-    # ❗ Familiya majburiy
+    # 🔒 Familiya majburiy
     if not data.get("lastname"):
         await call.message.answer("❗ Avval familiyani kiriting.")
         return await call.answer()
 
     rows = search_orders_multi(
-        year=data.get("year"),
         faculty=data.get("faculty"),
         type=data.get("type"),
         lastname=data.get("lastname")
@@ -185,8 +181,8 @@ async def filter_search(call: CallbackQuery, state: FSMContext):
 
     text = "📄 <b>Natijalar:</b>\n\n"
     for row in rows:
-        row_data = row._mapping  # SQLAlchemy Row fix
-        text += f"👉 <a href=\"{row_data['link']}\">{row_data['title']}</a>\n"
+        r = row._mapping
+        text += f"👉 <a href=\"{r['link']}\">{r['title']}</a>\n"
 
     await call.message.answer(text, parse_mode="HTML")
     await call.answer()
