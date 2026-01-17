@@ -163,12 +163,15 @@ async def set_lastname(message: Message, state: FSMContext):
     await message.answer("✔ Familiya qabul qilindi\n👇 Endi *Izlash* tugmasini bosing.", parse_mode="Markdown")
 
 
-# ==========================
-# 🔍 IZLASH (filtrlarni birgalikda qo‘llash)
-# ==========================
 @router.callback_query(F.data == "filter_search")
 async def filter_search(call: CallbackQuery, state: FSMContext):
     data = await state.get_data()
+
+    # ❗ Familiya majburiy
+    if not data.get("lastname"):
+        await call.message.answer("❗ Avval familiyani kiriting.")
+        return await call.answer()
+
     rows = search_orders_multi(
         year=data.get("year"),
         faculty=data.get("faculty"),
@@ -180,11 +183,10 @@ async def filter_search(call: CallbackQuery, state: FSMContext):
         await call.message.answer("❌ Hech narsa topilmadi.")
         return await call.answer()
 
-    # Bitta oynada chiqarish
     text = "📄 <b>Natijalar:</b>\n\n"
     for row in rows:
-        data = row._mapping  # 🔥 mana shu MUHIM
-        text += f"👉 <a href=\"{data['link']}\">{data['title']}</a>\n"
+        row_data = row._mapping  # SQLAlchemy Row fix
+        text += f"👉 <a href=\"{row_data['link']}\">{row_data['title']}</a>\n"
 
     await call.message.answer(text, parse_mode="HTML")
     await call.answer()
