@@ -190,9 +190,14 @@ async def send_to_head(message: Message, state: FSMContext):
     # ============================
     info_text = (
         f"📩 <b>Yangi savol (TALABA)</b>\n\n"
-        f"👤 <b>{fio}</b>\n"
-        f"📞 {phone}\n"
-        f"🏫 {faculty}\n\n"
+        f"👤 <b>{student.fio}</b>\n"
+        f"📞 {student.phone}\n"
+        f"🏛 Fakultet: {student.faculty}\n"
+        f"🎓 Ta’lim turi: {student.edu_type}\n"
+        f"🕒 Ta’lim shakli: {student.edu_form}\n"
+        f"📚 Kurs: {student.course}\n"
+        f"👥 Guruh: {student.student_group}\n"
+        f"🪪 Passport: {student.passport}\n\n"
     )
 
     reply_kb = InlineKeyboardMarkup(

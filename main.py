@@ -19,7 +19,8 @@ from handlers import (
     teacher_panel,
     student_panel,
     commands_orders,
-    student_orders
+    student_orders,
+    tutor_orders
 )
 
 # ========================
@@ -60,6 +61,7 @@ async def main():
     dp.include_router(student_panel.router)
     dp.include_router(registration.router)
     dp.include_router(student_orders.router)
+    dp.include_router(tutor_orders.router)
 
     await bot.delete_webhook(drop_pending_updates=True)
     me = await bot.get_me()

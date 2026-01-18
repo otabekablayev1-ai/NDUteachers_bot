@@ -709,22 +709,16 @@ def get_all_order_links():
     db.close()
     return rows
 
-def search_orders_multi(year=None, faculty=None, type=None, lastname=None):
+def search_orders_multi(faculty=None, type=None, lastname=None):
     db = SessionLocal()
 
     q = db.query(
         OrderLink.id,
         OrderLink.title,
         OrderLink.link,
-        OrderLink.year,
         OrderLink.faculty,
         OrderLink.type,
-        OrderLink.students,
-        OrderLink.created_at
     )
-
-    if year:
-        q = q.filter(OrderLink.year == year)
 
     if faculty:
         q = q.filter(OrderLink.faculty == faculty)

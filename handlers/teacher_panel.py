@@ -151,11 +151,14 @@ async def send_to_head(message: Message, state: FSMContext):
     # ============================
     # RAHBARGA YUBORISH
     # ============================
+    role_title = "TYUTOR" if teacher.role == "tutor" else "O‘QITUVCHI"
+
     info_text = (
-        f"📩 <b>Yangi savol (O‘QITUVCHI / TYUTOR)</b>\n\n"
-        f"👤 <b>{fio}</b>\n"
-        f"📞 {phone}\n"
-        f"🏫 {faculty}\n\n"
+        f"📩 <b>Yangi savol ({role_title})</b>\n\n"
+        f"👤 <b>{teacher.fio}</b>\n"
+        f"📞 {teacher.phone}\n"
+        f"🏛 Fakultet: {teacher.faculty}\n"
+        f"🧑‍💼 Rol: {teacher.role}\n\n"
     )
 
     reply_kb = InlineKeyboardMarkup(
