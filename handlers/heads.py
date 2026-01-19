@@ -163,7 +163,17 @@ async def send_reply(message: Message, state: FSMContext):
         await state.clear()
         return
 
-    header = f"💬 <b>Rahbar javobi</b>\n👤 {message.from_user.full_name}\n\n"
+    # 🔹 Savolni DB dan olamiz
+    q = get_question_by_id(question_id)
+    faculty = q.faculty if q and q.faculty else "Noma’lum"
+
+    # 🔹 Chiroyli header
+    header = (
+        f"📬 <b>Sizning savolingizga javob</b>\n\n"
+        f"🏫 Fakultet: <b>{faculty}</b>\n"
+        f"👤 Rahbar: {message.from_user.full_name}\n"
+        f"────────────────\n\n"
+    )
 
     # 1️⃣ USERGA JAVOB
     if message.text:
@@ -202,7 +212,6 @@ async def send_reply(message: Message, state: FSMContext):
     )
 
     try:
-        print("[DEBUG] ⭐ Baholash userga yuborildi:", sender_id)
         await message.bot.send_message(
             sender_id,
             "⭐ <b>Javobni baholang:</b>",
@@ -215,7 +224,7 @@ async def send_reply(message: Message, state: FSMContext):
     # 4️⃣ Rahbarga tasdiq
     await message.answer("✅ Javob foydalanuvchiga yuborildi.")
 
-    # 5️⃣ FSM NI YOPISH (ENG MUHIM!)
+    # 5️⃣ FSM ni yopish
     await state.clear()
 
 ## =========================
