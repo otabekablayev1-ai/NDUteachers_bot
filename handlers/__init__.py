@@ -1,4 +1,5 @@
 from . import student_orders
+from . import orders_delete
 from . import (
     start,
     registration,
@@ -21,5 +22,6 @@ __all__ = [
     "admin_register_check",
     "heads",
     "commands_orders",
-    "student_orders"
+    "student_orders",
+    "orders_delete"
 ]

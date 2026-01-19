@@ -968,6 +968,32 @@ async def get_user_by_id(user_id: int):
         )
         return result.scalar_one_or_none()
 
+def search_orders_for_delete(query: str):
+    db = SessionLocal()
+    try:
+        if query.isdigit():
+            rows = db.query(OrderLink).filter(OrderLink.id == int(query)).all()
+        else:
+            rows = db.query(OrderLink).filter(OrderLink.title.ilike(f"%{query}%")).all()
+        return rows
+    finally:
+        db.close()
+
+def delete_order_by_id(order_id: int) -> bool:
+    db = SessionLocal()
+    try:
+        row = db.query(OrderLink).filter(OrderLink.id == order_id).first()
+        if not row:
+            return False
+        db.delete(row)
+        db.commit()
+        return True
+    except:
+        db.rollback()
+        return False
+    finally:
+        db.close()
+
 # =============================
 # 🚀 Dastur ishga tushganda
 # =============================

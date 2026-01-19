@@ -34,6 +34,7 @@ async def start_handler(message: Message, state: FSMContext):   # 👈 state qo�
                 [KeyboardButton(text="❌ Foydalanuvchini o‘chirish")],
                 [KeyboardButton(text="📨 Xabar yuborish")],
                 [KeyboardButton(text="📘 Buyruqlar")],
+                [KeyboardButton(text="🗑 Buyruqni o‘chirish")],
             ],
             resize_keyboard=True
         )
