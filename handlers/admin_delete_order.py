@@ -1,13 +1,10 @@
 from aiogram import Router, F
-from aiogram.types import (
-    Message, CallbackQuery,
-    InlineKeyboardMarkup, InlineKeyboardButton
-)
+from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.context import FSMContext
 
 from data.config import ADMINS
-from database.db import search_orders_for_delete, delete_order_by_id
+from database.db import search_order_links_for_delete, delete_order_link_by_id
 
 router = Router()
 
@@ -16,7 +13,6 @@ class DeleteOrderFSM(StatesGroup):
     waiting_query = State()
 
 
-# 🗑 BOSHLASH
 @router.message(F.text == "🗑 Buyruqni o‘chirish")
 async def start_delete(message: Message, state: FSMContext):
     if message.from_user.id not in ADMINS:
@@ -26,11 +22,10 @@ async def start_delete(message: Message, state: FSMContext):
     await state.set_state(DeleteOrderFSM.waiting_query)
 
 
-# 🔍 QIDIRISH
 @router.message(DeleteOrderFSM.waiting_query)
 async def search_orders(message: Message, state: FSMContext):
     query = message.text.strip()
-    rows = search_orders_for_delete(query)
+    rows = search_order_links_for_delete(query)
 
     if not rows:
         await message.answer("❌ Hech narsa topilmadi.")
@@ -47,14 +42,12 @@ async def search_orders(message: Message, state: FSMContext):
         )
 
         await message.answer(
-            f"📘 <b>{row.title}</b>\n"
-            f"🔗 {row.link}\n"
-            f"🆔 ID: {row.id}",
+            f"📘 <b>{row.title}</b>\n🔗 {row.link}\n🆔 ID: {row.id}",
             parse_mode="HTML",
             reply_markup=kb
         )
 
-# ⚠️ TASDIQLASH
+
 @router.callback_query(F.data.startswith("confirm_delete_"))
 async def confirm_delete(call: CallbackQuery):
     order_id = int(call.data.replace("confirm_delete_", ""))
@@ -72,11 +65,11 @@ async def confirm_delete(call: CallbackQuery):
     await call.answer()
 
 
-# ✅ HA
 @router.callback_query(F.data.startswith("delete_yes_"))
 async def delete_yes(call: CallbackQuery):
     order_id = int(call.data.replace("delete_yes_", ""))
-    ok = delete_order_by_id(order_id)
+
+    ok = delete_order_link_by_id(order_id)
 
     if ok:
         await call.message.answer("✅ Buyruq o‘chirildi.")
@@ -86,7 +79,6 @@ async def delete_yes(call: CallbackQuery):
     await call.answer()
 
 
-# ❎ YO‘Q
 @router.callback_query(F.data == "delete_no")
 async def delete_no(call: CallbackQuery):
     await call.message.answer("❎ Bekor qilindi.")

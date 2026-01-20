@@ -969,10 +969,10 @@ async def get_user_by_id(user_id: int):
         return result.scalar_one_or_none()
 
 # =============================
-# ❌ BUYRUQNI O‘CHIRISH (ADMIN)
+# ❌ HAVOLALI BUYRUQLARNI O‘CHIRISH (ADMIN)
 # =============================
 
-def search_orders_for_delete(query: str):
+def search_order_links_for_delete(query: str):
     db = SessionLocal()
     try:
         if query.isdigit():
@@ -985,7 +985,7 @@ def search_orders_for_delete(query: str):
         db.close()
 
 
-def delete_order_by_id(order_id: int) -> bool:
+def delete_order_link_by_id(order_id: int) -> bool:
     db = SessionLocal()
     try:
         order = db.query(OrderLink).filter(OrderLink.id == order_id).first()
@@ -997,7 +997,7 @@ def delete_order_by_id(order_id: int) -> bool:
         return True
     except Exception as e:
         db.rollback()
-        print("[DELETE ORDER ERROR]", e)
+        print("[DELETE ORDER LINK ERROR]", e)
         return False
     finally:
         db.close()
