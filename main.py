@@ -5,7 +5,7 @@ from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.client.default import DefaultBotProperties
-from handlers import orders_delete
+from handlers import admin_delete_order
 
 from data.config import BOT_TOKEN
 from database.db import init_db
@@ -61,7 +61,7 @@ async def main():
     dp.include_router(student_panel.router)
     dp.include_router(registration.router)
     dp.include_router(student_orders.router)
-    dp.include_router(orders_delete.router)
+    dp.include_router(admin_delete_order.router)
 
     await bot.delete_webhook(drop_pending_updates=True)
     me = await bot.get_me()

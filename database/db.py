@@ -968,31 +968,39 @@ async def get_user_by_id(user_id: int):
         )
         return result.scalar_one_or_none()
 
+# =============================
+# ❌ BUYRUQNI O‘CHIRISH (ADMIN)
+# =============================
+
 def search_orders_for_delete(query: str):
-    db = SessionLocal()
+    session = SessionLocal()
     try:
         if query.isdigit():
-            rows = db.query(OrderLink).filter(OrderLink.id == int(query)).all()
+            return session.query(Order).filter(Order.id == int(query)).all()
         else:
-            rows = db.query(OrderLink).filter(OrderLink.title.ilike(f"%{query}%")).all()
-        return rows
+            return session.query(Order).filter(
+                Order.title.ilike(f"%{query}%")
+            ).all()
     finally:
-        db.close()
+        session.close()
+
 
 def delete_order_by_id(order_id: int) -> bool:
-    db = SessionLocal()
+    session = SessionLocal()
     try:
-        row = db.query(OrderLink).filter(OrderLink.id == order_id).first()
-        if not row:
+        order = session.query(Order).filter(Order.id == order_id).first()
+        if not order:
             return False
-        db.delete(row)
-        db.commit()
+
+        session.delete(order)
+        session.commit()
         return True
-    except:
-        db.rollback()
+    except Exception as e:
+        session.rollback()
+        print("[DELETE ORDER ERROR]", e)
         return False
     finally:
-        db.close()
+        session.close()
 
 # =============================
 # 🚀 Dastur ishga tushganda
