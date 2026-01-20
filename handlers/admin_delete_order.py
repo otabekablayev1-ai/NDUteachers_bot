@@ -39,21 +39,20 @@ async def search_orders(message: Message, state: FSMContext):
     for row in rows:
         kb = InlineKeyboardMarkup(
             inline_keyboard=[
-                [
-                    InlineKeyboardButton(
-                        text="❌ O‘chirish",
-                        callback_data=f"confirm_delete_{row.id}"
-                    )
-                ]
+                [InlineKeyboardButton(
+                    text="❌ O‘chirish",
+                    callback_data=f"confirm_delete_{row.id}"
+                )]
             ]
         )
 
         await message.answer(
-            f"📘 <b>{row.title}</b>\n🆔 ID: {row.id}",
+            f"📘 <b>{row.title}</b>\n"
+            f"🔗 {row.link}\n"
+            f"🆔 ID: {row.id}",
             parse_mode="HTML",
             reply_markup=kb
         )
-
 
 # ⚠️ TASDIQLASH
 @router.callback_query(F.data.startswith("confirm_delete_"))

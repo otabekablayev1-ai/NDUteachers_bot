@@ -973,34 +973,34 @@ async def get_user_by_id(user_id: int):
 # =============================
 
 def search_orders_for_delete(query: str):
-    session = SessionLocal()
+    db = SessionLocal()
     try:
         if query.isdigit():
-            return session.query(Order).filter(Order.id == int(query)).all()
+            return db.query(OrderLink).filter(OrderLink.id == int(query)).all()
         else:
-            return session.query(Order).filter(
-                Order.title.ilike(f"%{query}%")
+            return db.query(OrderLink).filter(
+                OrderLink.title.ilike(f"%{query}%")
             ).all()
     finally:
-        session.close()
+        db.close()
 
 
 def delete_order_by_id(order_id: int) -> bool:
-    session = SessionLocal()
+    db = SessionLocal()
     try:
-        order = session.query(Order).filter(Order.id == order_id).first()
+        order = db.query(OrderLink).filter(OrderLink.id == order_id).first()
         if not order:
             return False
 
-        session.delete(order)
-        session.commit()
+        db.delete(order)
+        db.commit()
         return True
     except Exception as e:
-        session.rollback()
+        db.rollback()
         print("[DELETE ORDER ERROR]", e)
         return False
     finally:
-        session.close()
+        db.close()
 
 # =============================
 # 🚀 Dastur ishga tushganda
