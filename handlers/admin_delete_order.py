@@ -4,7 +4,7 @@ from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.context import FSMContext
 
 from data.config import ADMINS
-from database.db import search_orders_for_delete, delete_order_by_id
+from database.db import search_order_links_for_delete, delete_order_link_by_id
 
 router = Router()
 
@@ -25,7 +25,7 @@ async def start_delete(message: Message, state: FSMContext):
 @router.message(DeleteOrderFSM.waiting_query)
 async def search_orders(message: Message, state: FSMContext):
     query = message.text.strip()
-    rows = search_orders_for_delete(query)
+    rows = search_order_links_for_delete(query)
 
     if not rows:
         await message.answer("❌ Hech narsa topilmadi.")
@@ -69,7 +69,7 @@ async def confirm_delete(call: CallbackQuery):
 async def delete_yes(call: CallbackQuery):
     order_id = int(call.data.replace("delete_yes_", ""))
 
-    ok = delete_order_by_id(order_id)
+    ok = delete_order_link_by_id(order_id)
 
     if ok:
         await call.message.answer("✅ Buyruq o‘chirildi.")
