@@ -969,22 +969,20 @@ async def get_user_by_id(user_id: int):
         return result.scalar_one_or_none()
 
 # =============================
-# ❌ HAVOLALI BUYRUQLARNI O‘CHIRISH (ADMIN)
-# =============================
-
-# =============================
-# ❌ HAVOLALI BUYRUQLARNI O‘CHIRISH (ADMIN)
+# ❌ HAVOLALI BUYRUQLARNI O‘CHIRISH (ADMIN) — OrderLink
 # =============================
 
 def search_order_links_for_delete(query: str):
     db = SessionLocal()
     try:
+        q = db.query(OrderLink)
+
+        # ID bo‘lsa
         if query.isdigit():
-            return db.query(OrderLink).filter(OrderLink.id == int(query)).all()
-        else:
-            return db.query(OrderLink).filter(
-                OrderLink.title.ilike(f"%{query}%")
-            ).all()
+            return q.filter(OrderLink.id == int(query)).all()
+
+        # title bo‘yicha
+        return q.filter(OrderLink.title.ilike(f"%{query}%")).order_by(OrderLink.id.desc()).all()
     finally:
         db.close()
 
