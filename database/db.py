@@ -969,38 +969,39 @@ async def get_user_by_id(user_id: int):
         return result.scalar_one_or_none()
 
 # =============================
-# ❌ HAVOLALI BUYRUQLARNI O‘CHIRISH (OrderLink)
+# ❌ HAVOLALI BUYRUQLARNI O‘CHIRISH (ADMIN)
 # =============================
-def search_orders_for_delete(query: str):
+
+# =============================
+# ❌ HAVOLALI BUYRUQLARNI O‘CHIRISH (ADMIN)
+# =============================
+
+def search_order_links_for_delete(query: str):
     db = SessionLocal()
     try:
-        q = db.query(OrderLink)
-
-        # ID bo‘yicha
         if query.isdigit():
-            q = q.filter(OrderLink.id == int(query))
+            return db.query(OrderLink).filter(OrderLink.id == int(query)).all()
         else:
-            # nom bo‘yicha
-            q = q.filter(OrderLink.title.ilike(f"%{query}%"))
-
-        return q.order_by(OrderLink.id.desc()).all()
+            return db.query(OrderLink).filter(
+                OrderLink.title.ilike(f"%{query}%")
+            ).all()
     finally:
         db.close()
 
 
-def delete_order_by_id(order_id: int) -> bool:
+def delete_order_link_by_id(order_id: int) -> bool:
     db = SessionLocal()
     try:
-        row = db.query(OrderLink).filter(OrderLink.id == order_id).first()
-        if not row:
+        order = db.query(OrderLink).filter(OrderLink.id == order_id).first()
+        if not order:
             return False
 
-        db.delete(row)
+        db.delete(order)
         db.commit()
         return True
     except Exception as e:
         db.rollback()
-        print("[DELETE ORDERLINK ERROR]", e)
+        print("[DELETE ORDER LINK ERROR]", e)
         return False
     finally:
         db.close()

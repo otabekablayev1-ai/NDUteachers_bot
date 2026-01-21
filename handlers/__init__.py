@@ -24,6 +24,5 @@ __all__ = [
     "heads",
     "commands_orders",
     "student_orders",
-    "admin_delete_order.py"
-    "tutor_orders"
+    "tutor_orders",
 ]
