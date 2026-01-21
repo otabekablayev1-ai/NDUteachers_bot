@@ -969,39 +969,41 @@ async def get_user_by_id(user_id: int):
         return result.scalar_one_or_none()
 
 # =============================
-# ❌ HAVOLALI BUYRUQLARNI O‘CHIRISH (ADMIN)
+# ❌ HAVOLALI BUYRUQLARNI O‘CHIRISH (OrderLink)
 # =============================
-
-def search_order_links_for_delete(query: str):
+def search_orders_for_delete(query: str):
     db = SessionLocal()
     try:
+        q = db.query(OrderLink)
+
+        # ID bo‘yicha
         if query.isdigit():
-            return db.query(OrderLink).filter(OrderLink.id == int(query)).all()
+            q = q.filter(OrderLink.id == int(query))
         else:
-            return db.query(OrderLink).filter(
-                OrderLink.title.ilike(f"%{query}%")
-            ).all()
+            # nom bo‘yicha
+            q = q.filter(OrderLink.title.ilike(f"%{query}%"))
+
+        return q.order_by(OrderLink.id.desc()).all()
     finally:
         db.close()
 
 
-def delete_order_link_by_id(order_id: int) -> bool:
+def delete_order_by_id(order_id: int) -> bool:
     db = SessionLocal()
     try:
-        order = db.query(OrderLink).filter(OrderLink.id == order_id).first()
-        if not order:
+        row = db.query(OrderLink).filter(OrderLink.id == order_id).first()
+        if not row:
             return False
 
-        db.delete(order)
+        db.delete(row)
         db.commit()
         return True
     except Exception as e:
         db.rollback()
-        print("[DELETE ORDER LINK ERROR]", e)
+        print("[DELETE ORDERLINK ERROR]", e)
         return False
     finally:
         db.close()
-
 
 def search_orders_for_tutor_by_student(faculty: str, student_fio: str):
     db = SessionLocal()
