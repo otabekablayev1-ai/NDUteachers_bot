@@ -10,6 +10,7 @@ from . import (
     student_panel,
     heads,
     commands_orders,   # YANGI MODUL
+    tutor_orders
 )
 
 __all__ = [
@@ -24,4 +25,5 @@ __all__ = [
     "commands_orders",
     "student_orders",
     "admin_delete_order.py"
+    "tutor_orders"
 ]

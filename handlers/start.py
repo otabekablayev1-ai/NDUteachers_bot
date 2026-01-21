@@ -138,12 +138,30 @@ async def start_handler(message: Message, state: FSMContext):   # 👈 state qo�
         fio = teacher.fio or full_name
         role = (teacher.role or "").lower().strip()
 
+        # Pastki doimiy tugma (o‘zgarmaydi)
         kb = ReplyKeyboardMarkup(
             keyboard=[
                 [KeyboardButton(text="📨 Rahbarlarga savol va murojaatlar yuborish")]
             ],
             resize_keyboard=True
         )
+
+        # Inline tugmalar
+        inline_buttons = []
+
+        if role == "tutor":
+            inline_buttons.append([
+                InlineKeyboardButton(text="📘 Buyruqlar", callback_data="tutor_orders")
+            ])
+
+        inline_buttons.append([
+            InlineKeyboardButton(
+                text="🎓 Hemis",
+                url="https://hemis.nspi.uz/dashboard/login"
+            )
+        ])
+
+        inline_kb = InlineKeyboardMarkup(inline_keyboard=inline_buttons)
 
         if role == "teacher":
             title = "o‘qituvchi"
@@ -154,10 +172,17 @@ async def start_handler(message: Message, state: FSMContext):   # 👈 state qo�
 
         await message.answer(
             f"👋 Assalomu alaykum, hurmatli <b>{fio}</b>!\n"
-            f"Siz {title} panelidasiz.",
+            f"Siz {title} panelidasiz.\n\n"
+            f"👇 Quyidagi xizmatlardan foydalanishingiz mumkin:",
             parse_mode="HTML",
             reply_markup=kb
         )
+
+        await message.answer(
+            "Tanlang:",
+            reply_markup=inline_kb
+        )
+
         return
 
     # YANGI FOYDALANUVCHI

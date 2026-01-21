@@ -1002,6 +1002,27 @@ def delete_order_link_by_id(order_id: int) -> bool:
     finally:
         db.close()
 
+
+def search_orders_for_tutor_by_student(faculty: str, student_fio: str):
+    db = SessionLocal()
+
+    rows = (
+        db.query(
+            OrderLink.id,
+            OrderLink.title,
+            OrderLink.link,
+            OrderLink.faculty,
+            OrderLink.students
+        )
+        .filter(OrderLink.faculty == faculty)
+        .filter(OrderLink.students.ilike(f"%{student_fio}%"))
+        .order_by(OrderLink.created_at.desc())
+        .all()
+    )
+
+    db.close()
+    return rows
+
 # =============================
 # 🚀 Dastur ishga tushganda
 # =============================
