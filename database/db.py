@@ -718,7 +718,7 @@ def search_orders_multi(faculty=None, type=None, lastname=None):
         OrderLink.link,
         OrderLink.faculty,
         OrderLink.type,
-        OrderLink.students
+        OrderLink.students,
     )
 
     if faculty:
@@ -730,14 +730,14 @@ def search_orders_multi(faculty=None, type=None, lastname=None):
     rows = q.order_by(OrderLink.created_at.desc()).all()
     db.close()
 
-    # 🔥 Bu yerda apostrof muammosini hal qilamiz
+    # Agar familiya kiritilgan bo‘lsa — Python ichida normallashtirib tekshiramiz
     if lastname:
-        normalized_input = normalize_apostrophes(lastname)
+        normalized_input = normalize_text(lastname)
         filtered = []
 
         for r in rows:
             if r.students:
-                normalized_db = normalize_apostrophes(r.students)
+                normalized_db = normalize_text(r.students)
                 if normalized_input in normalized_db:
                     filtered.append(r)
 
@@ -1036,9 +1036,11 @@ def search_orders_for_tutor_by_student(faculty: str, student_fio: str):
     db.close()
     return rows
 
-def normalize_apostrophes(text: str) -> str:
+import re
+
+def normalize_text(text: str) -> str:
     if not text:
-        return text
+        return ""
 
     replacements = {
         "ʻ": "'",
@@ -1047,11 +1049,20 @@ def normalize_apostrophes(text: str) -> str:
         "’": "'",
         "`": "'",
         "´": "'",
+        "ʿ": "'",
+        "ˈ": "'",
     }
 
     text = text.lower()
+
     for k, v in replacements.items():
         text = text.replace(k, v)
+
+    # Ketma-ket probellarni 1 taga tushiramiz
+    text = re.sub(r"\s+", " ", text)
+
+    # Boshi va oxiridagi bo‘sh joylarni olib tashlaymiz
+    text = text.strip()
 
     return text
 
