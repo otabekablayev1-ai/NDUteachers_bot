@@ -718,6 +718,7 @@ def search_orders_multi(faculty=None, type=None, lastname=None):
         OrderLink.link,
         OrderLink.faculty,
         OrderLink.type,
+        OrderLink.students
     )
 
     if faculty:
@@ -726,11 +727,22 @@ def search_orders_multi(faculty=None, type=None, lastname=None):
     if type:
         q = q.filter(OrderLink.type == type)
 
-    if lastname:
-        q = q.filter(OrderLink.students.ilike(f"%{lastname}%"))
-
     rows = q.order_by(OrderLink.created_at.desc()).all()
     db.close()
+
+    # 🔥 Bu yerda apostrof muammosini hal qilamiz
+    if lastname:
+        normalized_input = normalize_apostrophes(lastname)
+        filtered = []
+
+        for r in rows:
+            if r.students:
+                normalized_db = normalize_apostrophes(r.students)
+                if normalized_input in normalized_db:
+                    filtered.append(r)
+
+        return filtered
+
     return rows
 
 # =============================
@@ -1023,6 +1035,25 @@ def search_orders_for_tutor_by_student(faculty: str, student_fio: str):
 
     db.close()
     return rows
+
+def normalize_apostrophes(text: str) -> str:
+    if not text:
+        return text
+
+    replacements = {
+        "ʻ": "'",
+        "ʼ": "'",
+        "‘": "'",
+        "’": "'",
+        "`": "'",
+        "´": "'",
+    }
+
+    text = text.lower()
+    for k, v in replacements.items():
+        text = text.replace(k, v)
+
+    return text
 
 # =============================
 # 🚀 Dastur ishga tushganda
