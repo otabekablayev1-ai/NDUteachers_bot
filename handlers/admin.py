@@ -109,10 +109,10 @@ async def approve_user(call: CallbackQuery):
     try:
         await call.bot.send_message(
             user_id,
-            "📢 Assalomu alaykum, hurmatli foydalanuvchi!\n\n"
+            "📢 Assalomu alaykum, hurmatli foydalanuvchi! Navoiy Davlat Universitetining 'NDU_UniFront' botiga xush kelibsiz!\n\n"
             "Ro‘yxatdan o‘tish jarayoni <b>muvaffaqiyatli yakunlandi!</b>\n"
             "Siz Navoiy davlat universitetining rasmiy "
-            "<a href='https://t.me/NDUnivers_EDU_bot'>@NDUnivers_EDU_bot</a> ga a’zo bo‘ldingiz.\n\n"
+            "<a href='https://t.me/NDUnivers_EDU_bot'>https://t.me/NDUteachers_bot</a> ga a’zo bo‘ldingiz.\n\n"
             "Ushbu bot orqali Siz:\n"
             "• Registrator ofisi menejerlari bilan,\n"
             "• Universitet rahbariyati bilan\n"
