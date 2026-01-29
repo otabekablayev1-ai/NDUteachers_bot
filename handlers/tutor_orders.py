@@ -3,8 +3,7 @@ from aiogram.types import CallbackQuery, Message
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.context import FSMContext
 
-from database.db import search_orders_for_tutor_by_student
-from database.db import get_teacher
+from database.db import search_orders_for_tutor_by_student, get_teacher
 
 router = Router()
 
@@ -32,10 +31,8 @@ async def tutor_orders_search(message: Message, state: FSMContext):
         await state.clear()
         return
 
-    faculty = tutor.faculty
-
     rows = search_orders_for_tutor_by_student(
-        faculty=faculty,
+        faculty=tutor.faculty,
         student_fio=fio
     )
 
