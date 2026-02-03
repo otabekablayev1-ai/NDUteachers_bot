@@ -3,7 +3,7 @@ from aiogram.types import CallbackQuery, Message
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.context import FSMContext
 
-from database.db import search_orders_by_student_exact, get_teacher
+from database.db import search_orders_multi, get_teacher
 
 router = Router()
 
@@ -15,7 +15,7 @@ class TutorOrderFSM(StatesGroup):
 @router.callback_query(F.data == "tutor_orders")
 async def tutor_orders_start(call: CallbackQuery, state: FSMContext):
     await call.message.answer(
-        "✏️ Talabaning ismi va familiyasini to‘liq kiriting:"
+        "✏️ Talabaning ism va familiyasini <b>to‘liq</b> kiriting:"
     )
     await state.set_state(TutorOrderFSM.waiting_student_fio)
     await call.answer()
@@ -31,9 +31,9 @@ async def tutor_orders_search(message: Message, state: FSMContext):
         await state.clear()
         return
 
-    rows = search_orders_by_student_exact(
-        faculty=faculty,
-        student_fio=fio
+    rows = search_orders_multi(
+        faculty=tutor.faculty,
+        lastname=fio
     )
 
     if not rows:

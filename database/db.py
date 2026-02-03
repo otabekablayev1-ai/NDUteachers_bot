@@ -729,18 +729,26 @@ def search_orders_multi(faculty=None, type=None, lastname=None):
     rows = q.order_by(OrderLink.created_at.desc()).all()
     db.close()
 
-    # Agar familiya kiritilgan bo‘lsa — Python ichida normallashtirib tekshiramiz
-    if lastname:
-        normalized_input = normalize_text(lastname)
-        filtered = []
+    if not lastname:
+        return rows
 
-        for r in rows:
-            if r.students:
-                normalized_db = normalize_text(r.students)
-                if normalized_input in normalized_db:
-                    filtered.append(r)
+    normalized_input = normalize_text(lastname)
+    filtered = []
 
-        return filtered
+    for r in rows:
+        if not r.students:
+            continue
+
+        normalized_db = normalize_text(r.students)
+
+        # so‘zlarga ajratamiz
+        words = normalized_db.split(" ")
+
+        # FAQAT TO‘LIQ SO‘Z BO‘LSA
+        if normalized_input in words:
+            filtered.append(r)
+
+    return filtered
 
     return rows
 
@@ -1057,63 +1065,10 @@ def normalize_text(text: str) -> str:
     for k, v in replacements.items():
         text = text.replace(k, v)
 
-    # Ketma-ket probellarni 1 taga tushiramiz
+    # probellarni normallashtirish
     text = re.sub(r"\s+", " ", text)
 
-    # Boshi va oxiridagi bo‘sh joylarni olib tashlaymiz
-    text = text.strip()
-
-    return text
-
-import re
-
-def normalize_text(text_: str) -> str:
-    if not text_:
-        return ""
-
-    text_ = text_.lower()
-
-    text_ = (
-        text_
-        .replace("‘", "'")
-        .replace("’", "'")
-        .replace("ʻ", "'")
-        .replace("ʼ", "'")
-    )
-
-    text_ = re.sub(r"\s+", " ", text_)
-    return text_.strip()
-
-
-# ============================
-# 👨‍🎓 TALABA UCHUN BUYRUQLAR (ANIQ F.I.O)
-# ============================
-def search_orders_by_student_exact(student_fio: str, faculty: str):
-    db = SessionLocal()
-
-    fio_norm = normalize_text(student_fio)
-    pattern = rf'(^| ){fio_norm}($| )'
-
-    sql = text("""
-        SELECT *
-        FROM orders_links
-        WHERE faculty = :faculty
-          AND lower(
-                regexp_replace(students, '\\s+', ' ', 'g')
-          ) ~ :pattern
-        ORDER BY created_at DESC
-    """)
-
-    rows = db.execute(
-        sql,
-        {
-            "faculty": faculty,
-            "pattern": pattern
-        }
-    ).fetchall()
-
-    db.close()
-    return rows
+    return text.strip()
 
 # =============================
 # 🚀 Dastur ishga tushganda
