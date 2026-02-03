@@ -166,7 +166,7 @@ async def start_handler(message: Message, state: FSMContext):   # 👈 state qo�
         if role == "teacher":
             title = "o‘qituvchi"
         elif role == "tutor":
-            title = "tyutor"
+            title = "Dekan, Tyutor, Dispetcher"
         else:
             title = "xodim"
 

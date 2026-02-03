@@ -53,30 +53,6 @@ async def get_db():
 def init_db():
     Base.metadata.create_all(bind=engine)
 
-# ============================
-# 🔧 MATN NORMALIZATSIYASI
-# ============================
-def normalize_text(text_: str) -> str:
-    if not text_:
-        return ""
-
-    text_ = text_.lower()
-
-    # apostroflarni bir xil qilish
-    text_ = (
-        text_
-        .replace("‘", "'")
-        .replace("’", "'")
-        .replace("ʻ", "'")
-        .replace("ʼ", "'")
-    )
-
-    # ketma-ket probellarni 1 taga tushirish
-    text_ = re.sub(r"\s+", " ", text_)
-
-    return text_.strip()
-
-
 # =============================
 # 📩 RO‘YXAT SO‘ROVINI SAQLASH
 # =============================
@@ -768,68 +744,6 @@ def search_orders_multi(faculty=None, type=None, lastname=None):
 
     return rows
 
-# ============================
-# 🎓 TYUTOR UCHUN BUYRUQ QIDIRISH (ANIQ F.I.O)
-# ============================
-def search_orders_for_tutor_by_student(faculty: str, student_fio: str):
-    db = SessionLocal()
-
-    fio_norm = normalize_text(student_fio)
-
-    # faqat so‘z chegarasi bilan moslik
-    pattern = rf'(^| ){fio_norm}($| )'
-
-    sql = text("""
-        SELECT *
-        FROM orders_links
-        WHERE faculty = :faculty
-          AND lower(
-                regexp_replace(students, '\\s+', ' ', 'g')
-          ) ~ :pattern
-        ORDER BY created_at DESC
-    """)
-
-    rows = db.execute(
-        sql,
-        {
-            "faculty": faculty,
-            "pattern": pattern
-        }
-    ).fetchall()
-
-    db.close()
-    return rows
-
-
-# ============================
-# 👨‍🎓 TALABA UCHUN BUYRUQLAR (ANIQ F.I.O)
-# ============================
-def search_orders_for_student_exact(student_fio: str, faculty: str):
-    db = SessionLocal()
-
-    fio_norm = normalize_text(student_fio)
-    pattern = rf'(^| ){fio_norm}($| )'
-
-    sql = text("""
-        SELECT *
-        FROM orders_links
-        WHERE faculty = :faculty
-          AND lower(
-                regexp_replace(students, '\\s+', ' ', 'g')
-          ) ~ :pattern
-        ORDER BY created_at DESC
-    """)
-
-    rows = db.execute(
-        sql,
-        {
-            "faculty": faculty,
-            "pattern": pattern
-        }
-    ).fetchall()
-
-    db.close()
-    return rows
 # =============================
 # ♻ Buyruqni yangilash
 # =============================
@@ -1150,6 +1064,53 @@ def normalize_text(text: str) -> str:
     text = text.strip()
 
     return text
+
+import re
+
+def normalize_text(text_: str) -> str:
+    if not text_:
+        return ""
+
+    text_ = text_.lower()
+
+    text_ = (
+        text_
+        .replace("‘", "'")
+        .replace("’", "'")
+        .replace("ʻ", "'")
+        .replace("ʼ", "'")
+    )
+
+    text_ = re.sub(r"\s+", " ", text_)
+    return text_.strip()
+
+
+# ============================
+# 🎯 TYUTOR / TALABA UCHUN ANIQLIK BILAN QIDIRISH
+# ============================
+def search_orders_for_student_exact(student_fio: str, faculty: str):
+    db = SessionLocal()
+
+    fio_norm = normalize_text(student_fio)
+
+    sql = text("""
+        SELECT *
+        FROM orders_links
+        WHERE faculty = :faculty
+          AND normalize_text(students) = :fio
+        ORDER BY created_at DESC
+    """)
+
+    rows = db.execute(
+        sql,
+        {
+            "faculty": faculty,
+            "fio": fio_norm
+        }
+    ).fetchall()
+
+    db.close()
+    return rows
 
 # =============================
 # 🚀 Dastur ishga tushganda

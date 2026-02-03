@@ -107,7 +107,7 @@ async def get_phone(message: Message, state: FSMContext):
         keyboard=[
             [
                 KeyboardButton(text="O‘qituvchi"),
-                KeyboardButton(text="Tyutor"),
+                KeyboardButton(text="Dekan, Tyutor, Dispetcher"),
                 KeyboardButton(text="Talaba"),
             ]
         ],
@@ -131,12 +131,21 @@ async def choose_role(message: Message, state: FSMContext):
         .replace("ʼ", "‘")
     )
 
-    roles = ["O‘qituvchi", "Tyutor", "Talaba"]
+    roles = ["O‘qituvchi", "Dekan, Tyutor, Dispetcher", "Talaba"]
 
-    if text not in roles:
-        return await message.answer("❗ Iltimos, pastdagi tugmalardan birini tanlang.")
+    ROLE_MAP = {
+        "O‘qituvchi": "teacher",
+        "Dekan, Tyutor, Dispetcher": "tutor",
+        "Talaba": "student",
+    }
 
-    await state.update_data(role=text)
+    if text not in ROLE_MAP:
+        return await message.answer(
+            "❗ Iltimos, pastdagi tugmalardan birini tanlang."
+        )
+
+    role = ROLE_MAP[text]
+    await state.update_data(role=role)
 
     # ============================
     # O‘QITUVCHI
@@ -161,7 +170,7 @@ async def choose_role(message: Message, state: FSMContext):
     # ============================
     # TYUTOR
     # ============================
-    if text == "Tyutor":
+    if text == "Dekan, Tyutor, Dispetcher":
         faculties = [
             "Aniq fanlar fakulteti",
             "Iqtisodiyot fakulteti",
