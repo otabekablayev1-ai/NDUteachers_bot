@@ -1086,18 +1086,21 @@ def normalize_text(text_: str) -> str:
 
 
 # ============================
-# 🎯 TYUTOR / TALABA UCHUN ANIQLIK BILAN QIDIRISH
+# 👨‍🎓 TALABA UCHUN BUYRUQLAR (ANIQ F.I.O)
 # ============================
-def search_orders_for_student_exact(student_fio: str, faculty: str):
+def search_orders_by_student_exact(student_fio: str, faculty: str):
     db = SessionLocal()
 
     fio_norm = normalize_text(student_fio)
+    pattern = rf'(^| ){fio_norm}($| )'
 
     sql = text("""
         SELECT *
         FROM orders_links
         WHERE faculty = :faculty
-          AND normalize_text(students) = :fio
+          AND lower(
+                regexp_replace(students, '\\s+', ' ', 'g')
+          ) ~ :pattern
         ORDER BY created_at DESC
     """)
 
@@ -1105,7 +1108,7 @@ def search_orders_for_student_exact(student_fio: str, faculty: str):
         sql,
         {
             "faculty": faculty,
-            "fio": fio_norm
+            "pattern": pattern
         }
     ).fetchall()
 
