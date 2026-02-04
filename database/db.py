@@ -740,17 +740,12 @@ def search_orders_multi(faculty=None, type=None, lastname=None):
             continue
 
         normalized_db = normalize_text(r.students)
-
-        # so‘zlarga ajratamiz
         words = normalized_db.split(" ")
 
-        # FAQAT TO‘LIQ SO‘Z BO‘LSA
         if normalized_input in words:
             filtered.append(r)
 
     return filtered
-
-    return rows
 
 # =============================
 # ♻ Buyruqni yangilash
@@ -1023,26 +1018,6 @@ def delete_order_link_by_id(order_id: int) -> bool:
     finally:
         db.close()
 
-def search_orders_for_tutor_by_student(faculty: str, student_fio: str):
-    db = SessionLocal()
-
-    rows = (
-        db.query(
-            OrderLink.id,
-            OrderLink.title,
-            OrderLink.link,
-            OrderLink.faculty,
-            OrderLink.students
-        )
-        .filter(OrderLink.faculty == faculty)
-        .filter(OrderLink.students.ilike(f"%{student_fio}%"))
-        .order_by(OrderLink.created_at.desc())
-        .all()
-    )
-
-    db.close()
-    return rows
-
 import re
 
 def normalize_text(text: str) -> str:
@@ -1069,6 +1044,44 @@ def normalize_text(text: str) -> str:
     text = re.sub(r"\s+", " ", text)
 
     return text.strip()
+
+def search_orders_by_full_fio(faculty: str, fio: str):
+    db = SessionLocal()
+
+    fio_norm = normalize_text(fio)
+    fio_parts = fio_norm.split()
+
+    # Kamida familiya + ism bo‘lishi shart
+    if len(fio_parts) < 2:
+        db.close()
+        return []
+
+    rows = (
+        db.query(
+            OrderLink.id,
+            OrderLink.title,
+            OrderLink.link,
+            OrderLink.students
+        )
+        .filter(OrderLink.faculty == faculty)
+        .all()
+    )
+
+    result = []
+
+    for r in rows:
+        if not r.students:
+            continue
+
+        student_norm = normalize_text(r.students)
+        student_words = student_norm.split()
+
+        # 🔑 HAMMA so‘zlar mavjud bo‘lishi shart
+        if all(word in student_words for word in fio_parts):
+            result.append(r)
+
+    db.close()
+    return result
 
 # =============================
 # 🚀 Dastur ishga tushganda

@@ -1,6 +1,7 @@
 from aiogram import Router, F
 from aiogram.types import CallbackQuery
 from database.db import get_student, search_orders_multi
+from database.db import search_orders_by_full_fio
 
 router = Router()
 
@@ -11,9 +12,9 @@ async def student_my_orders(call: CallbackQuery):
         await call.answer("❌ Talaba topilmadi", show_alert=True)
         return
 
-    rows = search_orders_multi(
+    rows = search_orders_by_full_fio(
         faculty=student.faculty,
-        lastname=student.fio
+        fio=student.fio
     )
 
     if not rows:
@@ -27,3 +28,4 @@ async def student_my_orders(call: CallbackQuery):
 
     await call.message.answer(text, parse_mode="HTML")
     await call.answer()
+
