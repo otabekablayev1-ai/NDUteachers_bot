@@ -3,6 +3,7 @@ from aiogram.types import CallbackQuery, Message
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.context import FSMContext
 from database.db import search_orders_by_full_fio
+from handlers.utils import send_long_message
 
 from database.db import search_orders_multi, get_teacher
 
@@ -20,6 +21,8 @@ async def tutor_orders_start(call: CallbackQuery, state: FSMContext):
     )
     await state.set_state(TutorOrderFSM.waiting_student_fio)
     await call.answer()
+
+from database.db import search_orders_by_full_fio, get_teacher
 
 @router.message(TutorOrderFSM.waiting_student_fio)
 async def tutor_orders_search(message: Message, state: FSMContext):
@@ -42,9 +45,9 @@ async def tutor_orders_search(message: Message, state: FSMContext):
         return
 
     text = "📘 <b>Topilgan buyruqlar:</b>\n\n"
-    for row in rows:
-        data = row._mapping
+    for r in rows:
+        data = r._mapping
         text += f"👉 <a href=\"{data['link']}\">{data['title']}</a>\n"
 
-    await message.answer(text, parse_mode="HTML")
+    await send_long_message(message, text)
     await state.clear()

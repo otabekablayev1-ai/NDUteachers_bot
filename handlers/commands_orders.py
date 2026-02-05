@@ -9,6 +9,7 @@ from aiogram.types import (
 )
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
+from utils.messages import send_long_message
 
 from data.config import ADMINS
 from handlers.constants import YEARS, FACULTIES, ORDER_TYPES
@@ -184,7 +185,7 @@ async def filter_search(call: CallbackQuery, state: FSMContext):
         r = row._mapping
         text += f"👉 <a href=\"{r['link']}\">{r['title']}</a>\n"
 
-    await call.message.answer(text, parse_mode="HTML")
+    await send_long_message(call.message, text)
     await call.answer()
 
 # ==========================

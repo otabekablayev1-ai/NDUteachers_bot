@@ -1024,48 +1024,36 @@ def normalize_text(text: str) -> str:
     if not text:
         return ""
 
-    replacements = {
-        "ʻ": "'",
-        "ʼ": "'",
-        "‘": "'",
-        "’": "'",
-        "`": "'",
-        "´": "'",
-        "ʿ": "'",
-        "ˈ": "'",
-    }
-
     text = text.lower()
+    text = (
+        text.replace("‘", "'")
+            .replace("’", "'")
+            .replace("ʻ", "'")
+            .replace("ʼ", "'")
+    )
 
-    for k, v in replacements.items():
-        text = text.replace(k, v)
-
-    # probellarni normallashtirish
     text = re.sub(r"\s+", " ", text)
-
     return text.strip()
+
 
 def search_orders_by_full_fio(faculty: str, fio: str):
     db = SessionLocal()
 
-    fio_norm = normalize_text(fio)
-    fio_parts = fio_norm.split()
-
-    # Kamida familiya + ism bo‘lishi shart
-    if len(fio_parts) < 2:
-        db.close()
-        return []
+    input_words = normalize_text(fio).split()
 
     rows = (
         db.query(
             OrderLink.id,
             OrderLink.title,
             OrderLink.link,
-            OrderLink.students
+            OrderLink.students,
         )
         .filter(OrderLink.faculty == faculty)
+        .order_by(OrderLink.created_at.desc())
         .all()
     )
+
+    db.close()
 
     result = []
 
@@ -1073,14 +1061,12 @@ def search_orders_by_full_fio(faculty: str, fio: str):
         if not r.students:
             continue
 
-        student_norm = normalize_text(r.students)
-        student_words = student_norm.split()
+        db_words = normalize_text(r.students).split()
 
-        # 🔑 HAMMA so‘zlar mavjud bo‘lishi shart
-        if all(word in student_words for word in fio_parts):
+        # 👉 inputdagi HAR BIR so‘z DB dagi so‘zlar ichida bo‘lishi shart
+        if all(word in db_words for word in input_words):
             result.append(r)
 
-    db.close()
     return result
 
 # =============================

@@ -2,8 +2,11 @@ from aiogram import Router, F
 from aiogram.types import CallbackQuery
 from database.db import get_student, search_orders_multi
 from database.db import search_orders_by_full_fio
+from handlers.utils import send_long_message
 
 router = Router()
+
+from database.db import search_orders_by_full_fio, get_student
 
 @router.callback_query(F.data == "student_my_orders")
 async def student_my_orders(call: CallbackQuery):
@@ -22,10 +25,11 @@ async def student_my_orders(call: CallbackQuery):
         return await call.answer()
 
     text = "📄 <b>Mening buyruqlarim:</b>\n\n"
-    for row in rows:
-        data = row._mapping
+    for r in rows:
+        data = r._mapping
         text += f"👉 <a href=\"{data['link']}\">{data['title']}</a>\n"
 
-    await call.message.answer(text, parse_mode="HTML")
+    await send_long_message(call.message, text)
     await call.answer()
+
 
