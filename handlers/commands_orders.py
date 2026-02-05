@@ -9,7 +9,7 @@ from aiogram.types import (
 )
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
-from utils.messages import send_long_message
+from .utils import send_long_message
 
 from data.config import ADMINS
 from handlers.constants import YEARS, FACULTIES, ORDER_TYPES
