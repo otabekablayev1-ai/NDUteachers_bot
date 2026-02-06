@@ -708,22 +708,17 @@ def get_all_order_links():
     db.close()
     return rows
 
-def search_orders_multi(year=None, faculty=None, type=None, lastname=None):
+def search_orders_multi(faculty=None, type=None, lastname=None):
     db = SessionLocal()
 
     q = db.query(
         OrderLink.id,
         OrderLink.title,
         OrderLink.link,
-        OrderLink.year,
         OrderLink.faculty,
         OrderLink.type,
         OrderLink.students,
-        OrderLink.created_at
     )
-
-    if year:
-        q = q.filter(OrderLink.year == year)
 
     if faculty:
         q = q.filter(OrderLink.faculty == faculty)
@@ -731,12 +726,26 @@ def search_orders_multi(year=None, faculty=None, type=None, lastname=None):
     if type:
         q = q.filter(OrderLink.type == type)
 
-    if lastname:
-        q = q.filter(OrderLink.students.ilike(f"%{lastname}%"))
-
     rows = q.order_by(OrderLink.created_at.desc()).all()
     db.close()
-    return rows
+
+    if not lastname:
+        return rows
+
+    normalized_input = normalize_text(lastname)
+    filtered = []
+
+    for r in rows:
+        if not r.students:
+            continue
+
+        normalized_db = normalize_text(r.students)
+        words = normalized_db.split(" ")
+
+        if normalized_input in words:
+            filtered.append(r)
+
+    return filtered
 
 # =============================
 # ♻ Buyruqni yangilash
