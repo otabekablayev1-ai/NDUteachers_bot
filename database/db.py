@@ -708,17 +708,22 @@ def get_all_order_links():
     db.close()
     return rows
 
-def search_orders_multi(faculty=None, type=None, lastname=None):
+def search_orders_multi(year=None, faculty=None, type=None, lastname=None):
     db = SessionLocal()
 
     q = db.query(
         OrderLink.id,
         OrderLink.title,
         OrderLink.link,
+        OrderLink.year,
         OrderLink.faculty,
         OrderLink.type,
         OrderLink.students,
+        OrderLink.created_at
     )
+
+    if year:
+        q = q.filter(OrderLink.year == year)
 
     if faculty:
         q = q.filter(OrderLink.faculty == faculty)
@@ -726,26 +731,12 @@ def search_orders_multi(faculty=None, type=None, lastname=None):
     if type:
         q = q.filter(OrderLink.type == type)
 
+    if lastname:
+        q = q.filter(OrderLink.students.ilike(f"%{lastname}%"))
+
     rows = q.order_by(OrderLink.created_at.desc()).all()
     db.close()
-
-    if not lastname:
-        return rows
-
-    normalized_input = normalize_text(lastname)
-    filtered = []
-
-    for r in rows:
-        if not r.students:
-            continue
-
-        normalized_db = normalize_text(r.students)
-        words = normalized_db.split(" ")
-
-        if normalized_input in words:
-            filtered.append(r)
-
-    return filtered
+    return rows
 
 # =============================
 # ♻ Buyruqni yangilash
@@ -1036,38 +1027,60 @@ def normalize_text(text: str) -> str:
     return text.strip()
 
 
-def search_orders_by_full_fio(faculty: str, fio: str):
+import re
+from sqlalchemy import text
+from database.session import SessionLocal
+
+def normalize_text(text_: str) -> str:
+    if not text_:
+        return ""
+
+    text_ = text_.lower()
+    text_ = (
+        text_
+        .replace("‘", "'")
+        .replace("’", "'")
+        .replace("ʻ", "'")
+        .replace("ʼ", "'")
+        .replace("`", "'")
+        .replace("´", "'")
+    )
+    text_ = re.sub(r"\s+", " ", text_)
+    return text_.strip()
+
+
+def search_orders_by_full_fio(*, faculty: str | None, fio: str):
+    """
+    faculty=None -> admin / rahbar uchun
+    faculty=...  -> tyutor / talaba uchun
+    """
     db = SessionLocal()
 
-    input_words = normalize_text(fio).split()
+    fio_norm = normalize_text(fio)
 
-    rows = (
-        db.query(
-            OrderLink.id,
-            OrderLink.title,
-            OrderLink.link,
-            OrderLink.students,
-        )
-        .filter(OrderLink.faculty == faculty)
-        .order_by(OrderLink.created_at.desc())
-        .all()
-    )
+    # so‘z chegarasi: faqat TO‘LIQ F.I.O.
+    pattern = rf'(^| ){fio_norm}($| )'
 
+    sql = """
+        SELECT *
+        FROM orders_links
+        WHERE lower(
+            regexp_replace(students, '\\s+', ' ', 'g')
+        ) ~ :pattern
+    """
+
+    params = {"pattern": pattern}
+
+    if faculty:
+        sql += " AND faculty = :faculty"
+        params["faculty"] = faculty
+
+    sql += " ORDER BY created_at DESC"
+
+    rows = db.execute(text(sql), params).fetchall()
     db.close()
+    return rows
 
-    result = []
-
-    for r in rows:
-        if not r.students:
-            continue
-
-        db_words = normalize_text(r.students).split()
-
-        # 👉 inputdagi HAR BIR so‘z DB dagi so‘zlar ichida bo‘lishi shart
-        if all(word in db_words for word in input_words):
-            result.append(r)
-
-    return result
 
 # =============================
 # 🚀 Dastur ishga tushganda
