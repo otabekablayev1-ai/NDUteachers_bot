@@ -50,16 +50,20 @@ from database.db import delete_teacher
 @router.callback_query(F.data.startswith("delete_"))
 async def delete_teacher_callback(callback: CallbackQuery):
     user_id = int(callback.data.split("_")[1])
+
     delete_teacher(user_id)
-    await callback.message.edit_text(f"🗑️ Foydalanuvchi ID {user_id} o‘chirildi.")
 
     try:
-        await call.message.bot.send_message(
+        await callback.message.bot.send_message(
             user_id,
             "❌ Kechirasiz, ma’lumotlaringiz HEMIS tizimida topilmadi.\n"
             "Iltimos, qayta tekshirib, to‘g‘ri ma’lumot kiriting."
         )
-        await call.message.edit_text("❌ Foydalanuvchi bekor qilindi va bazadan o‘chirildi.")
-        await call.answer("❌ Bekor qilindi")
+
+        await callback.message.edit_text(
+            f"🗑 Foydalanuvchi ID {user_id} o‘chirildi."
+        )
+        await callback.answer("❌ Bekor qilindi")
+
     except Exception as e:
-        await call.message.answer(f"⚠️ Xato:\n{e}")
+        await callback.message.answer(f"⚠️ Xato:\n{e}")

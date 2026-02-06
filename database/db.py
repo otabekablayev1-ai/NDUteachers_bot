@@ -3,8 +3,6 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import func, or_
 from database.models import Teacher
-from database.session import AsyncSessionLocal
-
 from database.models import RegisterRequest
 from .models import Base
 from sqlalchemy import text
@@ -44,11 +42,6 @@ SessionLocal = sessionmaker(
 )
 
 from contextlib import asynccontextmanager
-
-@asynccontextmanager
-async def get_db():
-    async with AsyncSessionLocal() as session:
-        yield session
 
 def init_db():
     Base.metadata.create_all(bind=engine)
@@ -708,7 +701,7 @@ def get_all_order_links():
     db.close()
     return rows
 
-def search_orders_multi(faculty=None, type=None, lastname=None):
+def search_orders_multi(faculty=None, type=None, fio=None):
     db = SessionLocal()
 
     q = db.query(
@@ -729,20 +722,21 @@ def search_orders_multi(faculty=None, type=None, lastname=None):
     rows = q.order_by(OrderLink.created_at.desc()).all()
     db.close()
 
-    if not lastname:
+    if not fio:
         return rows
 
-    normalized_input = normalize_text(lastname)
+    # 🔹 Normalizatsiya
+    input_words = normalize_text(fio).split()
     filtered = []
 
     for r in rows:
         if not r.students:
             continue
 
-        normalized_db = normalize_text(r.students)
-        words = normalized_db.split(" ")
+        db_text = normalize_text(r.students)
 
-        if normalized_input in words:
+        # 🔹 Foydalanuvchi kiritgan HAR BIR so‘z DB da bormi?
+        if all(word in db_text for word in input_words):
             filtered.append(r)
 
     return filtered
@@ -974,13 +968,6 @@ def get_manager_fio(manager_id: int) -> str:
         db.close()
 
 from sqlalchemy import select
-
-async def get_user_by_id(user_id: int):
-    async with AsyncSessionLocal() as session:
-        result = await session.execute(
-            select(User).where(User.user_id == user_id)
-        )
-        return result.scalar_one_or_none()
 
 # =============================
 # ❌ HAVOLALI BUYRUQLARNI O‘CHIRISH (ADMIN) — OrderLink

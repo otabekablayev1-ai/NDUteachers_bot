@@ -1,10 +1,7 @@
-from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy import create_engine
 from data.config import DATABASE_URL
 
-engine = create_async_engine(
+engine = create_engine(
     DATABASE_URL,
-    echo=False,
-    pool_pre_ping=True,
+    pool_pre_ping=True
 )
-
-
