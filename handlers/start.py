@@ -8,10 +8,14 @@ from database.db import (
     get_student,  # 🔥 MUHIM — shu qo‘shiladi!
 )
 from handlers.registration import start_registration
+from aiogram import Router
+from aiogram.filters import CommandStart
+from aiogram.types import Message
+from aiogram.fsm.context import FSMContext
 
 router = Router()
 
-@router.message(F.text == "/start")
+@router.message(CommandStart())
 async def start_handler(message: Message, state: FSMContext):   # 👈 state qo‘shildi
     print("DEBUG USER:", message.from_user.id)
     print("→ STUDENT:", get_student(message.from_user.id))
