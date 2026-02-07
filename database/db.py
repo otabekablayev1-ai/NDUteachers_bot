@@ -41,8 +41,6 @@ SessionLocal = sessionmaker(
     autocommit=False
 )
 
-from contextlib import asynccontextmanager
-
 def init_db():
     Base.metadata.create_all(bind=engine)
 
@@ -1005,6 +1003,9 @@ def delete_order_link_by_id(order_id: int) -> bool:
     finally:
         db.close()
 
+
+from sqlalchemy import text
+from database.session import SessionLocal
 import re
 
 def normalize_text(text: str) -> str:
@@ -1012,28 +1013,9 @@ def normalize_text(text: str) -> str:
         return ""
 
     text = text.lower()
+
     text = (
-        text.replace("‘", "'")
-            .replace("’", "'")
-            .replace("ʻ", "'")
-            .replace("ʼ", "'")
-    )
-
-    text = re.sub(r"\s+", " ", text)
-    return text.strip()
-
-
-import re
-from sqlalchemy import text
-from database.session import SessionLocal
-
-def normalize_text(text_: str) -> str:
-    if not text_:
-        return ""
-
-    text_ = text_.lower()
-    text_ = (
-        text_
+        text
         .replace("‘", "'")
         .replace("’", "'")
         .replace("ʻ", "'")
@@ -1041,42 +1023,49 @@ def normalize_text(text_: str) -> str:
         .replace("`", "'")
         .replace("´", "'")
     )
-    text_ = re.sub(r"\s+", " ", text_)
-    return text_.strip()
 
+    text = re.sub(r"\s+", " ", text)
+    return text.strip()
 
-def search_orders_by_full_fio(*, faculty: str | None, fio: str):
-    """
-    faculty=None -> admin / rahbar uchun
-    faculty=...  -> tyutor / talaba uchun
-    """
+def search_orders_by_full_fio(
+    faculty: str | None,
+    fio_query: str
+):
     db = SessionLocal()
 
-    fio_norm = normalize_text(fio)
+    rows = (
+        db.query(
+            OrderLink.id,
+            OrderLink.title,
+            OrderLink.link,
+            OrderLink.faculty,
+            OrderLink.students,
+        )
+        .filter(OrderLink.faculty == faculty if faculty else True)
+        .order_by(OrderLink.created_at.desc())
+        .all()
+    )
 
-    # so‘z chegarasi: faqat TO‘LIQ F.I.O.
-    pattern = rf'(^| ){fio_norm}($| )'
-
-    sql = """
-        SELECT *
-        FROM orders_links
-        WHERE lower(
-            regexp_replace(students, '\\s+', ' ', 'g')
-        ) ~ :pattern
-    """
-
-    params = {"pattern": pattern}
-
-    if faculty:
-        sql += " AND faculty = :faculty"
-        params["faculty"] = faculty
-
-    sql += " ORDER BY created_at DESC"
-
-    rows = db.execute(text(sql), params).fetchall()
     db.close()
-    return rows
 
+    query_norm = normalize_text(fio_query)
+    query_words = query_norm.split(" ")
+
+    result = []
+
+    for r in rows:
+        if not r.students:
+            continue
+
+        student_norm = normalize_text(r.students)
+        student_words = student_norm.split(" ")
+
+        # 👉 MUHIM JOY
+        # qidirilgan so‘zlar TO‘LIQ mos tushishi kerak
+        if all(word in student_words for word in query_words):
+            result.append(r)
+
+    return result
 
 # =============================
 # 🚀 Dastur ishga tushganda

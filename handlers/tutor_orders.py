@@ -4,7 +4,7 @@ from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.context import FSMContext
 from database.db import search_orders_by_full_fio
 from .utils import send_long_message
-
+from database.db import search_orders_by_full_fio, get_teacher
 from database.db import search_orders_multi, get_teacher
 
 router = Router()
@@ -35,8 +35,8 @@ async def tutor_orders_search(message: Message, state: FSMContext):
         return
 
     rows = search_orders_by_full_fio(
-        faculty=tutor.faculty,
-        fio=fio
+        faculty=student.faculty,
+        fio_query=student.fio
     )
 
     if not rows:
