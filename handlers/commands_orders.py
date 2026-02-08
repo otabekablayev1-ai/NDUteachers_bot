@@ -165,15 +165,14 @@ async def set_lastname(message: Message, state: FSMContext):
 async def filter_search(call: CallbackQuery, state: FSMContext):
     data = await state.get_data()
 
-    # 🔒 Familiya majburiy
     if not data.get("lastname"):
         await call.message.answer("❗ Avval familiyani kiriting.")
         return await call.answer()
 
-    rows = search_orders_multi(
+    rows = await search_orders_multi(
         faculty=data.get("faculty"),
         type=data.get("type"),
-        lastname=data.get("lastname")
+        fio=data.get("lastname")   # 👈 MUHIM
     )
 
     if not rows:

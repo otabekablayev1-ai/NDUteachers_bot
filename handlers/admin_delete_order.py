@@ -28,13 +28,14 @@ async def search_orders(message: Message, state: FSMContext):
         return
 
     query = message.text.strip()
-    rows = search_order_links_for_delete(query)
+
+    # 🔴 MUHIM: await
+    rows = await search_order_links_for_delete(query)
 
     if not rows:
         await message.answer("❌ Hech narsa topilmadi.")
         return
 
-    # natijalarni bittalab chiqaramiz
     for row in rows:
         kb = InlineKeyboardMarkup(
             inline_keyboard=[
@@ -66,8 +67,14 @@ async def confirm_delete(call: CallbackQuery):
     kb = InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(text="✅ Ha", callback_data=f"orderlink_delete_yes:{order_id}"),
-                InlineKeyboardButton(text="❌ Yo‘q", callback_data="orderlink_delete_no")
+                InlineKeyboardButton(
+                    text="✅ Ha",
+                    callback_data=f"orderlink_delete_yes:{order_id}"
+                ),
+                InlineKeyboardButton(
+                    text="❌ Yo‘q",
+                    callback_data="orderlink_delete_no"
+                )
             ]
         ]
     )
@@ -82,7 +89,9 @@ async def delete_yes(call: CallbackQuery):
         return await call.answer("Ruxsat yo‘q", show_alert=True)
 
     order_id = int(call.data.split(":")[1])
-    ok = delete_order_link_by_id(order_id)
+
+    # 🔴 MUHIM: await
+    ok = await delete_order_link_by_id(order_id)
 
     if ok:
         await call.message.answer("✅ Buyruq o‘chirildi.")
