@@ -2,10 +2,9 @@ from aiogram import Router, F
 from aiogram.types import CallbackQuery, Message
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.context import FSMContext
-from database.db import search_orders_by_full_fio
 from .utils import send_long_message
 from database.db import search_orders_by_full_fio, get_teacher
-from database.db import search_orders_multi, get_teacher
+from database.db import search_orders_multi
 
 router = Router()
 
@@ -22,21 +21,19 @@ async def tutor_orders_start(call: CallbackQuery, state: FSMContext):
     await state.set_state(TutorOrderFSM.waiting_student_fio)
     await call.answer()
 
-from database.db import search_orders_by_full_fio, get_teacher
-
 @router.message(TutorOrderFSM.waiting_student_fio)
 async def tutor_orders_search(message: Message, state: FSMContext):
     fio = message.text.strip()
 
-    tutor = get_teacher(message.from_user.id)
+    tutor = await get_teacher(message.from_user.id)
     if not tutor:
         await message.answer("❌ Tyutor topilmadi.")
         await state.clear()
         return
 
-    rows = search_orders_by_full_fio(
-        faculty=student.faculty,
-        fio_query=student.fio
+    rows = await search_orders_by_full_fio(
+        faculty=tutor.faculty,
+        fio_query=fio
     )
 
     if not rows:

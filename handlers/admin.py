@@ -1,8 +1,8 @@
 from aiogram import Router, F
-from aiogram.types import (
-    Message, ReplyKeyboardMarkup, KeyboardButton,
-    InlineKeyboardMarkup, InlineKeyboardButton, FSInputFile, CallbackQuery
-)
+from aiogram.types import CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
+from database.db import reject_request
+
+from aiogram.types import (Message, KeyboardButton, FSInputFile)
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 import pandas as pd
@@ -13,7 +13,6 @@ from database.db import (
     get_pending_requests,
     find_teachers_by_name,
     fetch_answers_range,
-    delete_register_request,
     get_teacher,
 )
 from database.db import search_users_by_fio_or_id, delete_user_by_id
@@ -48,13 +47,6 @@ async def admin_menu(message: Message):
 # =====================================================
 # 📥 RO‘YXAT SO‘ROVLARI (O‘QITUVCHI / TYUTOR / TALABA)
 # =====================================================
-from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
-
-from database.db import get_pending_requests, move_request_to_main_tables, reject_request
-
-router = Router()
-
 
 # ✅ So‘rovlarni ko‘rsatish (admin panel)
 @router.message(F.text == "📥 Ro‘yxat so‘rovlari")
@@ -265,7 +257,7 @@ async def qa_set_from(message: Message, state: FSMContext):
 @router.message(QAFilterFSM.date_to)
 async def qa_set_to(message: Message, state: FSMContext):
     data = await state.get_data()
-    rows = fetch_answers_range(data["date_from"], message.text.strip())
+    rows = await fetch_answers_range(data["date_from"], message.text.strip())
 
     if not rows:
         await message.answer("❌ Maʼlumot yo‘q")

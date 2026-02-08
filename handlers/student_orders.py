@@ -10,12 +10,12 @@ from database.db import search_orders_by_full_fio, get_student
 
 @router.callback_query(F.data == "student_my_orders")
 async def student_my_orders(call: CallbackQuery):
-    student = get_student(call.from_user.id)
+    student = await get_student(call.from_user.id)
     if not student:
         await call.answer("❌ Talaba topilmadi", show_alert=True)
         return
 
-    rows = search_orders_by_full_fio(
+    rows = await search_orders_by_full_fio(
         faculty=student.faculty,
         fio=student.fio
     )

@@ -10,7 +10,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from data.config import MANAGERS_BY_FACULTY, RAHBARLAR
 from database.db import (
-    get_latest_questions,
+    get_latest_questions_for_manager,
     save_answer,
     mark_question_answered,
     save_manager_rating,
@@ -26,8 +26,6 @@ class ReplyFSM(StatesGroup):
 from database.db import get_filtered_students
 
 router = Router()
-
-from database.db import get_latest_questions_for_manager
 
 # =========================
 #   FSM HOLATLARI
@@ -92,9 +90,8 @@ def get_faculty_manager(role: str, faculty: str):
 # =========================
 @router.message(F.text == "📥 Savollarni ko‘rish")
 async def view_questions(message: Message):
-    manager_id = message.from_user.id
+    questions = await get_latest_questions_for_manager()
 
-    questions = get_latest_questions_for_manager(manager_id)
     if not questions:
         await message.answer("📭 Siz uchun yangi savollar yo‘q.")
         return
@@ -124,7 +121,6 @@ async def view_questions(message: Message):
             )
 
         await message.answer(text, parse_mode="HTML", reply_markup=kb)
-
 # =========================
 #   JAVOB YOZISH
 # =========================
