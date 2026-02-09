@@ -1,8 +1,6 @@
 from aiogram import Router, F
 from aiogram.types import CallbackQuery
-from database.db import get_student, search_orders_multi
-from database.db import search_orders_by_full_fio
-from .utils import send_long_message
+from database.utils import send_long_message
 
 router = Router()
 

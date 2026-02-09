@@ -144,15 +144,19 @@ class Order(Base):
 # 🔗 BUYRUQ LINKLARI
 # =========================
 class OrderLink(Base):
-    __tablename__ = "orders_links"
+    __tablename__ = "order_links"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    title = Column(String, nullable=False)
-    link = Column(String, nullable=False)
+    id = Column(Integer, primary_key=True)
+    title = Column(String)
+    link = Column(Text)
     year = Column(String)
     faculty = Column(String)
     type = Column(String)
-    students = Column(String)
+
+    # ❗ MUHIM
+    students_raw = Column(Text)       # foydalanuvchi yozgani
+    students_search = Column(Text)    # normalize qilingan
+
     created_at = Column(DateTime, default=datetime.utcnow)
 
 # =========================

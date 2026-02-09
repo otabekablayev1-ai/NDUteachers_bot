@@ -1,5 +1,4 @@
 import os
-import re
 from datetime import datetime
 from sqlalchemy import (
     select,
@@ -8,7 +7,6 @@ from sqlalchemy import (
     func,
     or_,
 )
-from sqlalchemy import select
 from database.engine import engine
 from database.session import AsyncSessionLocal
 from database.models import (
@@ -555,32 +553,31 @@ async def get_all_teachers() -> list[dict]:
         for t in teachers
     ]
 
-
 # =============================
 # ➕ OrderLink qo‘shish
 # =============================
 async def add_order_link(
     title: str,
     link: str,
-    year: int,
+    year: str,
     faculty: str,
     type: str,
-    students: str,
-) -> None:
+    students_raw: str,
+    students_search: str,
+):
     async with AsyncSessionLocal() as session:
-        session.add(
-            OrderLink(
-                title=title,
-                link=link,
-                year=year,
-                faculty=faculty,
-                type=type,
-                students=students,
-                created_at=datetime.utcnow(),
-            )
+        order = OrderLink(
+            title=title,
+            link=link,
+            year=year,
+            faculty=faculty,
+            type=type,
+            students_raw=students_raw,
+            students_search=students_search,
+            created_at=datetime.utcnow(),
         )
+        session.add(order)
         await session.commit()
-
 
 # =============================
 # 📎 OrderLink ro‘yxati
@@ -915,8 +912,9 @@ async def get_manager_fio(manager_id: int) -> str:
         )
         return fio or "Noma’lum menejer"
 
+from database.utils import normalize_text
 # =============================
-# 🔍 OrderLink — murakkab qidiruv
+# 🔍 OrderLink — PROFESSIONAL qidiruv
 # =============================
 async def search_orders_multi(
     faculty: str | None = None,
@@ -930,7 +928,8 @@ async def search_orders_multi(
             OrderLink.link,
             OrderLink.faculty,
             OrderLink.type,
-            OrderLink.students,
+            OrderLink.students_raw,
+            OrderLink.students_search,
             OrderLink.created_at,
         )
 
@@ -939,25 +938,18 @@ async def search_orders_multi(
         if type:
             stmt = stmt.where(OrderLink.type == type)
 
+        if fio:
+            search_text = normalize_text(fio)
+            stmt = stmt.where(
+                OrderLink.students_search.ilike(f"%{search_text}%")
+            )
+
         stmt = stmt.order_by(OrderLink.created_at.desc())
 
         result = await session.execute(stmt)
         rows = result.all()
 
-    if not fio:
-        return rows
-
-    input_words = normalize_text(fio).split()
-    filtered = []
-
-    for r in rows:
-        students_text = r.students or ""
-        db_words = normalize_text(students_text).split()
-
-        if all(w in db_words for w in input_words):
-            filtered.append(r)
-
-    return filtered
+    return rows
 
 # =============================
 # ❌ OrderLink (ADMIN) — o‘chirish
@@ -1049,16 +1041,4 @@ async def search_orders_by_full_fio(
             filtered.append(r)
 
     return filtered
-
-# =============================
-# 🔤 TEXT NORMALIZE
-# =============================
-def normalize_text(text: str) -> str:
-    if not text:
-        return ""
-
-    text = text.lower()
-    text = re.sub(r"[‘’ʻʼ`´]", "'", text)
-    text = re.sub(r"\s+", " ", text)
-    return text.strip()
 

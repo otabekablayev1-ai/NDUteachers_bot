@@ -2,9 +2,8 @@ from aiogram import Router, F
 from aiogram.types import CallbackQuery, Message
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.context import FSMContext
-from .utils import send_long_message
+from database.utils import send_long_message
 from database.db import search_orders_by_full_fio, get_teacher
-from database.db import search_orders_multi
 
 router = Router()
 

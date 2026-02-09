@@ -1,4 +1,4 @@
-from typing import Union
+from database.utils import normalize_text
 
 from aiogram import Router, F
 from aiogram.types import (
@@ -9,15 +9,12 @@ from aiogram.types import (
 )
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
-from .utils import send_long_message
+from database.utils import send_long_message
 
 from data.config import ADMINS
 from handlers.constants import YEARS, FACULTIES, ORDER_TYPES
 from database.db import (
-    save_commands_file,
-    get_commands_file,
     add_order_link,
-    get_order_links,
     get_all_order_links,
     search_orders_multi,
 )
@@ -293,14 +290,20 @@ async def choose_type(call: CallbackQuery, state: FSMContext):
 async def set_students(message: Message, state: FSMContext):
     data = await state.get_data()
 
+    students_raw = message.text
+    students_search = normalize_text(students_raw)
+
     await add_order_link(
         title=data["title"],
         link=data["link"],
         year=data["year"],
         faculty=data["faculty"],
         type=data["type"],
-        students=message.text,
+        students_raw=students_raw,
+        students_search=students_search,
     )
+
     await message.answer("✅ Buyruq muvaffaqiyatli saqlandi!")
     await state.clear()
+
 
