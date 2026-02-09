@@ -919,7 +919,6 @@ from database.session import AsyncSessionLocal
 from database.models import OrderLink
 from database.utils import normalize_text
 
-
 async def search_orders_multi(
     faculty: str | None = None,
     type: str | None = None,
@@ -932,8 +931,8 @@ async def search_orders_multi(
             OrderLink.link,
             OrderLink.faculty,
             OrderLink.type,
-            OrderLink.students,          # eski ustun
-            OrderLink.students_search,   # yangi ustun
+            OrderLink.students_raw,
+            OrderLink.students_search,
             OrderLink.created_at,
         )
 
@@ -943,14 +942,13 @@ async def search_orders_multi(
         if type:
             stmt = stmt.where(OrderLink.type == type)
 
+        # 🔥 ENG MUHIM JOY
         if fio:
             search_text = normalize_text(fio)
             stmt = stmt.where(
-                or_(
-                    OrderLink.students_search.ilike(f"%{search_text}%"),
-                    OrderLink.students_raw.ilike(f"%{search_text}%")
-                )
+                OrderLink.students_search.ilike(f"%{search_text}%")
             )
+
         stmt = stmt.order_by(OrderLink.created_at.desc())
 
         result = await session.execute(stmt)
