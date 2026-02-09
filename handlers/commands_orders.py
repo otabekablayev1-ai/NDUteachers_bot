@@ -158,7 +158,10 @@ async def set_lastname(message: Message, state: FSMContext):
     await message.answer("✔ Familiya qabul qilindi\n👇 Endi *Izlash* tugmasini bosing.", parse_mode="Markdown")
 
 
-@router.callback_query(F.data == "filter_search")
+@router.callback_query(
+    F.data == "filter_search",
+    OrderFilterState.lastname
+)
 async def filter_search(call: CallbackQuery, state: FSMContext):
     data = await state.get_data()
 
@@ -169,7 +172,7 @@ async def filter_search(call: CallbackQuery, state: FSMContext):
     rows = await search_orders_multi(
         faculty=data.get("faculty"),
         type=data.get("type"),
-        fio=data.get("lastname")   # 👈 MUHIM
+        fio=data.get("lastname")
     )
 
     if not rows:
