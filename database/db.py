@@ -916,6 +916,9 @@ from database.utils import normalize_text
 # =============================
 # 🔍 OrderLink — PROFESSIONAL qidiruv
 # =============================
+from sqlalchemy import or_
+from database.utils import normalize_text  # yoki database.utils
+
 async def search_orders_multi(
     faculty: str | None = None,
     type: str | None = None,
@@ -928,7 +931,7 @@ async def search_orders_multi(
             OrderLink.link,
             OrderLink.faculty,
             OrderLink.type,
-            OrderLink.students_raw,
+            OrderLink.students,
             OrderLink.students_search,
             OrderLink.created_at,
         )
@@ -940,16 +943,18 @@ async def search_orders_multi(
 
         if fio:
             search_text = normalize_text(fio)
+
             stmt = stmt.where(
-                OrderLink.students_search.ilike(f"%{search_text}%")
+                or_(
+                    OrderLink.students_search.ilike(f"%{search_text}%"),
+                    OrderLink.students.ilike(f"%{search_text}%"),
+                )
             )
 
         stmt = stmt.order_by(OrderLink.created_at.desc())
 
         result = await session.execute(stmt)
-        rows = result.all()
-
-    return rows
+        return result.all()
 
 # =============================
 # ❌ OrderLink (ADMIN) — o‘chirish
