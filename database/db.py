@@ -5,7 +5,6 @@ from sqlalchemy import (
     delete,
     update,
     func,
-    or_,
 )
 from database.engine import engine
 from database.session import AsyncSessionLocal
@@ -912,12 +911,14 @@ async def get_manager_fio(manager_id: int) -> str:
         )
         return fio or "Noma’lum menejer"
 
-from database.utils import normalize_text
 # =============================
 # 🔍 OrderLink — PROFESSIONAL qidiruv
 # =============================
-from sqlalchemy import or_
-from database.utils import normalize_text  # yoki database.utils
+from sqlalchemy import select, or_
+from database.session import AsyncSessionLocal
+from database.models import OrderLink
+from database.utils import normalize_text
+
 
 async def search_orders_multi(
     faculty: str | None = None,
@@ -931,19 +932,21 @@ async def search_orders_multi(
             OrderLink.link,
             OrderLink.faculty,
             OrderLink.type,
-            OrderLink.students,
-            OrderLink.students_search,
+            OrderLink.students,          # eski ustun
+            OrderLink.students_search,   # yangi ustun
             OrderLink.created_at,
         )
 
         if faculty:
             stmt = stmt.where(OrderLink.faculty == faculty)
+
         if type:
             stmt = stmt.where(OrderLink.type == type)
 
         if fio:
             search_text = normalize_text(fio)
 
+            # 🔥 BACKWARD COMPATIBILITY (MUHIM)
             stmt = stmt.where(
                 or_(
                     OrderLink.students_search.ilike(f"%{search_text}%"),
