@@ -945,15 +945,12 @@ async def search_orders_multi(
 
         if fio:
             search_text = normalize_text(fio)
-
-            # 🔥 BACKWARD COMPATIBILITY (MUHIM)
             stmt = stmt.where(
                 or_(
                     OrderLink.students_search.ilike(f"%{search_text}%"),
-                    OrderLink.students.ilike(f"%{search_text}%"),
+                    OrderLink.students_raw.ilike(f"%{search_text}%")
                 )
             )
-
         stmt = stmt.order_by(OrderLink.created_at.desc())
 
         result = await session.execute(stmt)

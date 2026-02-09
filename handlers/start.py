@@ -13,9 +13,6 @@ router = Router()
 
 @router.message(F.text == "/start")
 async def start_handler(message: Message, state: FSMContext):   # 👈 state qo‘shildi
-    print("DEBUG USER:", message.from_user.id)
-    print("→ STUDENT:", get_student(message.from_user.id))
-    print("→ TEACHER:", get_teacher(message.from_user.id))
 
     # ❗ HAR SAFAR /start bosilganda eski holatlarni tozalaymiz
     await state.clear()
