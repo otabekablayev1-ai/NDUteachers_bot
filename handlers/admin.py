@@ -231,7 +231,7 @@ async def search_user(message: Message, state: FSMContext):
 async def delete_user(call: CallbackQuery):
     user_id = int(call.data.split(":")[1])
 
-    delete_user_by_id(user_id)
+    await delete_user_by_id(user_id)
 
     await call.message.edit_text(f"✅ Foydalanuvchi bazadan o‘chirildi.\n🆔 ID: {user_id}")
     await call.answer("O‘chirildi!")

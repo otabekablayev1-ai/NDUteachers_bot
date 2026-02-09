@@ -293,7 +293,7 @@ async def choose_type(call: CallbackQuery, state: FSMContext):
 async def set_students(message: Message, state: FSMContext):
     data = await state.get_data()
 
-    add_order_link(
+    await add_order_link(
         title=data["title"],
         link=data["link"],
         year=data["year"],
