@@ -158,26 +158,32 @@ async def set_lastname(message: Message, state: FSMContext):
     await message.answer("✔ Familiya qabul qilindi\n👇 Endi *Izlash* tugmasini bosing.", parse_mode="Markdown")
 
 
-@router.callback_query(
-    F.data == "filter_search",
-    OrderFilterState.lastname
-)
+@router.callback_query(F.data == "filter_search")
 async def filter_search(call: CallbackQuery, state: FSMContext):
+    await call.answer()  # 👈 MUHIM: callbackni darhol yopamiz
+
     data = await state.get_data()
+    print("FILTER DATA:", data)
 
-    if not data.get("lastname"):
+    lastname = data.get("lastname")
+    if not lastname:
         await call.message.answer("❗ Avval familiyani kiriting.")
-        return await call.answer()
+        return
 
-    rows = await search_orders_multi(
-        faculty=data.get("faculty"),
-        type=data.get("type"),
-        fio=data.get("lastname")
-    )
+    try:
+        rows = await search_orders_multi(
+            faculty=data.get("faculty"),
+            type=data.get("type"),
+            fio=lastname
+        )
+    except Exception as e:
+        print("❌ SEARCH ERROR:", e)
+        await call.message.answer("⚠️ Qidiruvda ichki xato yuz berdi.")
+        return
 
     if not rows:
         await call.message.answer("❌ Hech narsa topilmadi.")
-        return await call.answer()
+        return
 
     text = "📄 <b>Natijalar:</b>\n\n"
     for row in rows:
@@ -185,7 +191,6 @@ async def filter_search(call: CallbackQuery, state: FSMContext):
         text += f"👉 <a href=\"{r['link']}\">{r['title']}</a>\n"
 
     await send_long_message(call.message, text)
-    await call.answer()
 
 # ==========================
 # 📄 HAMMA BUYRUQLARNI KO‘RISH
