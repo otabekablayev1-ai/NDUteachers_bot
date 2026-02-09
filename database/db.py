@@ -942,11 +942,14 @@ async def search_orders_multi(
         if type:
             stmt = stmt.where(OrderLink.type == type)
 
-        # 🔥 ENG MUHIM JOY
         if fio:
             search_text = normalize_text(fio)
+
             stmt = stmt.where(
-                OrderLink.students_search.ilike(f"%{search_text}%")
+                or_(
+                    OrderLink.students_search.ilike(f"%{search_text}%"),
+                    OrderLink.students_raw.ilike(f"%{fio}%"),
+                )
             )
 
         stmt = stmt.order_by(OrderLink.created_at.desc())
