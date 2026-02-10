@@ -170,7 +170,7 @@ async def filter_search(call: CallbackQuery, state: FSMContext):
     rows = search_orders_multi(
         faculty=data.get("faculty"),
         type=data.get("type"),
-        lastname=data.get("lastname")
+        fio=data.get("lastname")
     )
 
     if not rows:
