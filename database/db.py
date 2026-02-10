@@ -914,9 +914,7 @@ async def get_manager_fio(manager_id: int) -> str:
 # =============================
 # 🔍 OrderLink — PROFESSIONAL qidiruv
 # =============================
-from sqlalchemy import select, or_
-from database.session import AsyncSessionLocal
-from database.models import OrderLink
+from sqlalchemy import or_
 from database.utils import normalize_text
 
 async def search_orders_multi(
@@ -947,7 +945,10 @@ async def search_orders_multi(
 
             stmt = stmt.where(
                 or_(
+                    # 🔥 YANGI BUYRUQLAR
                     OrderLink.students_search.ilike(f"%{search_text}%"),
+
+                    # 🔁 ESKI BUYRUQLAR (fallback)
                     OrderLink.students_raw.ilike(f"%{fio}%"),
                 )
             )
