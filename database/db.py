@@ -915,15 +915,8 @@ async def search_orders_multi(
 
         if fio:
             search_text = normalize_text(fio)
-
             stmt = stmt.where(
-                or_(
-                    # 🔥 YANGI BUYRUQLAR
-                    OrderLink.students_search.ilike(f"%{search_text}%"),
-
-                    # 🔁 ESKI BUYRUQLAR (fallback)
-                    OrderLink.students_raw.ilike(f"%{fio}%"),
-                )
+                OrderLink.students_search.ilike(f"%{search_text}%")
             )
 
         stmt = stmt.order_by(OrderLink.created_at.desc())
