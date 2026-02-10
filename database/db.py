@@ -476,33 +476,6 @@ async def save_answer(question_id: int, manager_id: int, answer_text: str) -> bo
             print("[DB save_answer ERROR]", e)
             return False
 
-# =============================
-# 🏆 TOP menejerlar
-# =============================
-async def get_top_managers(limit: int = 5) -> list[dict]:
-    async with AsyncSessionLocal() as session:
-        result = await session.execute(
-            select(
-                Rating.manager_id,
-                func.round(func.avg(Rating.rating), 2).label("avg_rating"),
-            )
-            .group_by(Rating.manager_id)
-            .having(func.count(Rating.rating) > 0)
-            .order_by(func.avg(Rating.rating).desc())
-            .limit(limit)
-        )
-        rows = result.all()
-
-    return [
-        {
-            "manager_id": r.manager_id,
-            "manager_name": "",
-            "faculty": "",
-            "avg_rating": float(r.avg_rating),
-        }
-        for r in rows
-    ]
-
 # ==========================================
 # 👔 RAHBAR UCHUN — javob berilmagan savollar
 # ==========================================
@@ -1021,31 +994,32 @@ async def search_orders_by_full_fio(
     fio_query: str,
 ):
     async with AsyncSessionLocal() as session:
-        result = await session.execute(
-            select(
-                OrderLink.id,
-                OrderLink.title,
-                OrderLink.link,
-                OrderLink.faculty,
-                OrderLink.students,
-                OrderLink.created_at,
-            )
-            .where(OrderLink.faculty == faculty if faculty else True)
-            .order_by(OrderLink.created_at.desc())
-        )
+        stmt = select(
+            OrderLink.id,
+            OrderLink.title,
+            OrderLink.link,
+            OrderLink.faculty,
+            OrderLink.students_raw,
+            OrderLink.students_search,
+            OrderLink.created_at,
+        ).order_by(OrderLink.created_at.desc())
+
+        if faculty:
+            stmt = stmt.where(OrderLink.faculty == faculty)
+
+        result = await session.execute(stmt)
         rows = result.all()
 
     query_words = normalize_text(fio_query).split()
     filtered = []
 
     for r in rows:
-        if not r.students:
+        if not r.students_search:
             continue
 
-        student_words = normalize_text(r.students).split()
+        student_words = normalize_text(r.students_search).split()
 
         if all(word in student_words for word in query_words):
             filtered.append(r)
 
     return filtered
-

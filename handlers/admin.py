@@ -1,6 +1,7 @@
 from aiogram import Router, F
 from aiogram.types import CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from database.db import reject_request
+from loader import dp
 
 from aiogram.types import (Message, KeyboardButton, FSInputFile)
 from aiogram.fsm.context import FSMContext
@@ -287,4 +288,17 @@ async def backup_db(message: Message):
         caption="✅ DB backup tayyor!"
     )
 
+from aiogram import types, Router
+from database.scripts import rebuild_students_search
 
+router = Router()
+ADMINS = [123456789]  # o'z Telegram ID'ingizni yozing
+
+@router.message(commands=["fix_search"])
+async def fix_search_handler(message: types.Message):
+    if message.from_user.id not in ADMINS:
+        await message.answer("❌ Sizda ruxsat yo‘q.")
+        return
+
+    count = await rebuild_students_search()
+    await message.answer(f"✅ {count} ta buyruqda students_search yangilandi.")
