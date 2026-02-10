@@ -293,7 +293,7 @@ from aiogram.filters import Command
 from database.scripts import rebuild_students_search
 
 router = Router()
-ADMINS = [123456789]
+ADMINS = [1017100005]
 
 @router.message(Command("fix_search"))
 async def fix_search_handler(message: types.Message):
