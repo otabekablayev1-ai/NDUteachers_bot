@@ -4,7 +4,7 @@ from database.utils import send_long_message
 
 router = Router()
 
-from database.db import search_orders_by_full_fio, get_student
+from database.db import search_orders_multi, get_student
 
 @router.callback_query(F.data == "student_my_orders")
 async def student_my_orders(call: CallbackQuery):
@@ -13,7 +13,7 @@ async def student_my_orders(call: CallbackQuery):
         await call.answer("❌ Talaba topilmadi", show_alert=True)
         return
 
-    rows = await search_orders_by_full_fio(
+    rows = await search_orders_multi(
         faculty=student.faculty,
         fio=student.fio
     )

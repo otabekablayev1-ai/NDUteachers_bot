@@ -304,7 +304,3 @@ async def fix_search_handler(message: types.Message):
     count = await rebuild_students_search()
     await message.answer(f"✅ {count} ta buyruqda students_search yangilandi.")
 
-@router.message()
-async def get_my_id(message: types.Message):
-    await message.answer(f"Sizning Telegram ID'ingiz: {message.from_user.id}")
-
