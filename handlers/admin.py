@@ -289,12 +289,13 @@ async def backup_db(message: Message):
     )
 
 from aiogram import types, Router
+from aiogram.filters import Command
 from database.scripts import rebuild_students_search
 
 router = Router()
-ADMINS = [123456789]  # o'z Telegram ID'ingizni yozing
+ADMINS = [123456789]
 
-@router.message(commands=["fix_search"])
+@router.message(Command("fix_search"))
 async def fix_search_handler(message: types.Message):
     if message.from_user.id not in ADMINS:
         await message.answer("❌ Sizda ruxsat yo‘q.")
