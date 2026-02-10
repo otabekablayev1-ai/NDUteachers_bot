@@ -1069,6 +1069,8 @@ async def delete_order_link_by_id(order_id: int) -> bool:
 # =============================
 # 🔤 TEXT NORMALIZE
 # =============================
+import re
+
 def normalize_text(text: str) -> str:
     if not text:
         return ""
@@ -1079,9 +1081,5 @@ def normalize_text(text: str) -> str:
     return text.strip()
 
 
-# =============================
-# 🚀 INIT DB (ASYNC)
-# =============================
-async def init_db():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+
+

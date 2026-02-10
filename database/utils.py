@@ -9,21 +9,13 @@ async def send_long_message(message, text, chunk=4000):
             parse_mode="HTML"
         )
 
+import re
+
 def normalize_text(text: str) -> str:
     if not text:
         return ""
 
-    text = unicodedata.normalize("NFKD", text)
     text = text.lower()
-
-    replacements = {
-        "‘": "'", "’": "'", "ʻ": "'", "ʼ": "'",
-        "`": "'", "´": "'",
-        "o‘": "o'", "g‘": "g'",
-    }
-
-    for k, v in replacements.items():
-        text = text.replace(k, v)
-
+    text = re.sub(r"[‘’ʻʼ`´]", "'", text)
     text = re.sub(r"\s+", " ", text)
     return text.strip()

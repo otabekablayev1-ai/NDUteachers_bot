@@ -1,7 +1,7 @@
 from database.models import OrderLink
 from database.session import AsyncSessionLocal
-from database.utils import normalize_text
 from sqlalchemy import select
+from database.db import normalize_text  # normalize_text shu faylda bo‘lsa
 
 async def rebuild_students_search():
     async with AsyncSessionLocal() as session:
@@ -11,10 +11,11 @@ async def rebuild_students_search():
         updated = 0
         for r in rows:
             if r.students_raw:
-                new_val = normalize_text(r.students_raw)
-                if r.students_search != new_val:
-                    r.students_search = new_val
+                normalized = normalize_text(r.students_raw)
+                if not r.students_search or r.students_search != normalized:
+                    r.students_search = normalized
                     updated += 1
 
         await session.commit()
-        return updated  # ✅ BU MUHIM
+        return updated
+

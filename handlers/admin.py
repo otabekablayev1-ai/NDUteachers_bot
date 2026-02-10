@@ -288,12 +288,12 @@ async def backup_db(message: Message):
         caption="✅ DB backup tayyor!"
     )
 
-from aiogram import types, Router
+from aiogram import Router, types
 from aiogram.filters import Command
 from database.scripts import rebuild_students_search
 
 router = Router()
-ADMINS = [1017100005]
+ADMINS = [1017100005]  # <- O'zingizning Telegram ID'ingizni kiriting
 
 @router.message(Command("fix_search"))
 async def fix_search_handler(message: types.Message):
@@ -303,4 +303,3 @@ async def fix_search_handler(message: types.Message):
 
     count = await rebuild_students_search()
     await message.answer(f"✅ {count} ta buyruqda students_search yangilandi.")
-
