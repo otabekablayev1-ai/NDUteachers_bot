@@ -717,21 +717,6 @@ async def get_filtered_students(data: dict):
         return result.scalars().all()
 
 # =============================
-# 📊 Statistikalar
-# =============================
-async def get_faculty_teachers_stat():
-    async with AsyncSessionLocal() as session:
-        result = await session.execute(
-            select(
-                Teacher.faculty,
-                func.count(Teacher.user_id).label("total"),
-            )
-            .group_by(Teacher.faculty)
-        )
-        return result.all()
-
-
-# =============================
 # 👤 Menejerlar / foydalanuvchilar
 # =============================
 async def get_manager_name(manager_id: int) -> str:
@@ -1017,3 +1002,109 @@ async def search_orders_by_full_fio(
 
     return filtered
 
+# =============================
+# 📊 Statistikalar
+# =============================
+# =============================
+# 🏫 Fakultetlar bo‘yicha umumiy statistika
+# (Teacher + Tutor + Student)
+# =============================
+async def get_faculty_full_statistics():
+    async with AsyncSessionLocal() as session:
+
+        # Teacher + Tutor (bitta jadvalda)
+        teachers_result = await session.execute(
+            select(
+                Teacher.faculty,
+                func.count(Teacher.user_id).label("total")
+            )
+            .group_by(Teacher.faculty)
+        )
+
+        # Students
+        students_result = await session.execute(
+            select(
+                Student.faculty,
+                func.count(Student.user_id).label("total")
+            )
+            .group_by(Student.faculty)
+        )
+
+        faculty_totals = {}
+
+        # Teacher + Tutor qo‘shamiz
+        for faculty, total in teachers_result.all():
+            faculty_totals[faculty] = faculty_totals.get(faculty, 0) + total
+
+        # Student qo‘shamiz
+        for faculty, total in students_result.all():
+            faculty_totals[faculty] = faculty_totals.get(faculty, 0) + total
+
+        # Tartiblab qaytaramiz (eng kattadan)
+        sorted_data = sorted(
+            faculty_totals.items(),
+            key=lambda x: x[1],
+            reverse=True
+        )
+
+        return sorted_data
+
+# =============================
+# 📊 UNIVERSITET UMUMIY STATISTIKASI
+# =============================
+async def get_university_statistics():
+    async with AsyncSessionLocal() as session:
+
+        # ===== O‘QITUVCHI / TYUTOR =====
+        teachers_result = await session.execute(
+            select(Teacher.role, func.count(Teacher.user_id))
+            .group_by(Teacher.role)
+        )
+        teacher_rows = teachers_result.all()
+
+        teacher_count = 0
+        tutor_count = 0
+
+        for role, count in teacher_rows:
+            role = (role or "").lower()
+            if role in ["o‘qituvchi", "teacher"]:
+                teacher_count += count
+            elif role in ["tyutor", "tutor"]:
+                tutor_count += count
+
+        # ===== TALABALAR =====
+        students_result = await session.execute(
+            select(func.count(Student.user_id))
+        )
+        student_count = students_result.scalar() or 0
+
+        # ===== FAKULTETLAR BO‘YICHA (3 ta jadvaldan) =====
+        faculty_stat = {}
+
+        # Teachers
+        t_fac = await session.execute(
+            select(Teacher.faculty, func.count(Teacher.user_id))
+            .group_by(Teacher.faculty)
+        )
+        for fac, count in t_fac.all():
+            fac = fac or "Noma’lum"
+            faculty_stat[fac] = faculty_stat.get(fac, 0) + count
+
+        # Students
+        s_fac = await session.execute(
+            select(Student.faculty, func.count(Student.user_id))
+            .group_by(Student.faculty)
+        )
+        for fac, count in s_fac.all():
+            fac = fac or "Noma’lum"
+            faculty_stat[fac] = faculty_stat.get(fac, 0) + count
+
+        total_users = teacher_count + tutor_count + student_count
+
+        return {
+            "total_users": total_users,
+            "teacher_count": teacher_count,
+            "tutor_count": tutor_count,
+            "student_count": student_count,
+            "faculty_stat": faculty_stat,
+        }

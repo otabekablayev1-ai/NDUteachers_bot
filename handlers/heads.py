@@ -5,6 +5,10 @@ from aiogram.types import (
     ReplyKeyboardMarkup, KeyboardButton,
     Message, CallbackQuery,
 )
+from database.db import (
+    get_university_statistics,
+    get_faculty_full_statistics,
+)
 from database.db import get_question_by_id
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
@@ -348,48 +352,19 @@ async def export_manager_rating_excel(call: CallbackQuery):
 # ==============================
 @router.message(lambda m: m.text and "Statistika" in m.text)
 async def full_stat(message: Message):
-    teachers = get_all_teachers()              # dict list
-    students = get_filtered_students({})       # ORM list
 
-    # ============ 1) ROLLAR BO‘YICHA ============
-    teacher_count = 0
-    tutor_count = 0
+    stats = await get_university_statistics()
 
-    for t in teachers:
-        role = (t.get("role") or "").lower()
-        if role in ["o‘qituvchi", "teacher"]:
-            teacher_count += 1
-        elif role in ["tyutor", "tutor"]:
-            tutor_count += 1
-
-    student_count = len(students)
-    total_users = teacher_count + tutor_count + student_count
-
-    # ============ 2) FAKULTETLAR ============
-    faculty_stat = {}
-
-    # O‘qituvchi + Tyutorlar
-    for t in teachers:
-        fac = t.get("faculty") or "Noma’lum"
-        faculty_stat[fac] = faculty_stat.get(fac, 0) + 1
-
-    # Talabalar
-    for s in students:
-        fac = getattr(s, "faculty", None) or "Noma’lum"
-        faculty_stat[fac] = faculty_stat.get(fac, 0) + 1
-
-    # ============ 3) MATN ============
     text = (
         "<b>📊 UNIVERSITET UMUMIY STATISTIKASI</b>\n\n"
-        f"👥 <b>Umumiy foydalanuvchilar:</b> {total_users} ta\n"
-        f"👨‍🏫 <b>O‘qituvchilar:</b> {teacher_count} ta\n"
-        f"🧑‍🏫 <b>Tyutorlar:</b> {tutor_count} ta\n"
-        f"🎓 <b>Talabalar:</b> {student_count} ta\n\n"
+        f"👥 <b>Umumiy foydalanuvchilar:</b> {stats['total_users']} ta\n"
+        f"👨‍🏫 <b>O‘qituvchilar:</b> {stats['teacher_count']} ta\n"
+        f"🧑‍🏫 <b>Tyutorlar:</b> {stats['tutor_count']} ta\n"
+        f"🎓 <b>Talabalar:</b> {stats['student_count']} ta\n\n"
         "<b>🏫 Fakultetlar bo‘yicha:</b>\n"
     )
 
-    for fac, cnt in sorted(faculty_stat.items()):
+    for fac, cnt in sorted(stats["faculty_stat"].items()):
         text += f"• {fac}: {cnt} ta\n"
 
     await message.answer(text, parse_mode="HTML")
-
