@@ -53,6 +53,14 @@ MANAGERS_BY_FACULTY = {
         "teacher": parse_ids(os.getenv("RAHBAR_TEACHER_LANG", "")),
         "student": parse_ids(os.getenv("RAHBAR_STUDENT_LANG", "")),
     },
+    "O‘zbek filologiyasi fakulteti": {
+        "teacher": parse_ids(os.getenv("RAHBAR_TEACHER_UZBEK", "")),
+        "student": parse_ids(os.getenv("RAHBAR_STUDENT_UZBEK", "")),
+    },
+    "Tibbiyot fakulteti": {
+        "teacher": parse_ids(os.getenv("RAHBAR_TEACHER_MED", "")),
+        "student": parse_ids(os.getenv("RAHBAR_STUDENT_MED", "")),
+    },
 }
 
 def is_manager_id(user_id: int) -> bool:

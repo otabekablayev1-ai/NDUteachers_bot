@@ -53,6 +53,9 @@ async def start_student_send_message(message: Message, state: FSMContext):
              KeyboardButton(text="Tarix fakulteti")],
 
             [KeyboardButton(text="Tillar fakulteti")],
+
+            [KeyboardButton(text="O‘zbek filologiyasi fakulteti"),
+             KeyboardButton(text="Tibbiyot fakulteti")],
         ],
         resize_keyboard=True
     )

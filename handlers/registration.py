@@ -159,6 +159,8 @@ async def choose_role(message: Message, state: FSMContext):
             "Tabiiy va tibbiyot fakulteti",
             "Tarix fakulteti",
             "Tillar fakulteti",
+            "O‘zbek filologiyasi fakulteti",
+            "Tibbiyot fakulteti",
         ]
         kb = ReplyKeyboardMarkup(
             keyboard=[[KeyboardButton(text=f)] for f in faculties],
@@ -179,6 +181,8 @@ async def choose_role(message: Message, state: FSMContext):
             "Tabiiy va tibbiyot fakulteti",
             "Tarix fakulteti",
             "Tillar fakulteti",
+            "O‘zbek filologiyasi fakulteti",
+            "Tibbiyot fakulteti",
         ]
         kb = ReplyKeyboardMarkup(
             keyboard=[[KeyboardButton(text=f)] for f in faculties],
@@ -249,8 +253,15 @@ TEACHER_DEPARTMENTS = {
     "Iqtisodiyot fakulteti": [
         "Iqtisodiyot kafedrasi",
     ],
+    "O‘zbek filologiyasi fakulteti": [
+        "O‘zbek adabiyoti kafedrasi",
+        "O‘zbek tilshunosligi kafedrasi"
+    ],
+    "Tibbiyot fakulteti": [
+        "Umumiy tibbiyot kafedrasi",
+        "Klinik fanlar kafedrasi",
+    ],
 }
-
 
 @router.message(RegState.teacher_faculty)
 async def teacher_faculty(message: Message, state: FSMContext):
@@ -477,6 +488,8 @@ async def student_edu_form(call: CallbackQuery, state: FSMContext):
         "Tabiiy va tibbiyot fakulteti",
         "Tarix fakulteti",
         "Tillar fakulteti",
+        "O‘zbek filologiyasi fakulteti",
+        "Tibbiyot fakulteti",
     ]
 
     kb = InlineKeyboardMarkup(
@@ -509,6 +522,8 @@ async def student_faculty(call: CallbackQuery, state: FSMContext):
         "Tabiiy va tibbiyot fakulteti",
         "Tarix fakulteti",
         "Tillar fakulteti",
+        "O‘zbek filologiyasi fakulteti",
+        "Tibbiyot fakulteti"
     ]
 
     chosen = faculties[index]

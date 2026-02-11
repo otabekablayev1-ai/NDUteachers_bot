@@ -10,7 +10,9 @@ FACULTIES = [
     "Tillar fakulteti",
     "San’at va sport fakulteti",
     "Tarix fakulteti",
-    "Iqtisodiyot fakulteti"
+    "Iqtisodiyot fakulteti",
+    "O‘zbek filologiyasi fakulteti",
+    "Tibbiyot fakulteti"
 ]
 
 ORDER_TYPES = [
