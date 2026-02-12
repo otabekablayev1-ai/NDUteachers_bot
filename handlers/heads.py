@@ -256,16 +256,43 @@ async def handle_rating(call: CallbackQuery):
         f"📊 Javobingizga ⭐ {rating} ball berildi"
     )
 
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from aiogram.types import FSInputFile
-from aiogram import F
-from aiogram.types import Message, CallbackQuery
+from aiogram import Router, F
+from aiogram.types import (
+    InlineKeyboardMarkup,
+    InlineKeyboardButton,
+    FSInputFile,
+    Message,
+    CallbackQuery
+)
+from aiogram.exceptions import TelegramBadRequest
+import openpyxl
+import os
+
+router = Router()
+
+
+from aiogram import Router, F
+from aiogram.types import (
+    InlineKeyboardMarkup,
+    InlineKeyboardButton,
+    FSInputFile,
+    Message,
+    CallbackQuery
+)
+from aiogram.exceptions import TelegramBadRequest
+import openpyxl
+import os
+
+from database.db import get_manager_rating_table
+
+router = Router()
+
 
 @router.message(F.text == "🏆 Menejerlar reytingi")
 async def show_managers_rating(message: Message):
-    from database.db import get_manager_rating_table
 
-    rows = get_manager_rating_table()
+    rows = await get_manager_rating_table()
+
     if not rows:
         await message.answer("📭 Hozircha menejerlar reytingi mavjud emas.")
         return
@@ -273,20 +300,20 @@ async def show_managers_rating(message: Message):
     text = (
         "🏆 <b>Menejerlar reytingi</b>\n\n"
         "<pre>"
-        "№  Menejer            Reyt  ✔️  ❌  Fakultet\n"
-        "---------------------------------------------\n"
+        "№  Menejer           Reyt  ✔️  ❌  Fakultet\n"
+        "--------------------------------------------\n"
     )
 
     for i, r in enumerate(rows, 1):
         try:
             chat = await message.bot.get_chat(r["manager_id"])
             name = chat.full_name
-        except:
+        except TelegramBadRequest:
             name = str(r["manager_id"])
 
         text += (
             f"{i:<2} "
-            f"{name[:16]:<16} "
+            f"{name[:15]:<15} "
             f"{r['avg_rating']:<5} "
             f"{r['answered_count']:<3} "
             f"{r['unanswered_count']:<3} "
@@ -309,24 +336,31 @@ async def show_managers_rating(message: Message):
 
 @router.callback_query(F.data == "export_manager_rating_excel")
 async def export_manager_rating_excel(call: CallbackQuery):
-    from database.db import get_manager_rating_table
-    import openpyxl
 
-    rows = get_manager_rating_table()
+    rows = await get_manager_rating_table()
+
+    if not rows:
+        await call.answer("Ma'lumot topilmadi", show_alert=True)
+        return
 
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Menejerlar reytingi"
 
     ws.append([
-        "T/r", "Menejer", "Reyting", "Javob berilgan", "Javob berilmagan", "Fakultet"
+        "T/r",
+        "Menejer",
+        "Reyting",
+        "Javob berilgan",
+        "Javob berilmagan",
+        "Fakultet"
     ])
 
     for i, r in enumerate(rows, 1):
         try:
             chat = await call.bot.get_chat(r["manager_id"])
             name = chat.full_name
-        except:
+        except TelegramBadRequest:
             name = str(r["manager_id"])
 
         ws.append([
@@ -345,8 +379,11 @@ async def export_manager_rating_excel(call: CallbackQuery):
         FSInputFile(path),
         caption="📊 Menejerlar reytingi (Excel)"
     )
+
     await call.answer()
 
+    if os.path.exists(path):
+        os.remove(path)
 # ==============================
 #   📊 UNIVERSITET SUPER STATISTIKASI
 # ==============================

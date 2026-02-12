@@ -321,12 +321,24 @@ async def user_already_rated(
 # =====================================================
 # 📊 MENEJERLAR BAHO JADVALI
 # =====================================================
+
+# =====================================================
+# 📊 MENEJERLAR BAHO JADVALI
+# =====================================================
+
+from sqlalchemy import select, func
+from database.models import Rating, Teacher
+from database.session import AsyncSessionLocal
+from data.config import MANAGERS_BY_FACULTY
+
+
 async def get_manager_rating_table() -> list[dict]:
     manager_ids: set[int] = set()
     faculty_by_manager: dict[int, str] = {}
 
     for faculty, roles in MANAGERS_BY_FACULTY.items():
-        for mid in (roles.get("teacher", []) + roles.get("student", [])):
+        ids = (roles.get("teacher") or []) + (roles.get("student") or [])
+        for mid in ids:
             manager_ids.add(mid)
             faculty_by_manager[mid] = faculty
 
@@ -337,29 +349,58 @@ async def get_manager_rating_table() -> list[dict]:
         result = await session.execute(
             select(
                 Rating.manager_id,
-                func.count(func.distinct(Rating.question_id)).label("answered_count"),
+                func.count(Rating.id).label("answered_count"),
                 func.round(func.avg(Rating.rating), 2).label("avg_rating"),
             )
             .where(Rating.manager_id.in_(manager_ids))
             .group_by(Rating.manager_id)
         )
+
         rows = result.all()
 
-    return [
+    table = [
         {
             "manager_id": r.manager_id,
             "faculty": faculty_by_manager.get(r.manager_id, ""),
-            "answered_count": r.answered_count,
+            "answered_count": r.answered_count or 0,
             "unanswered_count": 0,
             "avg_rating": float(r.avg_rating or 0),
         }
         for r in rows
     ]
 
-async def get_rating_table_by_faculty():
+    # Reyting bo‘yicha sort
+    table.sort(key=lambda x: x["avg_rating"], reverse=True)
+
+    return table
+
+
+# =====================================================
+# 📊 FAKULTET BO‘YICHA REYTING
+# =====================================================
+
+async def get_rating_table_by_faculty() -> list[dict]:
     result = []
 
     async with AsyncSessionLocal() as session:
+
+        rating_data = await session.execute(
+            select(
+                Rating.manager_id,
+                func.count(Rating.id).label("answered_count"),
+                func.round(func.avg(Rating.rating), 2).label("avg_rating"),
+            )
+            .group_by(Rating.manager_id)
+        )
+
+        rating_map = {
+            r.manager_id: {
+                "answered_count": r.answered_count or 0,
+                "avg_rating": float(r.avg_rating or 0),
+            }
+            for r in rating_data
+        }
+
         for faculty_name, roles in MANAGERS_BY_FACULTY.items():
             manager_ids = list(set(
                 (roles.get("teacher") or []) +
@@ -376,41 +417,40 @@ async def get_rating_table_by_faculty():
                 })
                 continue
 
-            # 👤 Menejer FIO
             names_res = await session.execute(
                 select(Teacher.fio)
                 .where(Teacher.user_id.in_(manager_ids))
             )
+
             names = names_res.scalars().all()
             manager_name = ", ".join(n for n in names if n) \
                 or ", ".join(map(str, manager_ids))
 
-            # ⭐ O‘rtacha baho
-            avg_res = await session.execute(
-                select(
-                    func.round(func.avg(Rating.rating), 2)
-                )
-                .where(Rating.manager_id.in_(manager_ids))
+            total_answered = sum(
+                rating_map.get(mid, {}).get("answered_count", 0)
+                for mid in manager_ids
             )
-            avg_rating = avg_res.scalar() or 0
 
-            # 📊 Javoblar soni
-            count_res = await session.execute(
-                select(func.count(Rating.id))
-                .where(Rating.manager_id.in_(manager_ids))
-            )
-            answered_count = count_res.scalar() or 0
+            avg_values = [
+                rating_map.get(mid, {}).get("avg_rating", 0)
+                for mid in manager_ids
+                if mid in rating_map
+            ]
+
+            faculty_avg = round(sum(avg_values) / len(avg_values), 2) \
+                if avg_values else 0
 
             result.append({
                 "faculty": faculty_name,
                 "manager_name": manager_name,
-                "avg_rating": float(avg_rating),
-                "answered_count": answered_count,
+                "avg_rating": faculty_avg,
+                "answered_count": total_answered,
                 "unanswered_count": 0,
             })
 
-    return result
+    result.sort(key=lambda x: x["avg_rating"], reverse=True)
 
+    return result
 # =============================
 # 🏆 TOP menejerlar
 # =============================
