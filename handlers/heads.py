@@ -1,16 +1,19 @@
 #heads.py to'liq
+import os
+import openpyxl
 from aiogram import Router, F
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.types import (
-    ReplyKeyboardMarkup, KeyboardButton,
-    Message, CallbackQuery,
+    InlineKeyboardMarkup,
+    InlineKeyboardButton,
+    FSInputFile,
+    Message,
+    CallbackQuery
 )
-from database.db import (
-    get_university_statistics,
-    get_faculty_full_statistics,
+from database.db import (get_university_statistics, get_question_by_id,
 )
-from database.db import get_question_by_id
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.fsm.context import FSMContext
+from database.db import get_manager_rating_table
 from aiogram.fsm.state import StatesGroup, State
 from data.config import MANAGERS_BY_FACULTY, RAHBARLAR
 from database.db import (
@@ -21,15 +24,18 @@ from database.db import (
     user_already_rated,
     get_all_teachers,
 )
-from aiogram.fsm.state import StatesGroup, State
+
+
+router = Router()
+
+
+
 
 class ReplyFSM(StatesGroup):
     waiting = State()   # 🔴 MUHIM
 
 
-from database.db import get_filtered_students
 
-router = Router()
 
 # =========================
 #   FSM HOLATLARI
@@ -94,7 +100,9 @@ def get_faculty_manager(role: str, faculty: str):
 # =========================
 @router.message(F.text == "📥 Savollarni ko‘rish")
 async def view_questions(message: Message):
-    questions = await get_latest_questions_for_manager()
+    questions = await get_latest_questions_for_manager(
+        manager_id=message.from_user.id
+    )
 
     if not questions:
         await message.answer("📭 Siz uchun yangi savollar yo‘q.")
@@ -195,8 +203,8 @@ async def send_reply(message: Message, state: FSMContext):
 
     # 2️⃣ DB ga yozish
     try:
-        save_answer(question_id, manager_id, answer_text)
-        mark_question_answered(question_id)
+        await save_answer(question_id, manager_id, answer_text)
+        await mark_question_answered(question_id)
     except Exception as e:
         print("[HEADS] DB error:", e)
 
@@ -237,11 +245,11 @@ async def handle_rating(call: CallbackQuery):
     manager_id = int(manager_id)
     rating = int(rating)
 
-    if user_already_rated(call.from_user.id, manager_id, question_id):
+    if await user_already_rated(call.from_user.id, manager_id, question_id):
         await call.answer("❗ Siz allaqachon baholagansiz", show_alert=True)
         return
 
-    save_manager_rating(
+    await save_manager_rating(
         teacher_id=call.from_user.id,
         manager_id=manager_id,
         question_id=question_id,
@@ -255,38 +263,6 @@ async def handle_rating(call: CallbackQuery):
         manager_id,
         f"📊 Javobingizga ⭐ {rating} ball berildi"
     )
-
-from aiogram import Router, F
-from aiogram.types import (
-    InlineKeyboardMarkup,
-    InlineKeyboardButton,
-    FSInputFile,
-    Message,
-    CallbackQuery
-)
-from aiogram.exceptions import TelegramBadRequest
-import openpyxl
-import os
-
-router = Router()
-
-
-from aiogram import Router, F
-from aiogram.types import (
-    InlineKeyboardMarkup,
-    InlineKeyboardButton,
-    FSInputFile,
-    Message,
-    CallbackQuery
-)
-from aiogram.exceptions import TelegramBadRequest
-import openpyxl
-import os
-
-from database.db import get_manager_rating_table
-
-router = Router()
-
 
 @router.message(F.text == "🏆 Menejerlar reytingi")
 async def show_managers_rating(message: Message):
