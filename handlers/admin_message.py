@@ -315,13 +315,13 @@ async def send_result(message: Message, state: FSMContext):
         return getattr(obj, "user_id", None)
 
     if data.get("role") in ["teacher", "all"]:
-        teachers = get_filtered_teachers(data)
+        teachers = await get_filtered_teachers(data)
 
     if data.get("role") in ["tutor", "all"]:
-        tutors = get_filtered_tutors(data)
+        tutors = await get_filtered_tutors(data)
 
     if data.get("role") in ["student", "all"]:
-        students = get_filtered_students(data)
+        students = await get_filtered_students(data)
 
     print("[ADMIN MSG] role:", data.get("role"))
     print("[ADMIN MSG] teachers:", len(teachers))
