@@ -28,14 +28,8 @@ from database.db import (
 
 router = Router()
 
-
-
-
 class ReplyFSM(StatesGroup):
     waiting = State()   # 🔴 MUHIM
-
-
-
 
 # =========================
 #   FSM HOLATLARI
@@ -138,25 +132,31 @@ async def view_questions(message: Message):
 # =========================
 @router.callback_query(F.data.startswith("reply_"))
 async def start_reply(call: CallbackQuery, state: FSMContext):
-    question_id = int(call.data.split("_")[1])
+    try:
+        question_id = int(call.data.split("_")[1])
 
-    q = get_question_by_id(question_id)
-    if not q:
-        await call.answer("❗ Savol topilmadi", show_alert=True)
-        return
+        q = await get_question_by_id(question_id)  # 🔥 await qo‘shildi
 
-    await state.update_data(
-        question_id=question_id,
-        sender_id=q.sender_id   # ✅ MUHIM JOY
-    )
+        if not q:
+            await call.answer("❗ Savol topilmadi", show_alert=True)
+            return
 
-    await call.message.answer(
-        f"✏️ <b>{q.fio}</b> ga javob yozing:",
-        parse_mode="HTML"
-    )
+        await state.update_data(
+            question_id=question_id,
+            sender_id=q.sender_id
+        )
 
-    await state.set_state(ReplyFSM.waiting)
-    await call.answer()
+        await call.message.answer(
+            f"✏️ <b>{q.fio}</b> ga javob yozing:",
+            parse_mode="HTML"
+        )
+
+        await state.set_state(ReplyFSM.waiting)
+        await call.answer()
+
+    except Exception as e:
+        print("REPLY ERROR:", e)
+        await call.answer("❌ Xatolik yuz berdi", show_alert=True)
 
 @router.message(ReplyFSM.waiting, F.text | F.photo | F.document | F.video)
 async def send_reply(message: Message, state: FSMContext):
@@ -171,11 +171,10 @@ async def send_reply(message: Message, state: FSMContext):
         await state.clear()
         return
 
-    # 🔹 Savolni DB dan olamiz
-    q = get_question_by_id(question_id)
+    # 🔥 MUHIM — await qo‘shildi
+    q = await get_question_by_id(question_id)
     faculty = q.faculty if q and q.faculty else "Noma’lum"
 
-    # 🔹 Chiroyli header
     header = (
         f"📬 <b>Sizning savolingizga javob</b>\n\n"
         f"🏫 Fakultet: <b>{faculty}</b>\n"
@@ -185,16 +184,32 @@ async def send_reply(message: Message, state: FSMContext):
 
     # 1️⃣ USERGA JAVOB
     if message.text:
-        await message.bot.send_message(sender_id, header + message.text, parse_mode="HTML")
+        await message.bot.send_message(
+            sender_id,
+            header + message.text,
+            parse_mode="HTML"
+        )
         answer_text = message.text
     elif message.document:
-        await message.bot.send_document(sender_id, message.document.file_id, caption=header)
+        await message.bot.send_document(
+            sender_id,
+            message.document.file_id,
+            caption=header
+        )
         answer_text = "Hujjat"
     elif message.photo:
-        await message.bot.send_photo(sender_id, message.photo[-1].file_id, caption=header)
+        await message.bot.send_photo(
+            sender_id,
+            message.photo[-1].file_id,
+            caption=header
+        )
         answer_text = "Rasm"
     elif message.video:
-        await message.bot.send_video(sender_id, message.video.file_id, caption=header)
+        await message.bot.send_video(
+            sender_id,
+            message.video.file_id,
+            caption=header
+        )
         answer_text = "Video"
     else:
         await message.answer("❗ Noma’lum format.")
@@ -229,10 +244,7 @@ async def send_reply(message: Message, state: FSMContext):
     except Exception as e:
         print("[HEADS] Rating yuborishda xato:", e)
 
-    # 4️⃣ Rahbarga tasdiq
     await message.answer("✅ Javob foydalanuvchiga yuborildi.")
-
-    # 5️⃣ FSM ni yopish
     await state.clear()
 
 ## =========================

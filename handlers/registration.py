@@ -55,7 +55,6 @@ class RegState(StatesGroup):
 async def start_reg(message: Message, state: FSMContext):
     user_id = message.from_user.id
 
-    # 1) Admin va rahbarlar bu FSM orqali ro'yxatdan o'tmaydi
     if user_id in ADMINS:
         return
 
@@ -63,13 +62,11 @@ async def start_reg(message: Message, state: FSMContext):
         if user_id in ids:
             return
 
-    # 2) Agar admin tasdiqlagan bo'lsa va foydalanuvchi teachers jadvalida bo'lsa —
-    #    qayta ro'yxatdan o'tkazmaymiz
-    row = get_teacher(user_id)
+    row = await get_teacher(user_id)  # 🔥 await qo‘shildi
+
     if row:
-        # teachers jadvali ustunlari: user_id, fio, faculty, department, phone, role, created_at
-        fio = row[1] or message.from_user.full_name
-        role_db = (row[5] or "").strip() if len(row) > 5 else ""
+        fio = row.fio or message.from_user.full_name
+        role_db = (row.role or "").strip()
 
         if role_db == "O‘qituvchi":
             role_label = "Ustoz"
@@ -87,11 +84,11 @@ async def start_reg(message: Message, state: FSMContext):
         await state.clear()
         return
 
-    # 3) Aks holda — YANGI foydalanuvchi, telefon so'raymiz
     kb = ReplyKeyboardMarkup(
         keyboard=[[KeyboardButton(text="📲 Kontaktni ulashish", request_contact=True)]],
         resize_keyboard=True
     )
+
     await message.answer("📲 Telefon raqamingizni yuboring:", reply_markup=kb)
     await state.set_state(RegState.phone)
 
@@ -131,8 +128,7 @@ async def choose_role(message: Message, state: FSMContext):
         .replace("ʼ", "‘")
     )
 
-    roles = ["O‘qituvchi", "Dekan, Tyutor, Dispetcher", "Talaba"]
-
+    #roles = ["O‘qituvchi", "Dekan, Tyutor, Dispetcher", "Talaba"]
     ROLE_MAP = {
         "O‘qituvchi": "teacher",
         "Dekan, Tyutor, Dispetcher": "tutor",
@@ -330,7 +326,7 @@ async def teacher_finish(message: Message, state: FSMContext):
     data = await state.get_data()
 
     # 🔵 BIRINCHI: so‘rovni register_requests ga yozamiz
-    save_register_request(
+    await save_register_request(
         user_id=message.from_user.id,
         fio=data.get("teacher_fio"),
         phone=data.get("phone"),
@@ -410,7 +406,7 @@ async def tyutor_finish(message: Message, state: FSMContext):
     await state.update_data(tyutor_passport=message.text.strip())
     data = await state.get_data()
 
-    save_register_request(
+    await save_register_request(
         user_id=message.from_user.id,
         fio=data.get("tyutor_fio"),
         phone=data.get("phone"),
@@ -606,7 +602,7 @@ async def student_finish(message: Message, state: FSMContext):
     await state.update_data(student_passport=message.text.strip())
     data = await state.get_data()
 
-    save_register_request(
+    await save_register_request(
         user_id=message.from_user.id,
         fio=data["student_fio"],
         phone=data["phone"],
