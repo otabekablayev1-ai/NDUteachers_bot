@@ -89,7 +89,8 @@ async def start_handler(message: Message, state: FSMContext):   # 👈 state qo�
     # ==========================================
     # TALABA
     # ==========================================
-    student = get_student(user_id)
+    student = await get_student(user_id)
+
     if student:
         reply_kb = ReplyKeyboardMarkup(
             keyboard=[
@@ -130,12 +131,12 @@ async def start_handler(message: Message, state: FSMContext):   # 👈 state qo�
     # ==========================================
     # O‘QITUVCHI / TYUTOR
     # ==========================================
-    teacher = get_teacher(user_id)
+    teacher = await get_teacher(user_id)
+
     if teacher:
         fio = teacher.fio or full_name
         role = (teacher.role or "").lower().strip()
 
-        # Pastki doimiy tugma (o‘zgarmaydi)
         kb = ReplyKeyboardMarkup(
             keyboard=[
                 [KeyboardButton(text="📨 Rahbarlarga savol va murojaatlar yuborish")]
@@ -143,12 +144,14 @@ async def start_handler(message: Message, state: FSMContext):   # 👈 state qo�
             resize_keyboard=True
         )
 
-        # Inline tugmalar
         inline_buttons = []
 
         if role == "tutor":
             inline_buttons.append([
-                InlineKeyboardButton(text="📘 Buyruqlar", callback_data="tutor_orders")
+                InlineKeyboardButton(
+                    text="📘 Buyruqlar",
+                    callback_data="tutor_orders"
+                )
             ])
 
         inline_buttons.append([
@@ -158,7 +161,9 @@ async def start_handler(message: Message, state: FSMContext):   # 👈 state qo�
             )
         ])
 
-        inline_kb = InlineKeyboardMarkup(inline_keyboard=inline_buttons)
+        inline_kb = InlineKeyboardMarkup(
+            inline_keyboard=inline_buttons
+        )
 
         if role == "teacher":
             title = "o‘qituvchi"
@@ -184,3 +189,4 @@ async def start_handler(message: Message, state: FSMContext):   # 👈 state qo�
 
     # YANGI FOYDALANUVCHI
     await start_registration(message, state)
+
