@@ -108,7 +108,7 @@ async def send_to_head(message: Message, state: FSMContext):
     print("NORMALIZED faculty:", faculty)
     print("MANAGERS_BY_FACULTY KEYS:", list(MANAGERS_BY_FACULTY.keys()))
 
-    teacher = get_teacher(message.from_user.id)
+    teacher = await get_teacher(message.from_user.id)
     if not teacher:
         await message.answer("⚠️ Avval ro‘yxatdan o‘ting.")
         await state.clear()
@@ -142,7 +142,7 @@ async def send_to_head(message: Message, state: FSMContext):
     # ============================
     # SAVOLNI DB GA SAQLASH
     # ============================
-    question_id = save_question(
+    question_id = await save_question(
         sender_id=message.from_user.id,
         sender_role="teacher",  # 🔥 MUHIM
         faculty=faculty,
@@ -153,14 +153,14 @@ async def send_to_head(message: Message, state: FSMContext):
     # ============================
     # RAHBARGA YUBORISH
     # ============================
-    role_title = "TYUTOR" if teacher.role == "tutor" else "O‘QITUVCHI"
+    role_title = "TYUTOR" if (teacher.role or "").lower() == "tutor" else "O‘QITUVCHI"
 
     info_text = (
         f"📩 <b>Yangi savol ({role_title})</b>\n\n"
         f"👤 <b>{teacher.fio}</b>\n"
-        f"📞 {teacher.phone}\n"
-        f"🏛 Fakultet: {teacher.faculty}\n"
-        f"🧑‍💼 Rol: {teacher.role}\n\n"
+        f"📞 {teacher.phone or 'Noma’lum'}\n"
+        f"🏛 Fakultet: {teacher.faculty or 'Noma’lum'}\n"
+        f"🧑‍💼 Rol: {teacher.role or 'Noma’lum'}\n"
     )
 
     reply_kb = InlineKeyboardMarkup(

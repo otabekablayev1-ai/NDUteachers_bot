@@ -23,11 +23,13 @@ class StudentSendFSM(StatesGroup):
 # ===========================================================
 # 1️⃣ TALABA — RAHBARGA YOZISH BOSHLANISHI
 # ===========================================================
-@router.message(
-    F.text == "📨 Rahbarlarga savol va murojaatlar yozish",
-    lambda m: get_student(m.from_user.id) is not None
-)
+@router.message(F.text == "📨 Rahbarlarga savol va murojaatlar yozish")
 async def start_student_send_message(message: Message, state: FSMContext):
+
+    student = await get_student(message.from_user.id)
+    if not student:
+        return  # talaba bo‘lmasa hech narsa qilmaymiz
+
     kb = ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text="Prorektor (O‘quv ishlari bo‘yicha)"),
@@ -64,8 +66,8 @@ async def start_student_send_message(message: Message, state: FSMContext):
         "🏫 Qaysi rahbar yoki fakultet menejeriga xabar yubormoqchisiz?",
         reply_markup=kb
     )
-    await state.set_state(StudentSendFSM.faculty)
 
+    await state.set_state(StudentSendFSM.faculty)
 
 # ===========================================================
 # 2️⃣ FAKULTET TANLANGACH — SAVOL YOZISH
@@ -138,7 +140,7 @@ async def send_to_head(message: Message, state: FSMContext):
     print("NORMALIZED faculty:", faculty)
     print("MANAGERS_BY_FACULTY KEYS:", list(MANAGERS_BY_FACULTY.keys()))
 
-    student = get_student(message.from_user.id)
+    student = await get_student(message.from_user.id)
     if not student:
         await message.answer("⚠️ Avval ro‘yxatdan o‘ting.")
         await state.clear()
@@ -175,9 +177,9 @@ async def send_to_head(message: Message, state: FSMContext):
     # SAVOLNI DB GA SAQLASH
     # ============================
     msg_text_for_db = message.text if message.text else "[FAYL]"
-    question_id = save_question(
+    question_id = await save_question(
         sender_id=message.from_user.id,
-        sender_role="student",  # 🔥 MUHIM
+        sender_role="student",
         faculty=faculty,
         message_text=msg_text_for_db,
         fio=fio
@@ -193,14 +195,14 @@ async def send_to_head(message: Message, state: FSMContext):
     # ============================
     info_text = (
         f"📩 <b>Yangi savol (TALABA)</b>\n\n"
-        f"👤 <b>{student.fio}</b>\n"
-        f"📞 {student.phone}\n"
-        f"🏛 Fakultet: {student.faculty}\n"
-        f"🎓 Ta’lim turi: {student.edu_type}\n"
-        f"🕒 Ta’lim shakli: {student.edu_form}\n"
-        f"📚 Kurs: {student.course}\n"
-        f"👥 Guruh: {student.student_group}\n"
-        f"🪪 Passport: {student.passport}\n\n"
+        f"👤 <b>{student.fio or 'Noma’lum'}</b>\n"
+        f"📞 {student.phone or 'Noma’lum'}\n"
+        f"🏛 Fakultet: {student.faculty or 'Noma’lum'}\n"
+        f"🎓 Ta’lim turi: {student.edu_type or 'Noma’lum'}\n"
+        f"🕒 Ta’lim shakli: {student.edu_form or 'Noma’lum'}\n"
+        f"📚 Kurs: {student.course or 'Noma’lum'}\n"
+        f"👥 Guruh: {student.student_group or 'Noma’lum'}\n"
+        f"🪪 Passport: {student.passport or 'Noma’lum'}\n\n"
     )
 
     reply_kb = InlineKeyboardMarkup(

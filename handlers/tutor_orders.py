@@ -32,7 +32,7 @@ async def tutor_orders_search(message: Message, state: FSMContext):
 
     rows = await search_orders_multi(
         faculty=tutor.faculty,
-        fio_query=fio
+        fio=fio
     )
 
     if not rows:
@@ -41,9 +41,14 @@ async def tutor_orders_search(message: Message, state: FSMContext):
         return
 
     text = "📘 <b>Topilgan buyruqlar:</b>\n\n"
+
     for r in rows:
         data = r._mapping
-        text += f"👉 <a href=\"{data['link']}\">{data['title']}</a>\n"
+        link = data.get("link") or "#"
+        title = data.get("title") or "Noma’lum"
+
+        text += f"👉 <a href=\"{link}\">{title}</a>\n"
 
     await send_long_message(message, text)
     await state.clear()
+
