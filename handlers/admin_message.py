@@ -296,6 +296,9 @@ from aiogram import F
 # =====================================================
 # 5. YAKUNIY XABARNI YUBORISH (FIXED)
 # =====================================================
+from database.utils import get_sender_info
+
+
 @router.message(SendMSG.msg, F.text | F.photo | F.video | F.document)
 async def send_result(message: Message, state: FSMContext):
     data = await state.get_data()
@@ -304,16 +307,11 @@ async def send_result(message: Message, state: FSMContext):
     tutor_count = 0
     student_count = 0
 
-    # Har doim mavjud bo‘lsin
     teachers = []
     tutors = []
     students = []
 
-    def _uid(obj):
-        if isinstance(obj, dict):
-            return obj.get("user_id")
-        return getattr(obj, "user_id", None)
-
+    # 🔥 ASYNC FIX
     if data.get("role") in ["teacher", "all"]:
         teachers = await get_filtered_teachers(data)
 
@@ -323,40 +321,82 @@ async def send_result(message: Message, state: FSMContext):
     if data.get("role") in ["student", "all"]:
         students = await get_filtered_students(data)
 
-    print("[ADMIN MSG] role:", data.get("role"))
-    print("[ADMIN MSG] teachers:", len(teachers))
-    print("[ADMIN MSG] tutors:", len(tutors))
-    print("[ADMIN MSG] students:", len(students))
+    # 🎯 Sender info
+    lavozim, fio = await get_sender_info(
+        message.from_user.id,
+        message.from_user.full_name
+    )
 
+    header = (
+        "🏛 <b>Navoiy Davlat Universiteti</b>\n"
+        f"📢 <b>{lavozim}: {fio}</b>\n"
+        "--------------------------------------\n\n"
+    )
+
+    footer = (
+        "\n\n--------------------------------------\n"
+        "🕒 Xabar avtomatik tarzda yuborildi."
+    )
+
+    async def send_to_user(uid: int):
+        if message.text:
+            await message.bot.send_message(
+                uid,
+                header + message.text + footer,
+                parse_mode="HTML"
+            )
+
+        elif message.photo:
+            await message.bot.send_photo(
+                uid,
+                message.photo[-1].file_id,
+                caption=header + (message.caption or "") + footer,
+                parse_mode="HTML"
+            )
+
+        elif message.video:
+            await message.bot.send_video(
+                uid,
+                message.video.file_id,
+                caption=header + (message.caption or "") + footer,
+                parse_mode="HTML"
+            )
+
+        elif message.document:
+            await message.bot.send_document(
+                uid,
+                message.document.file_id,
+                caption=header + (message.caption or "") + footer,
+                parse_mode="HTML"
+            )
+
+    # 🔥 Yuborish
     for t in teachers:
-        uid = _uid(t)
-        if not uid:
-            continue
-        try:
-            await message.copy_to(uid)
-            teacher_count += 1
-        except Exception as e:
-            print("[SEND ERROR][TEACHER]", uid, e)
+        uid = getattr(t, "user_id", None)
+        if uid:
+            try:
+                await send_to_user(uid)
+                teacher_count += 1
+            except Exception as e:
+                print("[SEND ERROR][TEACHER]", uid, e)
 
     for t in tutors:
-        uid = _uid(t)
-        if not uid:
-            continue
-        try:
-            await message.copy_to(uid)
-            tutor_count += 1
-        except Exception as e:
-            print("[SEND ERROR][TUTOR]", uid, e)
+        uid = getattr(t, "user_id", None)
+        if uid:
+            try:
+                await send_to_user(uid)
+                tutor_count += 1
+            except Exception as e:
+                print("[SEND ERROR][TUTOR]", uid, e)
 
     for s in students:
-        uid = _uid(s)
-        if not uid:
-            continue
-        try:
-            await message.copy_to(uid)
-            student_count += 1
-        except Exception as e:
-            print("[SEND ERROR][STUDENT]", uid, e)
+        uid = getattr(s, "user_id", None)
+        if uid:
+            try:
+                await send_to_user(uid)
+                student_count += 1
+            except Exception as e:
+                print("[SEND ERROR][STUDENT]", uid, e)
 
     await message.answer(
         "✅ <b>Xabar yuborildi:</b>\n"
