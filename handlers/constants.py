@@ -5,7 +5,7 @@ YEARS = [
 
 FACULTIES = [
     "Aniq fanlar fakulteti",
-    "Tabiiy va tibbiyot fakulteti",
+    "Tabiiy fanlar va tibbiyot fakulteti",
     "Maktabgacha va boshlang‘ich ta’lim fakulteti",
     "Tillar fakulteti",
     "San’at va sport fakulteti",

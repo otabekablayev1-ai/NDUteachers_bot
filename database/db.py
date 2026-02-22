@@ -322,10 +322,6 @@ async def user_already_rated(
 # 📊 MENEJERLAR BAHO JADVALI
 # =====================================================
 
-# =====================================================
-# 📊 MENEJERLAR BAHO JADVALI
-# =====================================================
-
 from sqlalchemy import select, func
 from database.models import Rating, Teacher
 from database.session import AsyncSessionLocal

@@ -41,7 +41,7 @@ MANAGERS_BY_FACULTY = {
         "teacher": parse_ids(os.getenv("RAHBAR_TEACHER_SPORT", "")),
         "student": parse_ids(os.getenv("RAHBAR_STUDENT_SPORT", "")),
     },
-    "Tabiiy va tibbiyot fakulteti": {
+    "Tabiiy fanlar va tibbiyot fakulteti": {
         "teacher": parse_ids(os.getenv("RAHBAR_TEACHER_BIO", "")),
         "student": parse_ids(os.getenv("RAHBAR_STUDENT_BIO", "")),
     },

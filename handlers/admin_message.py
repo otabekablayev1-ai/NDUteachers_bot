@@ -91,25 +91,71 @@ async def set_role(call: CallbackQuery, state: FSMContext):
 # 3. O‘QITUVCHI / TYUTOR OQIMI
 # =====================================================
 KAFEDRALAR = {
-    "Aniq fanlar fakulteti": ["Fizika", "Matematika", "Raqamli texnologiyalar", "Barchasi"],
-    "Iqtisodiyot fakulteti": ["Iqtisodiyot", "Barchasi"],
+
+    "Aniq fanlar fakulteti": [
+        "Fizika va astronomiya kafedrasi",
+        "Matematika kafedrasi",
+        "Raqamli texnologiyalar kafedrasi",
+        "Barchasi"
+    ],
+
+    "Tabiiy fanlar va tibbiyot fakulteti": [
+        "Biologiya kafedrasi",
+        "Geografiya kafedrasi",
+        "Kimyo kafedrasi",
+        "Barchasi"
+    ],
+
+    "Tibbiyot fakulteti": [
+        "Klinik fanlar kafedrasi",
+        "Umumiy tibbiy fanlar kafedrasi",
+        "Barchasi"
+    ],
+
     "Maktabgacha va boshlang‘ich ta’lim fakulteti": [
-        "Maktabgacha ta’lim", "Boshlang‘ich ta’lim", "Pedagogika", "Barchasi"],
-    "San’at va sport fakulteti": [
-        "Jismoniy madaniyat", "Texnologik ta’lim", "Musiqa",
-        "Sport", "Tasviriy san’at", "Barchasi"
+        "Maktabgacha ta’lim kafedrasi",
+        "Boshlang‘ich ta’lim kafedrasi",
+        "Pedagogika kafedrasi",
+        "Barchasi"
     ],
-    "Tabiiy va tibbiyot fakulteti": [
-        "Biologiya", "Geografiya", "Kimyo",
-        "Klinik fanlar", "Umumiy tibbiyot", "Barchasi"
-    ],
-    "Tarix fakulteti": ["Ijtimoiy fanlar", "Psixologiya", "Milliy g‘oya", "Tarix", "Barchasi"],
+
     "Tillar fakulteti": [
-        "Chet tillar", "Amaliy ingliz tili", "Ingliz tilshunosligi",
-        "O‘zbek tili", "Rus tili", "Qozoq tili", "Barchasi"
+        "Fakultetlararo chet tillar kafedrasi",
+        "Ingliz tili amaliy fanlar kafedrasi",
+        "Ingliz tilshunosligi kafedrasi",
+        "Qozoq tili va adabiyoti kafedrasi",
+        "Rus tili va adabiyoti kafedrasi",
+        "Barchasi"
+    ],
+
+    "O‘zbek filologiyasi fakulteti": [
+        "O‘zbek tili va adabiyoti kafedrasi",
+        "O‘zbek tilshunosligi kafedrasi",
+        "Barchasi"
+    ],
+
+    "San’at va sport fakulteti": [
+        "Jismoniy madaniyat kafedrasi",
+        "Musiqiy ta’lim kafedrasi",
+        "Sport faoliyati turlari kafedrasi",
+        "Tasviriy san’at va muhandislik grafikasi kafedrasi",
+        "Texnologik ta’lim kafedrasi",
+        "Barchasi"
+    ],
+
+    "Tarix fakulteti": [
+        "Ijtimoiy fanlar kafedrasi",
+        "Milliy g‘oya, ma’naviyat asoslari va huquq kafedrasi",
+        "Psixologiya kafedrasi",
+        "Tarix kafedrasi",
+        "Barchasi"
+    ],
+
+    "Iqtisodiyot fakulteti": [
+        "Iqtisodiyot kafedrasi",
+        "Barchasi"
     ],
 }
-
 
 @router.callback_query(SendMSG.faculty, F.data.startswith("send_fac_"))
 async def choose_faculty(call: CallbackQuery, state: FSMContext):

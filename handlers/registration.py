@@ -207,55 +207,68 @@ async def choose_role(message: Message, state: FSMContext):
 # ============================================================
 
 TEACHER_DEPARTMENTS = {
-    "Aniq fanlar fakulteti": [
+     "Aniq fanlar fakulteti": [
         "Fizika va astronomiya kafedrasi",
         "Matematika kafedrasi",
         "Raqamli texnologiyalar kafedrasi",
+        "Barchasi"
     ],
-    "Tabiiy va tibbiyot fakulteti": [
+
+    "Tabiiy fanlar va tibbiyot fakulteti": [
         "Biologiya kafedrasi",
         "Geografiya kafedrasi",
         "Kimyo kafedrasi",
+        "Barchasi"
+    ],
+
+    "Tibbiyot fakulteti": [
         "Klinik fanlar kafedrasi",
         "Umumiy tibbiy fanlar kafedrasi",
+        "Barchasi"
     ],
+
     "Maktabgacha va boshlang‘ich ta’lim fakulteti": [
         "Maktabgacha ta’lim kafedrasi",
         "Boshlang‘ich ta’lim kafedrasi",
         "Pedagogika kafedrasi",
+        "Barchasi"
     ],
+
     "Tillar fakulteti": [
         "Fakultetlararo chet tillar kafedrasi",
         "Ingliz tili amaliy fanlar kafedrasi",
         "Ingliz tilshunosligi kafedrasi",
-        "O‘zbek tili va adabiyoti kafedrasi",
-        "O‘zbek tilshunosligi kafedrasi",
         "Qozoq tili va adabiyoti kafedrasi",
         "Rus tili va adabiyoti kafedrasi",
+        "Barchasi"
     ],
+
+    "O‘zbek filologiyasi fakulteti": [
+        "O‘zbek tili va adabiyoti kafedrasi",
+        "O‘zbek tilshunosligi kafedrasi",
+        "Barchasi"
+    ],
+
     "San’at va sport fakulteti": [
         "Jismoniy madaniyat kafedrasi",
-        "Texnologik ta’lim kafedrasi",
         "Musiqiy ta’lim kafedrasi",
         "Sport faoliyati turlari kafedrasi",
         "Tasviriy san’at va muhandislik grafikasi kafedrasi",
+        "Texnologik ta’lim kafedrasi",
+        "Barchasi"
     ],
+
     "Tarix fakulteti": [
         "Ijtimoiy fanlar kafedrasi",
-        "Psixologiya kafedrasi",
         "Milliy g‘oya, ma’naviyat asoslari va huquq kafedrasi",
+        "Psixologiya kafedrasi",
         "Tarix kafedrasi",
+        "Barchasi"
     ],
+
     "Iqtisodiyot fakulteti": [
         "Iqtisodiyot kafedrasi",
-    ],
-    "O‘zbek filologiyasi fakulteti": [
-        "O‘zbek adabiyoti kafedrasi",
-        "O‘zbek tilshunosligi kafedrasi"
-    ],
-    "Tibbiyot fakulteti": [
-        "Umumiy tibbiyot kafedrasi",
-        "Klinik fanlar kafedrasi",
+        "Barchasi"
     ],
 }
 
@@ -481,7 +494,7 @@ async def student_edu_form(call: CallbackQuery, state: FSMContext):
         "Iqtisodiyot fakulteti",
         "Maktabgacha va boshlang‘ich ta’lim fakulteti",
         "San’at va sport fakulteti",
-        "Tabiiy va tibbiyot fakulteti",
+        "Tabiiy fanlar va tibbiyot fakulteti",
         "Tarix fakulteti",
         "Tillar fakulteti",
         "O‘zbek filologiyasi fakulteti",
@@ -515,7 +528,7 @@ async def student_faculty(call: CallbackQuery, state: FSMContext):
         "Iqtisodiyot fakulteti",
         "Maktabgacha va boshlang‘ich ta’lim fakulteti",
         "San’at va sport fakulteti",
-        "Tabiiy va tibbiyot fakulteti",
+        "Tabiiy fanlar va tibbiyot fakulteti",
         "Tarix fakulteti",
         "Tillar fakulteti",
         "O‘zbek filologiyasi fakulteti",
