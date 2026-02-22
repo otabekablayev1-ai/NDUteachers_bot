@@ -211,8 +211,7 @@ TEACHER_DEPARTMENTS = {
         "Fizika va astronomiya kafedrasi",
         "Matematika kafedrasi",
         "Raqamli texnologiyalar kafedrasi",
-        "Barchasi"
-    ],
+     ],
 
     "Tabiiy fanlar va tibbiyot fakulteti": [
         "Biologiya kafedrasi",
@@ -224,14 +223,12 @@ TEACHER_DEPARTMENTS = {
     "Tibbiyot fakulteti": [
         "Klinik fanlar kafedrasi",
         "Umumiy tibbiy fanlar kafedrasi",
-        "Barchasi"
     ],
 
     "Maktabgacha va boshlang‘ich ta’lim fakulteti": [
         "Maktabgacha ta’lim kafedrasi",
         "Boshlang‘ich ta’lim kafedrasi",
         "Pedagogika kafedrasi",
-        "Barchasi"
     ],
 
     "Tillar fakulteti": [
@@ -240,13 +237,11 @@ TEACHER_DEPARTMENTS = {
         "Ingliz tilshunosligi kafedrasi",
         "Qozoq tili va adabiyoti kafedrasi",
         "Rus tili va adabiyoti kafedrasi",
-        "Barchasi"
     ],
 
     "O‘zbek filologiyasi fakulteti": [
         "O‘zbek tili va adabiyoti kafedrasi",
         "O‘zbek tilshunosligi kafedrasi",
-        "Barchasi"
     ],
 
     "San’at va sport fakulteti": [
@@ -255,7 +250,6 @@ TEACHER_DEPARTMENTS = {
         "Sport faoliyati turlari kafedrasi",
         "Tasviriy san’at va muhandislik grafikasi kafedrasi",
         "Texnologik ta’lim kafedrasi",
-        "Barchasi"
     ],
 
     "Tarix fakulteti": [
@@ -263,12 +257,10 @@ TEACHER_DEPARTMENTS = {
         "Milliy g‘oya, ma’naviyat asoslari va huquq kafedrasi",
         "Psixologiya kafedrasi",
         "Tarix kafedrasi",
-        "Barchasi"
     ],
 
     "Iqtisodiyot fakulteti": [
         "Iqtisodiyot kafedrasi",
-        "Barchasi"
     ],
 }
 
