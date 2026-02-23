@@ -293,7 +293,6 @@ from aiogram import Router, types
 from aiogram.filters import Command
 from database.scripts import rebuild_students_search
 
-router = Router()
 ADMINS = [1017100005]  # <- O'zingizning Telegram ID'ingizni kiriting
 
 @router.message(Command("fix_search"))
