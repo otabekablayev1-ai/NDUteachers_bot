@@ -10,10 +10,10 @@ async def approve_user(call: CallbackQuery):
     user_id = int(call.data.split("_")[1])
 
     # 1) register_requests → teachers (UPSERT) + status=approved
-    move_request_to_main_tables(user_id)
+    await move_request_to_main_tables(user_id)
 
     # 2) endi teachers dan O‘QIYMIZ (to‘g‘ri indekslar bilan)
-    teacher = get_teacher(user_id)
+    teacher = await get_teacher(user_id)
     #              0        1      2         3           4      5
     # teachers: (user_id,  fio,  faculty, department,  phone, role, created_at)
 
@@ -51,7 +51,7 @@ from database.db import delete_teacher
 async def delete_teacher_callback(callback: CallbackQuery):
     user_id = int(callback.data.split("_")[1])
 
-    delete_teacher(user_id)
+    await delete_teacher(user_id)
 
     try:
         await callback.message.bot.send_message(
