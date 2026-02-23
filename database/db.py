@@ -58,29 +58,54 @@ async def save_register_request(
     course: str | None = None,
     student_group: str | None = None,
 ) -> None:
+
     async with AsyncSessionLocal() as session:
         try:
-            session.add(
-                RegisterRequest(
-                    user_id=user_id,
-                    fio=fio,
-                    phone=phone,
-                    faculty=faculty,
-                    department=department,
-                    passport=passport,
-                    role=role,
-                    edu_type=edu_type,
-                    edu_form=edu_form,
-                    course=course,
-                    student_group=student_group,
-                    created_at=datetime.utcnow(),
-                )
+            # 🔎 Avval mavjudligini tekshiramiz
+            result = await session.execute(
+                select(RegisterRequest).where(RegisterRequest.user_id == user_id)
             )
-            await session.commit()
-        except Exception:
-            await session.rollback()
-            raise
+            existing = result.scalar_one_or_none()
 
+            if existing:
+                # 🔁 UPDATE
+                existing.fio = fio
+                existing.phone = phone
+                existing.faculty = faculty
+                existing.department = department
+                existing.passport = passport
+                existing.role = role
+                existing.edu_type = edu_type
+                existing.edu_form = edu_form
+                existing.course = course
+                existing.student_group = student_group
+                existing.created_at = datetime.utcnow()
+
+            else:
+                # ➕ INSERT
+                session.add(
+                    RegisterRequest(
+                        user_id=user_id,
+                        fio=fio,
+                        phone=phone,
+                        faculty=faculty,
+                        department=department,
+                        passport=passport,
+                        role=role,
+                        edu_type=edu_type,
+                        edu_form=edu_form,
+                        course=course,
+                        student_group=student_group,
+                        created_at=datetime.utcnow(),
+                    )
+                )
+
+            await session.commit()
+
+        except Exception as e:
+            await session.rollback()
+            print("REGISTER SAVE ERROR:", e)
+            raise
 # =====================================================
 # ✅ TASDIQLANGANLARNI ASOSIYGA YOZISH (TEACHER)
 # =====================================================
@@ -117,7 +142,6 @@ async def approve_teacher_from_request(user_id: int) -> bool:
             await session.rollback()
             return False
 
-
 # =====================================================
 # ❌ SO‘ROVNI O‘CHIRISH
 # =====================================================
@@ -133,7 +157,6 @@ async def delete_register_request(user_id: int) -> None:
         except Exception:
             await session.rollback()
             raise
-
 
 # =====================================================
 # 📋 KUTILAYOTGAN SO‘ROVLAR
