@@ -84,6 +84,7 @@ async def show_register_requests(message: Message):
         await message.answer(text, reply_markup=kb, parse_mode="HTML")
 
 # ✅ TASDIQLASH
+# ✅ TASDIQLASH
 @router.callback_query(F.data.startswith("approve_"))
 async def approve_user(call: CallbackQuery):
     user_id = int(call.data.split("_")[1])
