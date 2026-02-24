@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+
 from sqlalchemy import (
     select,
     delete,
@@ -186,10 +187,6 @@ async def get_pending_requests() -> list[dict]:
         }
         for r in rows
     ]
-# ============================================================
-# 🟢 register_requests → asosiy jadvallarga ko‘chiruvchi funksiya
-# ============================================================
-
 
 # =====================================================
 # ✅ SO‘ROVNI ASOSIY JADVALGA O‘TKAZISH
@@ -197,68 +194,48 @@ async def get_pending_requests() -> list[dict]:
 async def move_request_to_main_tables(user_id: int) -> bool:
     async with AsyncSessionLocal() as session:
         try:
-            req = await session.scalar(
+            result = await session.execute(
                 select(RegisterRequest).where(
                     RegisterRequest.user_id == user_id
                 )
             )
+            req = result.scalar_one_or_none()
 
             if not req:
                 return False
 
             if req.role == "Talaba":
-
-                existing = await session.get(Student, user_id)
-
-                if existing:
-                    existing.fio = req.fio
-                    existing.phone = req.phone
-                    existing.faculty = req.faculty
-                    existing.edu_type = req.edu_type
-                    existing.edu_form = req.edu_form
-                    existing.course = req.course
-                    existing.student_group = req.student_group
-                else:
-                    session.add(
-                        Student(
-                            user_id=req.user_id,
-                            fio=req.fio,
-                            phone=req.phone,
-                            faculty=req.faculty,
-                            edu_type=req.edu_type,
-                            edu_form=req.edu_form,
-                            course=req.course,
-                            student_group=req.student_group,
-                        )
+                session.add(
+                    Student(
+                        user_id=req.user_id,
+                        fio=req.fio,
+                        phone=req.phone,
+                        faculty=req.faculty,
+                        edu_type=req.edu_type,
+                        edu_form=req.edu_form,
+                        course=req.course,
+                        student_group=req.student_group,
                     )
+                )
 
             elif req.role in ("O‘qituvchi", "Tyutor"):
-
-                existing = await session.get(Teacher, user_id)
-
-                if existing:
-                    existing.fio = req.fio
-                    existing.phone = req.phone
-                    existing.faculty = req.faculty
-                    existing.role = "teacher" if req.role == "O‘qituvchi" else "tutor"
-                else:
-                    session.add(
-                        Teacher(
-                            user_id=req.user_id,
-                            fio=req.fio,
-                            phone=req.phone,
-                            faculty=req.faculty,
-                            role="teacher" if req.role == "O‘qituvchi" else "tutor",
-                        )
+                session.add(
+                    Teacher(
+                        user_id=req.user_id,
+                        fio=req.fio,
+                        phone=req.phone,
+                        faculty=req.faculty,
+                        role="teacher" if req.role == "O‘qituvchi" else "tutor",
                     )
+                )
 
             await session.delete(req)
             await session.commit()
             return True
 
         except Exception as e:
+            print("[APPROVE ERROR]", e)
             await session.rollback()
-            print("MOVE ERROR:", e)
             return False
 # =====================================================
 # ❌ RO‘YXATDAN O‘TISH SO‘ROVINI RAD ETISH
@@ -266,11 +243,7 @@ async def move_request_to_main_tables(user_id: int) -> bool:
 async def reject_request(user_id: int) -> bool:
     async with AsyncSessionLocal() as session:
         try:
-            req = await session.scalar(
-                select(RegisterRequest).where(
-                    RegisterRequest.user_id == user_id
-                )
-            )
+            req = await session.get(RegisterRequest, user_id)
 
             if not req:
                 return False
@@ -282,8 +255,6 @@ async def reject_request(user_id: int) -> bool:
         except Exception:
             await session.rollback()
             return False
-
-
 # =====================================================
 # 🔍 O‘QITUVCHILARNI ISM BO‘YICHA QIDIRISH
 # =====================================================
@@ -364,11 +335,6 @@ async def user_already_rated(
 # =====================================================
 # 📊 MENEJERLAR BAHO JADVALI
 # =====================================================
-
-from sqlalchemy import select, func
-from database.models import Rating, Teacher
-from database.session import AsyncSessionLocal
-from data.config import MANAGERS_BY_FACULTY
 
 
 async def get_manager_rating_table() -> list[dict]:

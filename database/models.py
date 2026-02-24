@@ -49,9 +49,6 @@ class Student(Base):
     passport = Column(String)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-# =========================
-# 📩 RO‘YXATDAN O‘TISH SO‘ROVI
-# =========================
 class RegisterRequest(Base):
     __tablename__ = "register_requests"
 
@@ -67,7 +64,6 @@ class RegisterRequest(Base):
     course = Column(String)
     student_group = Column(String)
     created_at = Column(DateTime, default=datetime.utcnow)
-
 # =========================
 # ❓ SAVOLLAR
 # =========================

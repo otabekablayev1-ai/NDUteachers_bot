@@ -55,7 +55,7 @@ async def admin_menu(message: Message):
 # ✅ So‘rovlarni ko‘rsatish (admin panel)
 @router.message(F.text == "📥 Ro‘yxat so‘rovlari")
 async def show_register_requests(message: Message):
-    requests = get_pending_requests()
+    requests = await get_pending_requests()
 
     if not requests:
         await message.answer("📭 Yangi ro‘yxatdan o‘tish so‘rovlari yo‘q.")
@@ -91,7 +91,7 @@ async def show_register_requests(message: Message):
 async def approve_user(call: CallbackQuery):
     user_id = int(call.data.split("_")[1])
 
-    ok = move_request_to_main_tables(user_id)
+    ok = await move_request_to_main_tables(user_id)
 
     if not ok:
         await call.answer(
@@ -220,8 +220,8 @@ async def search_user(message: Message, state: FSMContext):
         inline_keyboard=[
             [
                 InlineKeyboardButton(
-                    text=f"{u['fio']} — {u['category']} — ID:{u['user_id']}",
-                    callback_data=f"admindel:{u['user_id']}"
+                    text=f"{u.fio} — {u.role} — ID:{u.user_id}",
+                    callback_data=f"admindel:{u.user_id}"
                 )
             ]
             for u in users
