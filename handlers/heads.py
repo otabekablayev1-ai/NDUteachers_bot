@@ -24,6 +24,12 @@ from database.db import (
     user_already_rated,
     get_all_teachers,
 )
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment, PatternFill
+from openpyxl.utils import get_column_letter
+from io import BytesIO
+from aiogram.types import BufferedInputFile
+from datetime import datetime
 
 
 router = Router()
@@ -392,4 +398,84 @@ async def full_stat(message: Message):
     for fac, cnt in sorted(stats["faculty_stat"].items()):
         text += f"• {fac}: {cnt} ta\n"
 
-    await message.answer(text, parse_mode="HTML")
+    kb = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="📥 Excelga yuklab olish",
+                    callback_data="export_stats_excel"
+                )
+            ]
+        ]
+    )
+
+    await message.answer(text, parse_mode="HTML", reply_markup=kb)
+from openpyxl import Workbook
+from io import BytesIO
+from aiogram.types import BufferedInputFile
+
+
+@router.callback_query(F.data == "export_stats_excel")
+async def export_stats_excel(call: CallbackQuery):
+
+    stats = await get_university_statistics()
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Universitet Statistikasi"
+
+    # Title
+    ws.merge_cells("A1:B1")
+    ws["A1"] = "UNIVERSITET UMUMIY STATISTIKASI"
+    ws["A1"].font = Font(size=14, bold=True)
+    ws["A1"].alignment = Alignment(horizontal="center")
+
+    # Header
+    ws["A3"] = "Ko‘rsatkich"
+    ws["B3"] = "Qiymat"
+
+    for col in ["A3", "B3"]:
+        ws[col].font = Font(bold=True)
+        ws[col].fill = PatternFill(start_color="DDDDDD", fill_type="solid")
+
+    data = [
+        ("Umumiy foydalanuvchilar", stats["total_users"]),
+        ("O‘qituvchilar", stats["teacher_count"]),
+        ("Tyutorlar", stats["tutor_count"]),
+        ("Talabalar", stats["student_count"]),
+    ]
+
+    row = 4
+    for label, value in data:
+        ws[f"A{row}"] = label
+        ws[f"B{row}"] = value
+        row += 1
+
+    row += 1
+    ws[f"A{row}"] = "Fakultetlar bo‘yicha"
+    ws[f"A{row}"].font = Font(bold=True)
+
+    row += 1
+    for fac, cnt in sorted(stats["faculty_stat"].items()):
+        ws[f"A{row}"] = fac
+        ws[f"B{row}"] = cnt
+        row += 1
+
+    # Column width
+    ws.column_dimensions["A"].width = 40
+    ws.column_dimensions["B"].width = 15
+
+    # Sana bilan nom
+    today = datetime.now().strftime("%Y-%m-%d")
+    filename = f"universitet_statistikasi_{today}.xlsx"
+
+    stream = BytesIO()
+    wb.save(stream)
+    stream.seek(0)
+
+    file = BufferedInputFile(stream.read(), filename=filename)
+
+    await call.message.answer_document(file)
+    await call.answer()
+
+
