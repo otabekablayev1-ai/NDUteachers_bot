@@ -1,7 +1,10 @@
-from aiogram import Router, F
+from aiogram import Router, types,  F
 from aiogram.types import CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from database.db import reject_request
 from loader import dp
+
+from aiogram.filters import Command
+from database.scripts import rebuild_students_search
 
 from aiogram.types import (Message, KeyboardButton, FSInputFile)
 from aiogram.fsm.context import FSMContext
@@ -83,7 +86,6 @@ async def show_register_requests(message: Message):
 
         await message.answer(text, reply_markup=kb, parse_mode="HTML")
 
-# ✅ TASDIQLASH
 # ✅ TASDIQLASH
 @router.callback_query(F.data.startswith("approve_"))
 async def approve_user(call: CallbackQuery):
@@ -192,7 +194,7 @@ async def admin_perform_search(message: Message, state: FSMContext):
 class DeleteUserFSM(StatesGroup):
     waiting_query = State()
 
-@router.message(F.text.contains("Foydalanuvchini o‘chirish"))
+@router.message(lambda m: m.text and "Foydalanuvchini" in m.text)
 async def start_delete_user(message: Message, state: FSMContext):
     await message.answer("🧾 O‘chirmoqchi bo‘lgan FIO yoki Telegram ID ni kiriting:")
     await state.set_state(DeleteUserFSM.waiting_query)
@@ -207,7 +209,7 @@ async def search_user(message: Message, state: FSMContext):
     except ValueError:
         numeric_id = None
 
-    users = search_users_by_fio_or_id(text=text, numeric_id=numeric_id)
+    users = await search_users_by_fio_or_id(text=text, numeric_id=numeric_id)
 
     if not users:
         await message.answer("❌ Hech qanday foydalanuvchi topilmadi.")
@@ -289,9 +291,6 @@ async def backup_db(message: Message):
         caption="✅ DB backup tayyor!"
     )
 
-from aiogram import Router, types
-from aiogram.filters import Command
-from database.scripts import rebuild_students_search
 
 ADMINS = [1017100005]  # <- O'zingizning Telegram ID'ingizni kiriting
 

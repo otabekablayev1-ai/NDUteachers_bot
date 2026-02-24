@@ -207,39 +207,59 @@ async def move_request_to_main_tables(user_id: int) -> bool:
                 return False
 
             if req.role == "Talaba":
-                session.add(
-                    Student(
-                        user_id=req.user_id,
-                        fio=req.fio,
-                        phone=req.phone,
-                        faculty=req.faculty,
-                        edu_type=req.edu_type,
-                        edu_form=req.edu_form,
-                        course=req.course,
-                        student_group=req.student_group,
+
+                existing = await session.get(Student, user_id)
+
+                if existing:
+                    existing.fio = req.fio
+                    existing.phone = req.phone
+                    existing.faculty = req.faculty
+                    existing.edu_type = req.edu_type
+                    existing.edu_form = req.edu_form
+                    existing.course = req.course
+                    existing.student_group = req.student_group
+                else:
+                    session.add(
+                        Student(
+                            user_id=req.user_id,
+                            fio=req.fio,
+                            phone=req.phone,
+                            faculty=req.faculty,
+                            edu_type=req.edu_type,
+                            edu_form=req.edu_form,
+                            course=req.course,
+                            student_group=req.student_group,
+                        )
                     )
-                )
 
             elif req.role in ("O‘qituvchi", "Tyutor"):
-                session.add(
-                    Teacher(
-                        user_id=req.user_id,
-                        fio=req.fio,
-                        phone=req.phone,
-                        faculty=req.faculty,
-                        role="teacher" if req.role == "O‘qituvchi" else "tutor",
+
+                existing = await session.get(Teacher, user_id)
+
+                if existing:
+                    existing.fio = req.fio
+                    existing.phone = req.phone
+                    existing.faculty = req.faculty
+                    existing.role = "teacher" if req.role == "O‘qituvchi" else "tutor"
+                else:
+                    session.add(
+                        Teacher(
+                            user_id=req.user_id,
+                            fio=req.fio,
+                            phone=req.phone,
+                            faculty=req.faculty,
+                            role="teacher" if req.role == "O‘qituvchi" else "tutor",
+                        )
                     )
-                )
 
             await session.delete(req)
             await session.commit()
             return True
 
-        except Exception:
+        except Exception as e:
             await session.rollback()
+            print("MOVE ERROR:", e)
             return False
-
-
 # =====================================================
 # ❌ RO‘YXATDAN O‘TISH SO‘ROVINI RAD ETISH
 # =====================================================
