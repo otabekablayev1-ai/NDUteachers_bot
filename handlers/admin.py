@@ -2,6 +2,7 @@ from aiogram import Router, types,  F
 from aiogram.types import CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from database.db import reject_request
 from loader import dp
+from database.models import Teacher, Student
 
 from aiogram.filters import Command
 from database.scripts import rebuild_students_search
@@ -220,7 +221,9 @@ async def search_user(message: Message, state: FSMContext):
         inline_keyboard=[
             [
                 InlineKeyboardButton(
-                    text=f"{u.fio} — {u.role} — ID:{u.user_id}",
+                    text=f"{u.fio} — "
+                         f"{'Talaba' if isinstance(u, Student) else ('Tyutor' if u.role == 'tutor' else 'O‘qituvchi')} "
+                         f"— ID:{u.user_id}",
                     callback_data=f"admindel:{u.user_id}"
                 )
             ]
