@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+
 from sqlalchemy import or_
 from sqlalchemy import (
     select,
@@ -1163,3 +1164,7 @@ async def get_university_statistics():
             "student_count": student_count,
             "faculty_stat": faculty_stat,
         }
+async def get_all_students():
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(select(Student))
+        return result.scalars().all()

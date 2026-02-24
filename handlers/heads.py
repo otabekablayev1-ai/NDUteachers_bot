@@ -11,6 +11,7 @@ from aiogram.types import (
 )
 from database.db import (get_university_statistics, get_question_by_id,
 )
+
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.fsm.context import FSMContext
 from database.db import get_manager_rating_table
@@ -30,7 +31,7 @@ from openpyxl.utils import get_column_letter
 from io import BytesIO
 from aiogram.types import BufferedInputFile
 from datetime import datetime
-
+from database.db import get_all_students
 
 router = Router()
 
@@ -410,72 +411,112 @@ async def full_stat(message: Message):
     )
 
     await message.answer(text, parse_mode="HTML", reply_markup=kb)
-from openpyxl import Workbook
-from io import BytesIO
-from aiogram.types import BufferedInputFile
 
 
 @router.callback_query(F.data == "export_stats_excel")
 async def export_stats_excel(call: CallbackQuery):
-
     stats = await get_university_statistics()
+    teachers = await get_all_teachers()
+    students = await get_all_students()
 
     wb = Workbook()
-    ws = wb.active
-    ws.title = "Universitet Statistikasi"
 
-    # Title
-    ws.merge_cells("A1:B1")
-    ws["A1"] = "UNIVERSITET UMUMIY STATISTIKASI"
-    ws["A1"].font = Font(size=14, bold=True)
-    ws["A1"].alignment = Alignment(horizontal="center")
+    # =========================
+    # 1-SHEET: STATISTIKA
+    # =========================
+    ws1 = wb.active
+    ws1.title = "Statistika"
 
-    # Header
-    ws["A3"] = "Ko‘rsatkich"
-    ws["B3"] = "Qiymat"
+    ws1["A1"] = "UNIVERSITET UMUMIY STATISTIKASI"
+    ws1.merge_cells("A1:B1")
+    ws1["A1"].font = Font(size=14, bold=True)
 
-    for col in ["A3", "B3"]:
-        ws[col].font = Font(bold=True)
-        ws[col].fill = PatternFill(start_color="DDDDDD", fill_type="solid")
+    ws1.append(["Ko‘rsatkich", "Qiymat"])
+    ws1.append(["Umumiy foydalanuvchilar", stats["total_users"]])
+    ws1.append(["O‘qituvchilar", stats["teacher_count"]])
+    ws1.append(["Tyutorlar", stats["tutor_count"]])
+    ws1.append(["Talabalar", stats["student_count"]])
 
-    data = [
-        ("Umumiy foydalanuvchilar", stats["total_users"]),
-        ("O‘qituvchilar", stats["teacher_count"]),
-        ("Tyutorlar", stats["tutor_count"]),
-        ("Talabalar", stats["student_count"]),
+    ws1.append([])
+    ws1.append(["Fakultetlar bo‘yicha"])
+
+    for fac, cnt in stats["faculty_stat"].items():
+        ws1.append([fac, cnt])
+
+    # =========================
+    # 2-SHEET: FOYDALANUVCHILAR
+    # =========================
+    ws2 = wb.create_sheet("Foydalanuvchilar")
+
+    headers = [
+        "Telegram ID",
+        "F.I.O",
+        "Telefon",
+        "Rol",
+        "Fakultet",
+        "Ta'lim turi",
+        "Ta'lim shakli",
+        "Kurs",
+        "Guruh",
+        "Ro‘yxatdan o‘tgan sana"
     ]
 
-    row = 4
-    for label, value in data:
-        ws[f"A{row}"] = label
-        ws[f"B{row}"] = value
-        row += 1
+    ws2.append(headers)
 
-    row += 1
-    ws[f"A{row}"] = "Fakultetlar bo‘yicha"
-    ws[f"A{row}"].font = Font(bold=True)
+    for cell in ws2[1]:
+        cell.font = Font(bold=True)
 
-    row += 1
-    for fac, cnt in sorted(stats["faculty_stat"].items()):
-        ws[f"A{row}"] = fac
-        ws[f"B{row}"] = cnt
-        row += 1
+    # Teachers & Tutors
+    for t in teachers:
+        ws2.append([
+            t.user_id,
+            t.fio,
+            t.phone,
+            "O‘qituvchi" if t.role == "teacher" else "Tyutor",
+            t.faculty,
+            "",
+            "",
+            "",
+            "",
+            t.created_at.strftime("%Y-%m-%d") if t.created_at else ""
+        ])
 
-    # Column width
-    ws.column_dimensions["A"].width = 40
-    ws.column_dimensions["B"].width = 15
+    # Students
+    for s in students:
+        ws2.append([
+            s.user_id,
+            s.fio,
+            s.phone,
+            "Talaba",
+            s.faculty,
+            s.edu_type,
+            s.edu_form,
+            s.course,
+            s.student_group,
+            s.created_at.strftime("%Y-%m-%d") if s.created_at else ""
+        ])
 
-    # Sana bilan nom
+    # Auto column width
+    for column in ws2.columns:
+        max_length = 0
+        col_letter = get_column_letter(column[0].column)
+        for cell in column:
+            if cell.value:
+                max_length = max(max_length, len(str(cell.value)))
+        ws2.column_dimensions[col_letter].width = max_length + 2
+
+    # =========================
+    # Faylni saqlash
+    # =========================
     today = datetime.now().strftime("%Y-%m-%d")
-    filename = f"universitet_statistikasi_{today}.xlsx"
+    filename = f"universitet_statistika_{today}.xlsx"
 
-    stream = BytesIO()
-    wb.save(stream)
-    stream.seek(0)
+    file_stream = BytesIO()
+    wb.save(file_stream)
+    file_stream.seek(0)
 
-    file = BufferedInputFile(stream.read(), filename=filename)
+    await call.message.answer_document(
+        BufferedInputFile(file_stream.read(), filename=filename)
+    )
 
-    await call.message.answer_document(file)
     await call.answer()
-
-
