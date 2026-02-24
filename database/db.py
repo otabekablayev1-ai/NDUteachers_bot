@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-
+from sqlalchemy import or_
 from sqlalchemy import (
     select,
     delete,
@@ -987,28 +987,38 @@ async def delete_order_link_by_id(order_id: int) -> bool:
         return True
 
 
+from sqlalchemy import or_
+
 async def search_users_by_fio_or_id(
     text: str,
     numeric_id: int | None = None,
 ):
     async with AsyncSessionLocal() as session:
-        teachers = (await session.execute(
-            select(Teacher).where(
-                or_(
-                    Teacher.fio.ilike(f"%{text}%"),
-                    Teacher.user_id == numeric_id,
-                )
-            )
-        )).scalars().all()
+        results = []
 
-        students = (await session.execute(
-            select(Student).where(
-                or_(
-                    Student.fio.ilike(f"%{text}%"),
-                    Student.user_id == numeric_id,
-                )
-            )
-        )).scalars().all()
+        # =========================
+        # TEACHER QIDIRISH
+        # =========================
+        stmt_t = select(Teacher)
+
+        if numeric_id is not None:
+            stmt_t = stmt_t.where(Teacher.user_id == numeric_id)
+        else:
+            stmt_t = stmt_t.where(Teacher.fio.ilike(f"%{text.strip()}%"))
+
+        teachers = (await session.execute(stmt_t)).scalars().all()
+
+        # =========================
+        # STUDENT QIDIRISH
+        # =========================
+        stmt_s = select(Student)
+
+        if numeric_id is not None:
+            stmt_s = stmt_s.where(Student.user_id == numeric_id)
+        else:
+            stmt_s = stmt_s.where(Student.fio.ilike(f"%{text.strip()}%"))
+
+        students = (await session.execute(stmt_s)).scalars().all()
 
     return teachers + students
 
