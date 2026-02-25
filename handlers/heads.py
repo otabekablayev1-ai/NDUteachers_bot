@@ -233,11 +233,11 @@ async def send_reply(message: Message, state: FSMContext):
     # 3️⃣ Baholash tugmalari
     stars_kb = InlineKeyboardMarkup(
         inline_keyboard=[[
-            InlineKeyboardButton(text="⭐", callback_data=f"rate:{question_id}:{manager_id}:1"),
-            InlineKeyboardButton(text="⭐⭐", callback_data=f"rate:{question_id}:{manager_id}:2"),
-            InlineKeyboardButton(text="⭐⭐⭐", callback_data=f"rate:{question_id}:{manager_id}:3"),
-            InlineKeyboardButton(text="⭐⭐⭐⭐", callback_data=f"rate:{question_id}:{manager_id}:4"),
-            InlineKeyboardButton(text="⭐⭐⭐⭐⭐", callback_data=f"rate:{question_id}:{manager_id}:5"),
+            InlineKeyboardButton(text="➊", callback_data=f"rate:{question_id}:{manager_id}:1"),
+            InlineKeyboardButton(text="➋", callback_data=f"rate:{question_id}:{manager_id}:2"),
+            InlineKeyboardButton(text="➌", callback_data=f"rate:{question_id}:{manager_id}:3"),
+            InlineKeyboardButton(text="➍", callback_data=f"rate:{question_id}:{manager_id}:4"),
+            InlineKeyboardButton(text="➎", callback_data=f"rate:{question_id}:{manager_id}:5"),
         ]]
     )
 
