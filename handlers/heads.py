@@ -233,18 +233,18 @@ async def send_reply(message: Message, state: FSMContext):
     # 3️⃣ Baholash tugmalari
     stars_kb = InlineKeyboardMarkup(
         inline_keyboard=[[
-            InlineKeyboardButton(text="➊", callback_data=f"rate:{question_id}:{manager_id}:1"),
-            InlineKeyboardButton(text="➋", callback_data=f"rate:{question_id}:{manager_id}:2"),
-            InlineKeyboardButton(text="➌", callback_data=f"rate:{question_id}:{manager_id}:3"),
-            InlineKeyboardButton(text="➍", callback_data=f"rate:{question_id}:{manager_id}:4"),
-            InlineKeyboardButton(text="➎", callback_data=f"rate:{question_id}:{manager_id}:5"),
+            InlineKeyboardButton(text="1", callback_data=f"rate:{question_id}:{manager_id}:1"),
+            InlineKeyboardButton(text="2", callback_data=f"rate:{question_id}:{manager_id}:2"),
+            InlineKeyboardButton(text="3", callback_data=f"rate:{question_id}:{manager_id}:3"),
+            InlineKeyboardButton(text="4", callback_data=f"rate:{question_id}:{manager_id}:4"),
+            InlineKeyboardButton(text="5", callback_data=f"rate:{question_id}:{manager_id}:5"),
         ]]
     )
 
     try:
         await message.bot.send_message(
             sender_id,
-            "⭐ <b>Javobni baholang:</b>",
+            "👍 <b>Javobni baholang:</b>",
             reply_markup=stars_kb,
             parse_mode="HTML"
         )
