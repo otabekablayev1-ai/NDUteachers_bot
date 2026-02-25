@@ -415,6 +415,9 @@ async def full_stat(message: Message):
 
 @router.callback_query(F.data == "export_stats_excel")
 async def export_stats_excel(call: CallbackQuery):
+
+    await call.answer()   # 👈 BUNI ENG TEPAGA QO‘YING
+
     stats = await get_university_statistics()
     teachers = await get_all_teachers()
     students = await get_all_students()
@@ -519,4 +522,3 @@ async def export_stats_excel(call: CallbackQuery):
         BufferedInputFile(file_stream.read(), filename=filename)
     )
 
-    await call.answer()
