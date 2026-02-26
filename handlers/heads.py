@@ -423,6 +423,13 @@ async def export_stats_excel(call: CallbackQuery):
     teachers = await get_all_teachers()
     students = await get_all_students()
 
+    def pick(obj, key: str, default=""):
+        # obj dict bo'lsa
+        if isinstance(obj, dict):
+            return obj.get(key, default)
+        # obj model bo'lsa
+        return getattr(obj, key, default)
+
     wb = Workbook()
 
     # =========================
@@ -472,34 +479,35 @@ async def export_stats_excel(call: CallbackQuery):
 
     # Teachers & Tutors
     for t in teachers:
+        role_val = pick(t, "role", "")
+        role_label = "O‘qituvchi" if role_val == "teacher" else ("Tyutor" if role_val == "tutor" else role_val)
+
+        created = pick(t, "created_at", None)
         ws2.append([
-            t.get("user_id"),
-            t.get("fio"),
-            t.get("phone", ""),  # 🔥 XATO TUZATILDI
-            "O‘qituvchi" if t.get("role") == "teacher" else "Tyutor",
-            t.get("faculty"),
-            "",
-            "",
-            "",
-            "",
-            t.get("created_at").strftime("%Y-%m-%d") if t.get("created_at") else ""
+            pick(t, "user_id"),
+            pick(t, "fio"),
+            pick(t, "phone", ""),
+            role_label,
+            pick(t, "faculty", ""),
+            "", "", "", "",  # edu_type, edu_form, course, group teacherda yo'q
+            created.strftime("%Y-%m-%d") if created else ""
         ])
 
     # Students
     for s in students:
+        created = pick(s, "created_at", None)
         ws2.append([
-            s.get("user_id"),
-            s.get("fio"),
-            s.get("phone", ""),  # 🔥 XATO TUZATILDI
+            pick(s, "user_id"),
+            pick(s, "fio"),
+            pick(s, "phone", ""),
             "Talaba",
-            s.get("faculty"),
-            s.get("edu_type"),
-            s.get("edu_form"),
-            s.get("course"),
-            s.get("student_group"),
-            s.get("created_at").strftime("%Y-%m-%d") if s.get("created_at") else ""
+            pick(s, "faculty", ""),
+            pick(s, "edu_type", ""),
+            pick(s, "edu_form", ""),
+            pick(s, "course", ""),
+            pick(s, "student_group", ""),
+            created.strftime("%Y-%m-%d") if created else ""
         ])
-
     # Auto column width
     for column in ws2.columns:
         max_length = 0
