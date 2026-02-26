@@ -415,8 +415,9 @@ async def full_stat(message: Message):
 
 @router.callback_query(F.data == "export_stats_excel")
 async def export_stats_excel(call: CallbackQuery):
+    await call.answer()   # 🔥 birinchi qatorda
 
-    await call.answer()   # 👈 BUNI ENG TEPAGA QO‘YING
+    print("EXPORT CALLBACK IS WORKING")
 
     stats = await get_university_statistics()
     teachers = await get_all_teachers()
@@ -472,11 +473,11 @@ async def export_stats_excel(call: CallbackQuery):
     # Teachers & Tutors
     for t in teachers:
         ws2.append([
-            t["user_id"],
-            t["fio"],
-            t["phone"],
+            t.get("user_id"),
+            t.get("fio"),
+            t.get("phone", ""),  # 🔥 XATO TUZATILDI
             "O‘qituvchi" if t.get("role") == "teacher" else "Tyutor",
-            t["faculty"],
+            t.get("faculty"),
             "",
             "",
             "",
@@ -487,11 +488,11 @@ async def export_stats_excel(call: CallbackQuery):
     # Students
     for s in students:
         ws2.append([
-            s["user_id"],
-            s["fio"],
-            s["phone"],
+            s.get("user_id"),
+            s.get("fio"),
+            s.get("phone", ""),  # 🔥 XATO TUZATILDI
             "Talaba",
-            s["faculty"],
+            s.get("faculty"),
             s.get("edu_type"),
             s.get("edu_form"),
             s.get("course"),
