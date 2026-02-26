@@ -472,31 +472,31 @@ async def export_stats_excel(call: CallbackQuery):
     # Teachers & Tutors
     for t in teachers:
         ws2.append([
-            t.user_id,
-            t.fio,
-            t.phone,
-            "O‘qituvchi" if t.role == "teacher" else "Tyutor",
-            t.faculty,
+            t["user_id"],
+            t["fio"],
+            t["phone"],
+            "O‘qituvchi" if t.get("role") == "teacher" else "Tyutor",
+            t["faculty"],
             "",
             "",
             "",
             "",
-            t.created_at.strftime("%Y-%m-%d") if t.created_at else ""
+            t.get("created_at").strftime("%Y-%m-%d") if t.get("created_at") else ""
         ])
 
     # Students
     for s in students:
         ws2.append([
-            s.user_id,
-            s.fio,
-            s.phone,
+            s["user_id"],
+            s["fio"],
+            s["phone"],
             "Talaba",
-            s.faculty,
-            s.edu_type,
-            s.edu_form,
-            s.course,
-            s.student_group,
-            s.created_at.strftime("%Y-%m-%d") if s.created_at else ""
+            s["faculty"],
+            s.get("edu_type"),
+            s.get("edu_form"),
+            s.get("course"),
+            s.get("student_group"),
+            s.get("created_at").strftime("%Y-%m-%d") if s.get("created_at") else ""
         ])
 
     # Auto column width
