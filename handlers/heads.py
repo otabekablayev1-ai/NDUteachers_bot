@@ -9,10 +9,12 @@ from aiogram.types import (
     Message,
     CallbackQuery
 )
+from PIL import Image, ImageDraw, ImageFont
+from io import BytesIO
+from aiogram.types import BufferedInputFile
 from database.db import (get_university_statistics, get_question_by_id,
 )
-from PIL import Image, ImageDraw, ImageFont
-from aiogram import F
+from aiogram.types import BufferedInputFile
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.fsm.context import FSMContext
 from database.db import get_manager_rating_table
@@ -29,6 +31,7 @@ from database.db import (
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill
 from openpyxl.utils import get_column_letter
+from io import BytesIO
 from aiogram.types import BufferedInputFile
 from datetime import datetime
 from database.db import get_all_students
@@ -283,6 +286,8 @@ async def handle_rating(call: CallbackQuery):
         f"📊 Javobingizga ⭐ {rating} ball berildi"
     )
 
+from PIL import Image, ImageDraw, ImageFont
+from io import BytesIO
 
 async def generate_manager_rating_image(rows, bot):
     width = 1400
@@ -349,7 +354,6 @@ async def generate_manager_rating_image(rows, bot):
 
     return buffer
 
-
 @router.message(F.text == "🏆 Menejerlar reytingi")
 async def show_managers_rating(message: Message):
 
@@ -378,7 +382,7 @@ async def show_managers_rating(message: Message):
         caption="📊 Oqartirilgan reyting jadvali",
         reply_markup=kb
     )
-    
+
 @router.callback_query(F.data == "export_manager_rating_excel")
 async def export_manager_rating_excel(call: CallbackQuery):
 
@@ -414,6 +418,7 @@ async def export_manager_rating_excel(call: CallbackQuery):
             r["avg_rating"],
             r["answered_count"],
             r["unanswered_count"],
+
             r["faculty"]
         ])
 
