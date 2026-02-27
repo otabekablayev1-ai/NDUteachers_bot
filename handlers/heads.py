@@ -291,108 +291,115 @@ from io import BytesIO
 from datetime import datetime
 
 async def generate_manager_rating_image(rows, bot):
-    width = 1550
-    row_height = 50
-    padding = 60
+    width = 1500
+    padding_x = 50
+    padding_y = 40
 
-    height = padding * 2 + row_height * (len(rows) + 4)
+    # Shriftlar (kattaroq)
+    TITLE_SIZE = 54
+    FONT_SIZE = 38
+    SMALL_SIZE = 28
+
+    # Qator balandligi (kichikroq qilib ixcham)
+    row_height = 52
+
+    # Jadval balandligi
+    header_h = 90
+    footer_h = 70
+    height = padding_y * 2 + header_h + row_height * (len(rows) + 1) + footer_h
 
     img = Image.new("RGB", (width, height), "white")
     draw = ImageDraw.Draw(img)
 
-    try:
-        font_title = ImageFont.truetype("arial.ttf", 56)
-        font_header = ImageFont.truetype("arial.ttf", 40)
-        font = ImageFont.truetype("arial.ttf", 36)
-        font_small = ImageFont.truetype("arial.ttf", 28)
-    except:
-        font_title = ImageFont.load_default()
-        font_header = ImageFont.load_default()
-        font = ImageFont.load_default()
-        font_small = ImageFont.load_default()
+    def load_font(size: int):
+        # Render(Linux) uchun odatda DejaVu bor
+        for p in ["DejaVuSans.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", "arial.ttf"]:
+            try:
+                return ImageFont.truetype(p, size)
+            except:
+                continue
+        return ImageFont.load_default()
 
-    y = padding
+    font_title = load_font(TITLE_SIZE)
+    font = load_font(FONT_SIZE)
+    font_small = load_font(SMALL_SIZE)
 
-    # ====== Sarlavha ======
-    draw.text(
-        (width // 2, y),
-        "🏆 MENEJERLAR REYTINGI",
-        fill="black",
-        font=font_title,
-        anchor="mm"
-    )
+    y = padding_y
 
-    y += 90
+    # Title
+    draw.text((width // 2, y), "🏆 MENEJERLAR REYTINGI", fill="black", font=font_title, anchor="mm")
+    y += header_h
 
-    # ====== Header ======
+    # Ustunlar (Menejer kengroq, ustunlar ajralgan)
     headers = ["№", "Menejer", "Reyting", "✔", "❌", "Fakultet"]
-    x_positions = [80, 170, 820, 970, 1040, 1150]
+    x = {
+        "no": padding_x,
+        "name": padding_x + 90,
+        "rate": 820,
+        "ok": 980,
+        "bad": 1060,
+        "fac": 1150,
+    }
 
-    for i, h in enumerate(headers):
-        draw.text((x_positions[i], y), h, fill="black", font=font_header)
+    # Header chizig‘i
+    draw.line((padding_x, y, width - padding_x, y), fill="black", width=3)
+    y += 18
 
-    y += 50
-    draw.line((80, y, width - 80, y), fill="black", width=3)
-    y += 20
+    # Header text
+    draw.text((x["no"], y), headers[0], fill="black", font=font)
+    draw.text((x["name"], y), headers[1], fill="black", font=font)
+    draw.text((x["rate"], y), headers[2], fill="black", font=font)
+    draw.text((x["ok"], y), headers[3], fill="black", font=font)
+    draw.text((x["bad"], y), headers[4], fill="black", font=font)
+    draw.text((x["fac"], y), headers[5], fill="black", font=font)
+
+    y += 45
+    draw.line((padding_x, y, width - padding_x, y), fill="black", width=2)
+    y += 15
 
     medals = ["🥇", "🥈", "🥉"]
 
-    # Reyting chegaralari
-    ratings = [float(r["avg_rating"]) for r in rows]
-    max_rating = max(ratings) if ratings else 0
+    def rate_color(val: float):
+        # Rangli reyting
+        if val >= 4.5:
+            return (0, 140, 0)      # 🟢
+        if val >= 3.5:
+            return (180, 130, 0)    # 🟡
+        return (180, 0, 0)          # 🔴
 
     for idx, r in enumerate(rows, 1):
+        # Ism
         try:
             chat = await bot.get_chat(r["manager_id"])
             name = chat.full_name
         except:
             name = str(r["manager_id"])
 
-        rating = float(r["avg_rating"])
-
-        # ====== Rang tanlash ======
-        if rating == max_rating:
-            color = (0, 150, 0)  # yashil
-        elif rating >= max_rating * 0.7:
-            color = (200, 150, 0)  # sariq
-        else:
-            color = (180, 0, 0)  # qizil
-
         medal = medals[idx - 1] if idx <= 3 else str(idx)
 
-        values = [
-            medal,
-            name[:30],
-            f"{rating:.1f}",
-            str(r["answered_count"]),
-            str(r["unanswered_count"]),
-            r["faculty"][:25]
-        ]
+        avg = float(r.get("avg_rating") or 0)
+        col = rate_color(avg)
 
-        for i, val in enumerate(values):
-            draw.text((x_positions[i], y), val, fill=color, font=font)
+        draw.text((x["no"], y), medal, fill="black", font=font)
+        draw.text((x["name"], y), name, fill="black", font=font)
+        draw.text((x["rate"], y), f"{avg:.1f}", fill=col, font=font)
+        draw.text((x["ok"], y), str(r.get("answered_count", 0)), fill="black", font=font)
+        draw.text((x["bad"], y), str(r.get("unanswered_count", 0)), fill="black", font=font)
+        draw.text((x["fac"], y), str(r.get("faculty", "")), fill="black", font=font)
 
         y += row_height
+        # har qator pastiga ingichka chiziq
+        draw.line((padding_x, y - 10, width - padding_x, y - 10), fill=(200, 200, 200), width=1)
 
-    # ====== Pastki sana ======
-    y += 30
-    today = datetime.now().strftime("%d.%m.%Y %H:%M")
-    draw.line((80, y, width - 80, y), fill="black", width=2)
-    y += 20
-
-    draw.text(
-        (width // 2, y),
-        f"📅 Hisobot sanasi: {today}",
-        fill="black",
-        font=font_small,
-        anchor="mm"
-    )
+    # Footer (sana)
+    footer_text = f"📅 Sana: {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+    draw.text((padding_x, height - padding_y), footer_text, fill="black", font=font_small, anchor="ls")
 
     buffer = BytesIO()
     img.save(buffer, format="PNG")
     buffer.seek(0)
-
     return buffer
+
 @router.message(F.text == "🏆 Menejerlar reytingi")
 async def show_managers_rating(message: Message):
 
@@ -413,13 +420,11 @@ async def show_managers_rating(message: Message):
         ]
     )
 
+    image_buffer = await generate_manager_rating_image(rows, message.bot)
+
     await message.answer_photo(
-        photo=BufferedInputFile(
-            image_buffer.getvalue(),
-            filename="manager_rating.png"
-        ),
-        caption="📊 Oqartirilgan reyting jadvali",
-        reply_markup=kb
+        photo=BufferedInputFile(image_buffer.read(), filename="menejer_reyting.png"),
+        caption="📊 Reyting jadvali"
     )
 
 @router.callback_query(F.data == "export_manager_rating_excel")
