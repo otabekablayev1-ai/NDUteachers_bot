@@ -29,7 +29,6 @@ from database.db import (
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill
 from openpyxl.utils import get_column_letter
-from io import BytesIO
 from aiogram.types import BufferedInputFile
 from datetime import datetime
 from database.db import get_all_students
@@ -372,10 +371,14 @@ async def show_managers_rating(message: Message):
     )
 
     await message.answer_photo(
-        photo=image_buffer,
+        photo=BufferedInputFile(
+            image_buffer.getvalue(),
+            filename="manager_rating.png"
+        ),
         caption="📊 Oqartirilgan reyting jadvali",
         reply_markup=kb
     )
+    
 @router.callback_query(F.data == "export_manager_rating_excel")
 async def export_manager_rating_excel(call: CallbackQuery):
 
