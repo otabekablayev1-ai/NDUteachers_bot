@@ -283,52 +283,87 @@ async def handle_rating(call: CallbackQuery):
         f"📊 Javobingizga ⭐ {rating} ball berildi"
     )
 
+from aiogram import F
+from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.exceptions import TelegramBadRequest
+
 @router.message(F.text == "🏆 Menejerlar reytingi")
 async def show_managers_rating(message: Message):
-
     rows = await get_manager_rating_table()
 
     if not rows:
         await message.answer("📭 Hozircha menejerlar reytingi mavjud emas.")
         return
 
-    text = (
-        "🏆 <b>Menejerlar reytingi</b>\n\n"
-        "<pre>"
-        "№  Menejer           Reyt  ✔️  ❌  Fakultet\n"
-        "--------------------------------------------\n"
+    # Ustun kengliklari (xohlasangiz oshirib/kamaytirasiz)
+    idx_w = 3
+    manager_w = 28   # <-- MANA SHU kengaytirildi
+    rating_w = 6
+    ok_w = 4
+    no_w = 4
+
+    header = (
+        f"{'№':<{idx_w}}"
+        f"{'Menejer':<{manager_w}}"
+        f"{'Reyt':<{rating_w}}"
+        f"{'✔':<{ok_w}}"
+        f"{'❌':<{no_w}}"
+        f"Fakultet\n"
     )
+    line = "-" * (idx_w + manager_w + rating_w + ok_w + no_w + 40)
+
+    text = "🏆 <b>Menejerlar reytingi</b>\n\n<pre>"
+    text += header
+    text += line + "\n"
 
     for i, r in enumerate(rows, 1):
+        # Menejer ismini olish
         try:
             chat = await message.bot.get_chat(r["manager_id"])
-            name = chat.full_name
+            name = (chat.full_name or "").strip()
         except TelegramBadRequest:
             name = str(r["manager_id"])
 
+        # Juda uzun ism bo‘lsa kesib, "…" qo‘yamiz
+        if len(name) > manager_w:
+            name = name[: manager_w - 1] + "…"
+
+        # Ratingni chiroyli ko‘rsatish
+        avg = r.get("avg_rating", 0)
+        try:
+            avg = float(avg)
+            avg_str = f"{avg:.1f}"
+        except Exception:
+            avg_str = str(avg)
+
+        answered = r.get("answered_count", 0)
+        unanswered = r.get("unanswered_count", 0)
+        faculty = (r.get("faculty") or "").strip()
+
         text += (
-            f"{i:<2} "
-            f"{name[:15]:<15} "
-            f"{r['avg_rating']:<5} "
-            f"{r['answered_count']:<3} "
-            f"{r['unanswered_count']:<3} "
-            f"{r['faculty']}\n"
+            f"{i:<{idx_w}}"
+            f"{name:<{manager_w}}"
+            f"{avg_str:<{rating_w}}"
+            f"{answered:<{ok_w}}"
+            f"{unanswered:<{no_w}}"
+            f"{faculty}\n"
         )
 
     text += "</pre>"
 
     kb = InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(
-                text="📤 Excelga eksport",
-                callback_data="export_manager_rating_excel"
-            )]
+            [
+                InlineKeyboardButton(
+                    text="📤 Excelga eksport",
+                    callback_data="export_manager_rating_excel"
+                )
+            ]
         ]
     )
 
     await message.answer(text, parse_mode="HTML", reply_markup=kb)
-
-
+    
 @router.callback_query(F.data == "export_manager_rating_excel")
 async def export_manager_rating_excel(call: CallbackQuery):
 
