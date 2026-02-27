@@ -288,42 +288,58 @@ async def handle_rating(call: CallbackQuery):
 
 from PIL import Image, ImageDraw, ImageFont
 from io import BytesIO
+from datetime import datetime
 
 async def generate_manager_rating_image(rows, bot):
-    width = 1400
-    row_height = 60
-    padding = 40
+    width = 1550
+    row_height = 50
+    padding = 60
 
-    height = padding * 2 + row_height * (len(rows) + 2)
+    height = padding * 2 + row_height * (len(rows) + 4)
 
     img = Image.new("RGB", (width, height), "white")
     draw = ImageDraw.Draw(img)
 
     try:
-        font_title = ImageFont.truetype("arial.ttf", 42)
-        font = ImageFont.truetype("arial.ttf", 32)
+        font_title = ImageFont.truetype("arial.ttf", 56)
+        font_header = ImageFont.truetype("arial.ttf", 40)
+        font = ImageFont.truetype("arial.ttf", 36)
+        font_small = ImageFont.truetype("arial.ttf", 28)
     except:
         font_title = ImageFont.load_default()
+        font_header = ImageFont.load_default()
         font = ImageFont.load_default()
+        font_small = ImageFont.load_default()
 
     y = padding
 
-    draw.text((width // 2, y), "🏆 MENEJERLAR REYTINGI",
-              fill="black", font=font_title, anchor="mm")
+    # ====== Sarlavha ======
+    draw.text(
+        (width // 2, y),
+        "🏆 MENEJERLAR REYTINGI",
+        fill="black",
+        font=font_title,
+        anchor="mm"
+    )
 
-    y += 80
+    y += 90
 
+    # ====== Header ======
     headers = ["№", "Menejer", "Reyting", "✔", "❌", "Fakultet"]
-    x_positions = [50, 150, 600, 750, 820, 900]
+    x_positions = [80, 170, 820, 970, 1040, 1150]
 
     for i, h in enumerate(headers):
-        draw.text((x_positions[i], y), h, fill="black", font=font)
+        draw.text((x_positions[i], y), h, fill="black", font=font_header)
 
-    y += 40
-    draw.line((50, y, width - 50, y), fill="black", width=3)
+    y += 50
+    draw.line((80, y, width - 80, y), fill="black", width=3)
     y += 20
 
     medals = ["🥇", "🥈", "🥉"]
+
+    # Reyting chegaralari
+    ratings = [float(r["avg_rating"]) for r in rows]
+    max_rating = max(ratings) if ratings else 0
 
     for idx, r in enumerate(rows, 1):
         try:
@@ -332,28 +348,51 @@ async def generate_manager_rating_image(rows, bot):
         except:
             name = str(r["manager_id"])
 
-        medal = medals[idx-1] if idx <= 3 else str(idx)
+        rating = float(r["avg_rating"])
+
+        # ====== Rang tanlash ======
+        if rating == max_rating:
+            color = (0, 150, 0)  # yashil
+        elif rating >= max_rating * 0.7:
+            color = (200, 150, 0)  # sariq
+        else:
+            color = (180, 0, 0)  # qizil
+
+        medal = medals[idx - 1] if idx <= 3 else str(idx)
 
         values = [
             medal,
-            name,
-            f"{float(r['avg_rating']):.1f}",
+            name[:30],
+            f"{rating:.1f}",
             str(r["answered_count"]),
             str(r["unanswered_count"]),
-            r["faculty"]
+            r["faculty"][:25]
         ]
 
         for i, val in enumerate(values):
-            draw.text((x_positions[i], y), val, fill="black", font=font)
+            draw.text((x_positions[i], y), val, fill=color, font=font)
 
         y += row_height
+
+    # ====== Pastki sana ======
+    y += 30
+    today = datetime.now().strftime("%d.%m.%Y %H:%M")
+    draw.line((80, y, width - 80, y), fill="black", width=2)
+    y += 20
+
+    draw.text(
+        (width // 2, y),
+        f"📅 Hisobot sanasi: {today}",
+        fill="black",
+        font=font_small,
+        anchor="mm"
+    )
 
     buffer = BytesIO()
     img.save(buffer, format="PNG")
     buffer.seek(0)
 
     return buffer
-
 @router.message(F.text == "🏆 Menejerlar reytingi")
 async def show_managers_rating(message: Message):
 
