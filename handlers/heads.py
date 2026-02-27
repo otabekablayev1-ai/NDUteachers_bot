@@ -11,7 +11,8 @@ from aiogram.types import (
 )
 from database.db import (get_university_statistics, get_question_by_id,
 )
-
+from PIL import Image, ImageDraw, ImageFont
+from aiogram import F
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.fsm.context import FSMContext
 from database.db import get_manager_rating_table
@@ -283,87 +284,98 @@ async def handle_rating(call: CallbackQuery):
         f"📊 Javobingizga ⭐ {rating} ball berildi"
     )
 
-from aiogram import F
-from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
-from aiogram.exceptions import TelegramBadRequest
+
+async def generate_manager_rating_image(rows, bot):
+    width = 1400
+    row_height = 60
+    padding = 40
+
+    height = padding * 2 + row_height * (len(rows) + 2)
+
+    img = Image.new("RGB", (width, height), "white")
+    draw = ImageDraw.Draw(img)
+
+    try:
+        font_title = ImageFont.truetype("arial.ttf", 42)
+        font = ImageFont.truetype("arial.ttf", 32)
+    except:
+        font_title = ImageFont.load_default()
+        font = ImageFont.load_default()
+
+    y = padding
+
+    draw.text((width // 2, y), "🏆 MENEJERLAR REYTINGI",
+              fill="black", font=font_title, anchor="mm")
+
+    y += 80
+
+    headers = ["№", "Menejer", "Reyting", "✔", "❌", "Fakultet"]
+    x_positions = [50, 150, 600, 750, 820, 900]
+
+    for i, h in enumerate(headers):
+        draw.text((x_positions[i], y), h, fill="black", font=font)
+
+    y += 40
+    draw.line((50, y, width - 50, y), fill="black", width=3)
+    y += 20
+
+    medals = ["🥇", "🥈", "🥉"]
+
+    for idx, r in enumerate(rows, 1):
+        try:
+            chat = await bot.get_chat(r["manager_id"])
+            name = chat.full_name
+        except:
+            name = str(r["manager_id"])
+
+        medal = medals[idx-1] if idx <= 3 else str(idx)
+
+        values = [
+            medal,
+            name,
+            f"{float(r['avg_rating']):.1f}",
+            str(r["answered_count"]),
+            str(r["unanswered_count"]),
+            r["faculty"]
+        ]
+
+        for i, val in enumerate(values):
+            draw.text((x_positions[i], y), val, fill="black", font=font)
+
+        y += row_height
+
+    buffer = BytesIO()
+    img.save(buffer, format="PNG")
+    buffer.seek(0)
+
+    return buffer
+
 
 @router.message(F.text == "🏆 Menejerlar reytingi")
 async def show_managers_rating(message: Message):
+
     rows = await get_manager_rating_table()
 
     if not rows:
         await message.answer("📭 Hozircha menejerlar reytingi mavjud emas.")
         return
 
-    # Ustun kengliklari (xohlasangiz oshirib/kamaytirasiz)
-    idx_w = 3
-    manager_w = 28   # <-- MANA SHU kengaytirildi
-    rating_w = 6
-    ok_w = 4
-    no_w = 4
-
-    header = (
-        f"{'№':<{idx_w}}"
-        f"{'Menejer':<{manager_w}}"
-        f"{'Reyt':<{rating_w}}"
-        f"{'✔':<{ok_w}}"
-        f"{'❌':<{no_w}}"
-        f"Fakultet\n"
-    )
-    line = "-" * (idx_w + manager_w + rating_w + ok_w + no_w + 40)
-
-    text = "🏆 <b>Menejerlar reytingi</b>\n\n<pre>"
-    text += header
-    text += line + "\n"
-
-    for i, r in enumerate(rows, 1):
-        # Menejer ismini olish
-        try:
-            chat = await message.bot.get_chat(r["manager_id"])
-            name = (chat.full_name or "").strip()
-        except TelegramBadRequest:
-            name = str(r["manager_id"])
-
-        # Juda uzun ism bo‘lsa kesib, "…" qo‘yamiz
-        if len(name) > manager_w:
-            name = name[: manager_w - 1] + "…"
-
-        # Ratingni chiroyli ko‘rsatish
-        avg = r.get("avg_rating", 0)
-        try:
-            avg = float(avg)
-            avg_str = f"{avg:.1f}"
-        except Exception:
-            avg_str = str(avg)
-
-        answered = r.get("answered_count", 0)
-        unanswered = r.get("unanswered_count", 0)
-        faculty = (r.get("faculty") or "").strip()
-
-        text += (
-            f"{i:<{idx_w}}"
-            f"{name:<{manager_w}}"
-            f"{avg_str:<{rating_w}}"
-            f"{answered:<{ok_w}}"
-            f"{unanswered:<{no_w}}"
-            f"{faculty}\n"
-        )
-
-    text += "</pre>"
+    image_buffer = await generate_manager_rating_image(rows, message.bot)
 
     kb = InlineKeyboardMarkup(
         inline_keyboard=[
-            [
-                InlineKeyboardButton(
-                    text="📤 Excelga eksport",
-                    callback_data="export_manager_rating_excel"
-                )
-            ]
+            [InlineKeyboardButton(
+                text="📤 Excelga eksport",
+                callback_data="export_manager_rating_excel"
+            )]
         ]
     )
 
-    await message.answer(text, parse_mode="HTML", reply_markup=kb)
-    
+    await message.answer_photo(
+        photo=image_buffer,
+        caption="📊 Oqartirilgan reyting jadvali",
+        reply_markup=kb
+    )
 @router.callback_query(F.data == "export_manager_rating_excel")
 async def export_manager_rating_excel(call: CallbackQuery):
 
