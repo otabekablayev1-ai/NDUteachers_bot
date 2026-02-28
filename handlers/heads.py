@@ -291,94 +291,139 @@ from io import BytesIO
 from datetime import datetime
 
 async def generate_manager_rating_image(rows, bot):
-    width = 1750
-    padding_x = 50
-    padding_y = 40
 
-    # Shriftlar (kattaroq)
-    TITLE_SIZE = 54
-    FONT_SIZE = 38
+    width = 1900
+    padding_x = 60
+    padding_y = 60
+
+    TITLE_SIZE = 60
+    HEADER_SIZE = 34
+    FONT_SIZE = 36
     SMALL_SIZE = 28
 
-    # Qator balandligi (kichikroq qilib ixcham)
-    row_height = 52
+    row_height = 65
+    header_block_height = 150
 
-    # Jadval balandligi
-    header_h = 90
-    footer_h = 70
-    height = padding_y * 2 + header_h + row_height * (len(rows) + 1) + footer_h
+    height = (
+        padding_y * 2
+        + 130
+        + header_block_height
+        + row_height * len(rows)
+        + 120
+    )
 
     img = Image.new("RGB", (width, height), "white")
     draw = ImageDraw.Draw(img)
 
-    def load_font(size: int):
-        # Render(Linux) uchun odatda DejaVu bor
-        for p in ["DejaVuSans.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", "arial.ttf"]:
-            try:
-                return ImageFont.truetype(p, size)
-            except:
-                continue
-        return ImageFont.load_default()
+    def load_font(size):
+        try:
+            return ImageFont.truetype("DejaVuSans.ttf", size)
+        except:
+            return ImageFont.load_default()
 
     font_title = load_font(TITLE_SIZE)
+    font_header = load_font(HEADER_SIZE)
     font = load_font(FONT_SIZE)
     font_small = load_font(SMALL_SIZE)
 
     y = padding_y
 
-    # Title
-    draw.text((width // 2, y), "🏆 MENEJERLAR REYTINGI", fill="black", font=font_title, anchor="mm")
-    y += header_h
+    # ================= TITLE =================
+    draw.text(
+        (width // 2, y),
+        "🏆 MENEJERLAR REYTINGI",
+        fill="black",
+        font=font_title,
+        anchor="mm"
+    )
 
-    # Ustunlar (Menejer kengroq, ustunlar ajralgan)
-    headers = ["№", "Menejer", "Reyting", "Javob berilgan savollar", "Javob berilmagan savollar", "Fakultet"]
+    y += 120
+
+    # ================= COLUMN POSITIONS =================
     x = {
-        "no": padding_x +60,
-        "name": padding_x + 180,
-        "rate": 900,
-        "ok": 1050,
-        "bad": 1130,
-        "fac": 1250,
+        "no": 80,
+        "name": 180,
+        "rate": 950,
+        "ok": 1100,
+        "bad": 1300,
+        "fac": 1500,
     }
 
-    # Header chizig‘i
-    draw.line((padding_x, y, width - padding_x, y), fill="black", width=3)
-    y += 18
+    table_left = padding_x
+    table_right = width - padding_x
 
-    # Header text
-    draw.text((x["no"], y), headers[0], fill="black", font=font)
-    draw.text((x["name"], y), headers[1], fill="black", font=font)
-    draw.text((x["rate"], y), headers[2], fill="black", font=font)
-    draw.text((x["ok"], y), headers[3], fill="black", font=font)
-    draw.text((x["bad"], y), headers[4], fill="black", font=font)
-    draw.text((x["fac"], y), headers[5], fill="black", font=font)
+    # ================= HEADER BACKGROUND =================
+    draw.rectangle(
+        [table_left, y, table_right, y + header_block_height],
+        fill=(235, 235, 235)  # 👈 och kulrang
+    )
 
-    y += 45
-    draw.line((padding_x, y, width - padding_x, y), fill="black", width=2)
-    y += 15
+    # ================= HEADER TEXT =================
+    draw.line((table_left, y, table_right, y), fill="black", width=3)
+    y_text = y + 20
+
+    draw.text((x["no"], y_text + 50), "№", fill="black", font=font_header)
+    draw.text((x["name"], y_text + 50), "Menejer", fill="black", font=font_header)
+    draw.text((x["rate"], y_text + 50), "Reyting", fill="black", font=font_header)
+
+    # Javob berilgan
+    draw.text((x["ok"], y_text), "Javob", fill="black", font=font_header)
+    draw.text((x["ok"], y_text + 40), "berilgan", fill="black", font=font_header)
+    draw.text((x["ok"], y_text + 80), "savollar", fill="black", font=font_header)
+
+    # Javob berilmagan
+    draw.text((x["bad"], y_text), "Javob", fill="black", font=font_header)
+    draw.text((x["bad"], y_text + 40), "berilmagan", fill="black", font=font_header)
+    draw.text((x["bad"], y_text + 80), "savollar", fill="black", font=font_header)
+
+    draw.text((x["fac"], y_text + 50), "Fakultet", fill="black", font=font_header)
+
+    y += header_block_height
+    draw.line((table_left, y, table_right, y), fill="black", width=2)
+
+    # ================= VERTICAL LINES =================
+    column_lines = [
+        x["name"] - 30,
+        x["rate"] - 30,
+        x["ok"] - 30,
+        x["bad"] - 30,
+        x["fac"] - 30,
+    ]
+
+    for line_x in column_lines:
+        draw.line((line_x, padding_y + 120, line_x, height - padding_y - 60),
+                  fill=(180, 180, 180), width=2)
 
     medals = ["🥇", "🥈", "🥉"]
 
-    def rate_color(val: float):
-        # Rangli reyting
+    def rate_color(val):
         if val >= 4.5:
-            return (0, 140, 0)      # 🟢
+            return (0, 150, 0)
         if val >= 3.5:
-            return (180, 130, 0)    # 🟡
-        return (180, 0, 0)          # 🔴
+            return (200, 140, 0)
+        return (200, 0, 0)
 
+    y += 20
+
+    # ================= DATA ROWS =================
     for idx, r in enumerate(rows, 1):
-        # Ism
+
         try:
             chat = await bot.get_chat(r["manager_id"])
             name = chat.full_name
         except:
             name = str(r["manager_id"])
 
-        medal = medals[idx - 1] if idx <= 3 else str(idx)
-
         avg = float(r.get("avg_rating") or 0)
         col = rate_color(avg)
+        medal = medals[idx - 1] if idx <= 3 else str(idx)
+
+        # ⭐ Top 1 highlight
+        if idx == 1:
+            draw.rectangle(
+                [table_left, y - 5, table_right, y + row_height - 5],
+                fill=(255, 248, 220)  # 👈 och oltin rang
+            )
 
         draw.text((x["no"], y), medal, fill="black", font=font)
         draw.text((x["name"], y), name, fill="black", font=font)
@@ -388,16 +433,20 @@ async def generate_manager_rating_image(rows, bot):
         draw.text((x["fac"], y), str(r.get("faculty", "")), fill="black", font=font)
 
         y += row_height
-        # har qator pastiga ingichka chiziq
-        draw.line((padding_x, y - 10, width - padding_x, y - 10), fill=(200, 200, 200), width=1)
+        draw.line((table_left, y - 10, table_right, y - 10),
+                  fill=(220, 220, 220), width=1)
 
-    # Footer (sana)
-    footer_text = f"📅 Sana: {datetime.now().strftime('%Y-%m-%d %H:%M')}"
-    draw.text((padding_x, height - padding_y), footer_text, fill="black", font=font_small, anchor="ls")
+    # ================= FOOTER =================
+    footer = f"📅 Sana: {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+    draw.text((padding_x, height - padding_y),
+              footer,
+              fill="black",
+              font=font_small)
 
     buffer = BytesIO()
     img.save(buffer, format="PNG")
     buffer.seek(0)
+
     return buffer
 
 @router.message(F.text == "🏆 Menejerlar reytingi")
