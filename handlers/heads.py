@@ -291,7 +291,7 @@ from io import BytesIO
 from datetime import datetime
 
 async def generate_manager_rating_image(rows, bot):
-    width = 1500
+    width = 1750
     padding_x = 50
     padding_y = 40
 
@@ -331,14 +331,14 @@ async def generate_manager_rating_image(rows, bot):
     y += header_h
 
     # Ustunlar (Menejer kengroq, ustunlar ajralgan)
-    headers = ["№", "Menejer", "Reyting", "✔", "❌", "Fakultet"]
+    headers = ["№", "Menejer", "Reyting", "Javob berilgan savollar", "Javob berilmagan savollar", "Fakultet"]
     x = {
-        "no": padding_x,
-        "name": padding_x + 90,
-        "rate": 820,
-        "ok": 980,
-        "bad": 1060,
-        "fac": 1150,
+        "no": padding_x +60,
+        "name": padding_x + 180,
+        "rate": 900,
+        "ok": 1050,
+        "bad": 1130,
+        "fac": 1250,
     }
 
     # Header chizig‘i
