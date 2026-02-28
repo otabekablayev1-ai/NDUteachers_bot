@@ -344,8 +344,8 @@ async def generate_manager_rating_image(rows, bot):
 
     x = {
         "no": 80,
-        "name": 200,
-        "rate": 1050,
+        "name": 180,
+        "rate": 900,
         "ok": 1050 + equal_width,
         "bad": 1050 + equal_width * 2,
         "fac": 1050 + equal_width * 3 + 60,
@@ -419,33 +419,55 @@ async def generate_manager_rating_image(rows, bot):
 
         # Medal o‘rniga grafik aylana
         circle_color = (255, 215, 0) if idx == 1 else (200, 200, 200)
+        # Medal doira
         draw.ellipse(
-            (x["no"], y, x["no"] + 40, y + 40),
+            (x["no"], y + 20, x["no"] + 40, y + 60),
             fill=circle_color,
             outline="black"
         )
-        draw.text((x["no"] + 12, y + 3),
+
+        draw.text((x["no"] + 20, y + 40),
                   str(idx),
                   fill="black",
-                  font=font_small)
+                  font=font_small,
+                  anchor="mm")
 
-        draw.text((x["name"], y), name, fill="black", font=font)
-        draw.text((x["rate"], y), f"{avg:.1f}", fill=col, font=font)
-        draw.text((x["ok"], y), str(r.get("answered_count", 0)),
-                  fill="black", font=font)
-        draw.text((x["bad"], y), str(r.get("unanswered_count", 0)),
-                  fill="black", font=font)
+        # Menejer (chapga tekis)
+        draw.text((x["name"], y + 30),
+                  name,
+                  fill="black",
+                  font=font)
 
-        # Fakultetni 2 qator qilish
+        # Reyting (markaz)
+        draw.text((x["rate"] + 90, y_text + 60),
+                  "Reyting",
+                  fill="black",
+                  font=font_header,
+                  anchor="mm")
+
+        # Javob berilgan (markaz)
+        draw.text((x["ok"] + 90, y + 60),
+                  str(r.get("answered_count", 0)),
+                  fill="black",
+                  font=font_header,
+                  anchor="mm")
+
+        # Javob berilmagan (markaz)
+        draw.text((x["bad"] + 90, y + 60),
+                  str(r.get("unanswered_count", 0)),
+                  fill="black",
+                  font=font_header,
+                  anchor="mm")
+
+        # Fakultet (chapga, 2 qator)
         faculty = str(r.get("faculty", ""))
         wrapped = textwrap.wrap(faculty, width=25)
 
         for i, line in enumerate(wrapped[:2]):
-            draw.text((x["fac"], y + i * 35),
+            draw.text((x["fac"], y + 10 + i * 35),
                       line,
                       fill="black",
                       font=font)
-
         y += row_height
         draw.line((table_left, y - 15, table_right, y - 15),
                   fill=(220, 220, 220), width=1)
