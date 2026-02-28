@@ -342,11 +342,11 @@ async def generate_manager_rating_image(rows, bot):
     # ================= COLUMN POSITIONS =================
     x = {
         "no": 80,
-        "name": 170,
-        "rate": 1000,
-        "ok": 1300,
-        "bad": 1400,
-        "fac": 2000,
+        "name": 180,
+        "rate": 950,
+        "ok": 1100,
+        "bad": 1300,
+        "fac": 1500,
     }
 
     table_left = padding_x
@@ -448,7 +448,6 @@ async def generate_manager_rating_image(rows, bot):
     buffer.seek(0)
 
     return buffer
-
 @router.message(F.text == "🏆 Menejerlar reytingi")
 async def show_managers_rating(message: Message):
 
