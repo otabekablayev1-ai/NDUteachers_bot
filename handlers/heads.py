@@ -537,7 +537,7 @@ async def generate_manager_rating_image(rows, bot):
 
     # ================= ECONOMY INFO =================
 
-    gap_between = 60  # Jami savollar bilan yashil yozuv orasidagi masofa
+    gap_between = 70  # Jami savollar bilan yashil yozuv orasidagi masofa
     info_y = y + gap_between
 
     green_color = (0, 128, 0)
