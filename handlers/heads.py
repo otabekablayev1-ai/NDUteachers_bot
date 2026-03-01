@@ -318,17 +318,25 @@ async def generate_manager_rating_image(rows, bot):
     img = Image.new("RGB", (width, height), "white")
     draw = ImageDraw.Draw(img)
 
-    def load_font(size):
+    def load_font(size, bold=False, italic=False):
         try:
-            return ImageFont.truetype("DejaVuSans.ttf", size)
+            if bold and italic:
+                return ImageFont.truetype("timesbi.ttf", size)  # Bold Italic
+            elif bold:
+                return ImageFont.truetype("timesbd.ttf", size)  # Bold
+            elif italic:
+                return ImageFont.truetype("timesi.ttf", size)  # Italic
+            else:
+                return ImageFont.truetype("times.ttf", size)  # Normal
         except:
             return ImageFont.load_default()
 
-    font_title_main = load_font(TITLE_SIZE_MAIN)
+    font_title_main = load_font(TITLE_SIZE_MAIN, bold=True)
     font_title_sub = load_font(TITLE_SIZE_SUB)
-    font_header = load_font(HEADER_SIZE)
+    font_header = load_font(HEADER_SIZE, bold=True)
     font = load_font(FONT_SIZE)
     font_small = load_font(SMALL_SIZE)
+    font_italic = load_font(HEADER_SIZE, italic=True)
 
     y = padding_y
 
@@ -418,16 +426,16 @@ async def generate_manager_rating_image(rows, bot):
     for idx, r in enumerate(rows, 1):
 
         row_bottom = y + row_height
-
-        draw.line((table_left, row_bottom,
-                   table_right, row_bottom),
-                  fill="black", width=1)
-
-        if idx == 1:
-            draw.rectangle([table_left, y, table_right, row_bottom],
-                           fill=(255, 248, 220))
-
         center_y = y + row_height // 2
+
+        # 1️⃣ Avval highlight (fon)
+        if idx == 1:
+            draw.rectangle(
+                [table_left, y, table_right, row_bottom],
+                fill=(255, 248, 220)
+            )
+
+        # 2️⃣ Matn va elementlar
 
         try:
             chat = await bot.get_chat(r["manager_id"])
@@ -437,10 +445,12 @@ async def generate_manager_rating_image(rows, bot):
 
         avg = float(r.get("avg_rating") or 0)
 
-        draw.ellipse((x_no + 25, center_y - 25,
-                      x_no + 75, center_y + 25),
-                     fill=(255, 215, 0) if idx == 1 else (200, 200, 200),
-                     outline="black")
+        draw.ellipse(
+            (x_no + 25, center_y - 25,
+             x_no + 75, center_y + 25),
+            fill=(255, 215, 0) if idx == 1 else (200, 200, 200),
+            outline="black"
+        )
 
         draw.text((x_no + 50, center_y),
                   str(idx), fill="black",
@@ -449,15 +459,15 @@ async def generate_manager_rating_image(rows, bot):
         draw.text((x_name + 20, center_y - 20),
                   name, fill="black", font=font)
 
-        draw.text((x_rate + col_equal//2, center_y),
+        draw.text((x_rate + col_equal // 2, center_y),
                   f"{avg:.1f}", fill="black",
                   font=font, anchor="mm")
 
-        draw.text((x_ok + col_equal//2, center_y),
+        draw.text((x_ok + col_equal // 2, center_y),
                   str(r.get("answered_count", 0)),
                   fill="black", font=font, anchor="mm")
 
-        draw.text((x_bad + col_equal//2, center_y),
+        draw.text((x_bad + col_equal // 2, center_y),
                   str(r.get("unanswered_count", 0)),
                   fill="black", font=font, anchor="mm")
 
@@ -466,11 +476,19 @@ async def generate_manager_rating_image(rows, bot):
 
         for i, line in enumerate(wrapped[:2]):
             draw.text((x_fac + 20,
-                       center_y - 30 + i*35),
+                       center_y - 30 + i * 35),
                       line, fill="black", font=font)
 
-        y += row_height
+        # 3️⃣ Eng oxirida chiziqlar (to‘g‘ri joyda!)
+        draw.line((table_left, y, table_right, y), fill="black", width=2)
+        draw.line((table_left, row_bottom, table_right, row_bottom), fill="black", width=2)
 
+        # 4️⃣ Vertikal chiziqlar (mana shu yerga qo‘yiladi)
+        for col in columns:
+            draw.line((col, y, col, row_bottom), fill="black", width=2)
+
+        # 5️⃣ Oxirida pastga tushamiz
+        y = row_bottom
     # ================= TOTAL ROW =================
     row_bottom = y + row_height
 
@@ -510,14 +528,14 @@ async def generate_manager_rating_image(rows, bot):
 
     green_color = (0, 128, 0)
 
-    info_y = height - padding_y - 70  # bu asosiy chiziq
+    info_y = height - padding_y - 90 # bu asosiy chiziq
 
     # Chap matn
     draw.text(
         (padding_x, info_y),
         info_text,
         fill=green_color,
-        font=font_header
+        font=font_italic
     )
 
     # O‘ng summa — aynan shu baseline’da
