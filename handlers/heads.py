@@ -502,6 +502,35 @@ async def generate_manager_rating_image(rows, bot):
     draw.line((table_left, row_bottom, table_right, row_bottom),
               fill="black", width=3)
 
+    # ================= SAVED COST BLOCK =================
+
+    saved_money = total_answered * 5000
+
+    info_text = "Onlayn murojaatlar hisobiga iqtisod qilingan yo‘l xarajati (1 tashrif — 5 000 so‘m bo‘lganda)."
+
+    # Yashil rang
+    green_color = (0, 128, 0)
+
+    # Matn joylashuvi (sanadan yuqorida)
+    info_y = height - padding_y - 70
+
+    # Chap tarafdagi izoh
+    draw.text(
+        (padding_x, info_y),
+        info_text,
+        fill=green_color,
+        font=font_header
+    )
+
+    # O‘ng tarafdagi summa
+    draw.text(
+        (width - padding_x, info_y),
+        f"{saved_money:,} so‘m",
+        fill=green_color,
+        font=font_header,
+        anchor="rm"
+    )
+    
     # ================= FOOTER =================
     footer = f"Sana: {datetime.now().strftime('%Y-%m-%d %H:%M')}"
     draw.text((padding_x, height - padding_y),
