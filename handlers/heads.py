@@ -332,7 +332,7 @@ async def generate_manager_rating_image(rows, bot):
     # ================= TITLE =================
     draw.text(
         (width // 2, y),
-        "MENEJERLAR REYTINGI",
+        "Navoiy davlat universiteti Registrator ofisi Xizmat ko‘rsatish va Ma’lumotlar bazasi menejerlarining faoliyat samaradorligi (reyting) ko‘rsatkichlari",
         fill="black",
         font=font_title,
         anchor="mm"
