@@ -299,9 +299,9 @@ async def generate_manager_rating_image(rows, bot):
 
     TITLE_SIZE_MAIN = 48
     TITLE_SIZE_SUB = 40
-    HEADER_SIZE = 34
-    FONT_SIZE = 36
-    SMALL_SIZE = 26
+    HEADER_SIZE = 30
+    FONT_SIZE = 32
+    SMALL_SIZE = 20
 
     row_height = 100
     header_height = 170
@@ -502,19 +502,17 @@ async def generate_manager_rating_image(rows, bot):
     draw.line((table_left, row_bottom, table_right, row_bottom),
               fill="black", width=3)
 
-    # ================= SAVED COST BLOCK =================
-
-    saved_money = total_answered * 5000
+    # ================= ECONOMY INFO =================
 
     info_text = "Onlayn murojaatlar hisobiga iqtisod qilingan yo‘l xarajati (1 tashrif — 5 000 so‘m bo‘lganda)."
 
-    # Yashil rang
+    saved_money = total_answered * 5000
+
     green_color = (0, 128, 0)
 
-    # Matn joylashuvi (sanadan yuqorida)
-    info_y = height - padding_y - 70
+    info_y = height - padding_y - 70  # bu asosiy chiziq
 
-    # Chap tarafdagi izoh
+    # Chap matn
     draw.text(
         (padding_x, info_y),
         info_text,
@@ -522,15 +520,18 @@ async def generate_manager_rating_image(rows, bot):
         font=font_header
     )
 
-    # O‘ng tarafdagi summa
+    # O‘ng summa — aynan shu baseline’da
+    sum_text = f"{saved_money:,} so‘m"
+
+    sum_width = draw.textlength(sum_text, font=font_header)
+
     draw.text(
-        (width - padding_x, info_y),
-        f"{saved_money:,} so‘m",
+        (width - padding_x - sum_width, info_y),
+        sum_text,
         fill=green_color,
-        font=font_header,
-        anchor="rm"
+        font=font_header
     )
-    
+
     # ================= FOOTER =================
     footer = f"Sana: {datetime.now().strftime('%Y-%m-%d %H:%M')}"
     draw.text((padding_x, height - padding_y),
