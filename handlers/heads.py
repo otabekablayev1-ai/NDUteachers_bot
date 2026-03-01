@@ -318,7 +318,7 @@ async def generate_manager_rating_image(rows, bot):
     img = Image.new("RGB", (width, height), "white")
     draw = ImageDraw.Draw(img)
 
-    def draw_italic_text(draw, position, text, font, fill, skew=0.3):
+    def draw_italic_text(draw, position, text, font, fill, skew=0.2):
         x, y = position
 
         # Matn o'lchamini aniqlaymiz
@@ -534,17 +534,18 @@ async def generate_manager_rating_image(rows, bot):
     draw.line((table_left, row_bottom, table_right, row_bottom),
               fill="black", width=3)
 
+
     # ================= ECONOMY INFO =================
 
-    info_text = "Onlayn murojaatlar hisobiga iqtisod qilingan yo‘l xarajati (1 tashrif — 5 000 so‘m bo‘lganda)."
-
-    saved_money = total_answered * 5000
+    gap_between = 80  # Jami savollar bilan yashil yozuv orasidagi masofa
+    info_y = y + gap_between
 
     green_color = (0, 128, 0)
 
-    info_y = height - padding_y - 90 # bu asosiy chiziq
+    saved_money = total_answered * 5000
+    info_text = "Onlayn murojaatlar hisobiga iqtisod qilingan yo‘l xarajati (1 tashrif — 5 000 so‘m bo‘lganda)."
 
-    # Chap matn
+    # Kursiv yashil matn
     draw_italic_text(
         draw,
         (padding_x, info_y),
@@ -553,18 +554,16 @@ async def generate_manager_rating_image(rows, bot):
         green_color
     )
 
-    # O‘ng summa — aynan shu baseline’da
+    # O‘ng tomondagi summa (xuddi shu balandlikda)
     sum_text = f"{saved_money:,} so‘m"
 
-    sum_width = draw.textlength(sum_text, font=font_header)
-
     draw.text(
-        (width - padding_x - sum_width, info_y),
+        (table_right - 20, info_y),
         sum_text,
         fill=green_color,
-        font=font_header
+        font=font_header,
+        anchor="ra"
     )
-
     # ================= FOOTER =================
     footer = f"Sana: {datetime.now().strftime('%Y-%m-%d %H:%M')}"
     draw.text((padding_x, height - padding_y),
