@@ -297,7 +297,8 @@ async def generate_manager_rating_image(rows, bot):
     padding_x = 80
     padding_y = 80
 
-    TITLE_SIZE = 64
+    TITLE_SIZE_MAIN = 48  # 1-qator
+    TITLE_SIZE_SUB = 40  # 2-3-qator
     HEADER_SIZE = 34
     FONT_SIZE = 36
     SMALL_SIZE = 26
@@ -322,7 +323,8 @@ async def generate_manager_rating_image(rows, bot):
         except:
             return ImageFont.load_default()
 
-    font_title = load_font(TITLE_SIZE)
+    font_title_main = load_font(TITLE_SIZE_MAIN)
+    font_title_sub = load_font(TITLE_SIZE_SUB)
     font_header = load_font(HEADER_SIZE)
     font = load_font(FONT_SIZE)
     font_small = load_font(SMALL_SIZE)
@@ -335,13 +337,13 @@ async def generate_manager_rating_image(rows, bot):
     title_line2 = "Xizmat ko‘rsatish va Ma’lumotlar bazasi menejerlarining"
     title_line3 = "faoliyat samaradorligi (reyting) ko‘rsatkichlari"
 
-    line_spacing = 70  # qatorlar orasidagi masofa
+    line_spacing = 60
 
     draw.text(
         (width // 2, y),
         title_line1,
         fill="black",
-        font=font_title,
+        font=font_title_main,
         anchor="mm"
     )
 
@@ -351,7 +353,7 @@ async def generate_manager_rating_image(rows, bot):
         (width // 2, y),
         title_line2,
         fill="black",
-        font=font_title,
+        font=font_title_sub,
         anchor="mm"
     )
 
@@ -361,12 +363,16 @@ async def generate_manager_rating_image(rows, bot):
         (width // 2, y),
         title_line3,
         fill="black",
-        font=font_title,
+        font=font_title_sub,
         anchor="mm"
     )
 
-    y += 100  # title dan keyingi bo‘sh joy
+    y += 80
 
+    # Title ostiga ingichka chiziq
+    draw.line((padding_x, y, width - padding_x, y), fill="black", width=3)
+
+    y += 40
     # ================= COLUMN WIDTHS =================
     col_no = 100
     col_name = 700
@@ -439,10 +445,62 @@ async def generate_manager_rating_image(rows, bot):
 
     y = table_top + header_height
 
+    total_answered = sum(int(r.get("answered_count", 0)) for r in rows)
+    total_unanswered = sum(int(r.get("unanswered_count", 0)) for r in rows)
     # ================= DATA ROWS =================
     for idx, r in enumerate(rows, 1):
 
+        # ================= TOTAL ROW =================
+
         row_bottom = y + row_height
+
+        # Och kulrang fon
+        draw.rectangle(
+            [table_left, y, table_right, row_bottom],
+            fill=(245, 245, 245)
+        )
+
+        # Qalin yuqori chiziq
+        draw.line(
+            (table_left, y, table_right, y),
+            fill="black",
+            width=3
+        )
+
+        center_y = y + row_height // 2
+
+        # "Jami savollar" yozuvi (Menejer ustuniga)
+        draw.text(
+            (x_name + 20, center_y - 20),
+            "Jami savollar",
+            fill="black",
+            font=font_header
+        )
+
+        # Javob berilgan yig‘indi
+        draw.text(
+            (x_ok + col_equal // 2, center_y),
+            str(total_answered),
+            fill="black",
+            font=font_header,
+            anchor="mm"
+        )
+
+        # Javob berilmagan yig‘indi
+        draw.text(
+            (x_bad + col_equal // 2, center_y),
+            str(total_unanswered),
+            fill="black",
+            font=font_header,
+            anchor="mm"
+        )
+
+        # Pastki chiziq
+        draw.line(
+            (table_left, row_bottom, table_right, row_bottom),
+            fill="black",
+            width=3
+        )
 
         # Gorizontal chiziq
         draw.line((table_left, row_bottom,
