@@ -330,15 +330,42 @@ async def generate_manager_rating_image(rows, bot):
     y = padding_y
 
     # ================= TITLE =================
+
+    title_line1 = "Navoiy davlat universiteti Registrator ofisi"
+    title_line2 = "Xizmat ko‘rsatish va Ma’lumotlar bazasi menejerlarining"
+    title_line3 = "faoliyat samaradorligi (reyting) ko‘rsatkichlari"
+
+    line_spacing = 70  # qatorlar orasidagi masofa
+
     draw.text(
         (width // 2, y),
-        "Navoiy davlat universiteti Registrator ofisi Xizmat ko‘rsatish va Ma’lumotlar bazasi menejerlarining faoliyat samaradorligi (reyting) ko‘rsatkichlari",
+        title_line1,
         fill="black",
         font=font_title,
         anchor="mm"
     )
 
-    y += 140
+    y += line_spacing
+
+    draw.text(
+        (width // 2, y),
+        title_line2,
+        fill="black",
+        font=font_title,
+        anchor="mm"
+    )
+
+    y += line_spacing
+
+    draw.text(
+        (width // 2, y),
+        title_line3,
+        fill="black",
+        font=font_title,
+        anchor="mm"
+    )
+
+    y += 100  # title dan keyingi bo‘sh joy
 
     # ================= COLUMN WIDTHS =================
     col_no = 100
