@@ -318,25 +318,39 @@ async def generate_manager_rating_image(rows, bot):
     img = Image.new("RGB", (width, height), "white")
     draw = ImageDraw.Draw(img)
 
-    def load_font(size, bold=False, italic=False):
+    def draw_italic_text(draw, position, text, font, fill, skew=0.3):
+        x, y = position
+
+        # Matn o'lchamini aniqlaymiz
+        text_width = draw.textlength(text, font=font)
+        text_height = font.size
+
+        # Yangi shaffof rasm
+        temp = Image.new("RGBA", (int(text_width) + 20, text_height + 20), (255, 255, 255, 0))
+        temp_draw = ImageDraw.Draw(temp)
+        temp_draw.text((0, 0), text, font=font, fill=fill)
+
+        # Qiyalashtiramiz (italic effekt)
+        temp = temp.transform(
+            temp.size,
+            Image.AFFINE,
+            (1, skew, 0, 0, 1, 0),
+            resample=Image.BICUBIC
+        )
+
+        img.paste(temp, (int(x), int(y)), temp)
+
+    def load_font(size):
         try:
-            if bold and italic:
-                return ImageFont.truetype("timesbi.ttf", size)  # Bold Italic
-            elif bold:
-                return ImageFont.truetype("timesbd.ttf", size)  # Bold
-            elif italic:
-                return ImageFont.truetype("timesi.ttf", size)  # Italic
-            else:
-                return ImageFont.truetype("times.ttf", size)  # Normal
+            return ImageFont.truetype("DejaVuSans.ttf", size)
         except:
             return ImageFont.load_default()
 
-    font_title_main = load_font(TITLE_SIZE_MAIN, bold=True)
+    font_title_main = load_font(TITLE_SIZE_MAIN)
     font_title_sub = load_font(TITLE_SIZE_SUB)
-    font_header = load_font(HEADER_SIZE, bold=True)
+    font_header = load_font(HEADER_SIZE)
     font = load_font(FONT_SIZE)
     font_small = load_font(SMALL_SIZE)
-    font_italic = load_font(HEADER_SIZE, italic=True)
 
     y = padding_y
 
@@ -531,11 +545,12 @@ async def generate_manager_rating_image(rows, bot):
     info_y = height - padding_y - 90 # bu asosiy chiziq
 
     # Chap matn
-    draw.text(
+    draw_italic_text(
+        draw,
         (padding_x, info_y),
         info_text,
-        fill=green_color,
-        font=font_italic
+        font_header,
+        green_color
     )
 
     # O‘ng summa — aynan shu baseline’da
