@@ -297,8 +297,8 @@ async def generate_manager_rating_image(rows, bot):
     padding_x = 80
     padding_y = 80
 
-    TITLE_SIZE_MAIN = 48  # 1-qator
-    TITLE_SIZE_SUB = 40  # 2-3-qator
+    TITLE_SIZE_MAIN = 48
+    TITLE_SIZE_SUB = 40
     HEADER_SIZE = 34
     FONT_SIZE = 36
     SMALL_SIZE = 26
@@ -306,11 +306,12 @@ async def generate_manager_rating_image(rows, bot):
     row_height = 100
     header_height = 170
 
+    # +1 jami qatori uchun
     height = (
         padding_y * 2
         + 150
         + header_height
-        + row_height * len(rows)
+        + row_height * (len(rows) + 1)
         + 120
     )
 
@@ -332,48 +333,28 @@ async def generate_manager_rating_image(rows, bot):
     y = padding_y
 
     # ================= TITLE =================
-
     title_line1 = "Navoiy davlat universiteti Registrator ofisi"
     title_line2 = "Xizmat ko‘rsatish va Ma’lumotlar bazasi menejerlarining"
     title_line3 = "faoliyat samaradorligi (reyting) ko‘rsatkichlari"
 
     line_spacing = 60
 
-    draw.text(
-        (width // 2, y),
-        title_line1,
-        fill="black",
-        font=font_title_main,
-        anchor="mm"
-    )
-
+    draw.text((width // 2, y), title_line1, fill="black",
+              font=font_title_main, anchor="mm")
     y += line_spacing
 
-    draw.text(
-        (width // 2, y),
-        title_line2,
-        fill="black",
-        font=font_title_sub,
-        anchor="mm"
-    )
-
+    draw.text((width // 2, y), title_line2, fill="black",
+              font=font_title_sub, anchor="mm")
     y += line_spacing
 
-    draw.text(
-        (width // 2, y),
-        title_line3,
-        fill="black",
-        font=font_title_sub,
-        anchor="mm"
-    )
+    draw.text((width // 2, y), title_line3, fill="black",
+              font=font_title_sub, anchor="mm")
 
     y += 80
-
-    # Title ostiga ingichka chiziq
     draw.line((padding_x, y, width - padding_x, y), fill="black", width=3)
-
     y += 40
-    # ================= COLUMN WIDTHS =================
+
+    # ================= TABLE =================
     col_no = 100
     col_name = 700
     col_equal = 200
@@ -383,7 +364,6 @@ async def generate_manager_rating_image(rows, bot):
     table_top = y
     table_right = table_left + col_no + col_name + col_equal*3 + col_faculty
 
-    # ================= HEADER BACKGROUND =================
     draw.rectangle(
         [table_left, table_top,
          table_right, table_top + header_height],
@@ -392,7 +372,6 @@ async def generate_manager_rating_image(rows, bot):
         width=2
     )
 
-    # ================= COLUMN POSITIONS =================
     x_no = table_left
     x_name = x_no + col_no
     x_rate = x_name + col_name
@@ -400,119 +379,53 @@ async def generate_manager_rating_image(rows, bot):
     x_bad = x_ok + col_equal
     x_fac = x_bad + col_equal
 
-    # ================= HEADER TEXT =================
     center_y = table_top + header_height // 2
 
-    # №
     draw.text((x_no + col_no//2, center_y),
               "№", font=font_header, fill="black", anchor="mm")
-
-    # Menejer
     draw.text((x_name + 20, center_y),
               "Menejer", font=font_header, fill="black")
-
-    # Reyting
     draw.text((x_rate + col_equal//2, center_y),
               "Reyting", font=font_header, fill="black", anchor="mm")
 
-    # Javob berilgan
-    draw.text((x_ok + col_equal//2, table_top + 40),
-              "Javob", font=font_header, fill="black", anchor="mm")
-    draw.text((x_ok + col_equal//2, table_top + 85),
-              "berilgan", font=font_header, fill="black", anchor="mm")
-    draw.text((x_ok + col_equal//2, table_top + 130),
-              "savollar", font=font_header, fill="black", anchor="mm")
+    # Header multi-line
+    for i, txt in enumerate(["Javob", "berilgan", "savollar"]):
+        draw.text((x_ok + col_equal//2, table_top + 40 + i*45),
+                  txt, font=font_header, fill="black", anchor="mm")
 
-    # Javob berilmagan
-    draw.text((x_bad + col_equal//2, table_top + 40),
-              "Javob", font=font_header, fill="black", anchor="mm")
-    draw.text((x_bad + col_equal//2, table_top + 85),
-              "berilmagan", font=font_header, fill="black", anchor="mm")
-    draw.text((x_bad + col_equal//2, table_top + 130),
-              "savollar", font=font_header, fill="black", anchor="mm")
+    for i, txt in enumerate(["Javob", "berilmagan", "savollar"]):
+        draw.text((x_bad + col_equal//2, table_top + 40 + i*45),
+                  txt, font=font_header, fill="black", anchor="mm")
 
-    # Fakultet
     draw.text((x_fac + 20, center_y),
               "Fakultet", font=font_header, fill="black")
 
-    # ================= GRID LINES =================
+    # Grid lines (header + data + jami)
+    total_rows = len(rows) + 1
     columns = [x_no, x_name, x_rate, x_ok, x_bad, x_fac, table_right]
 
     for col in columns:
-        draw.line((col, table_top, col,
-                   table_top + header_height + row_height*len(rows)),
+        draw.line((col, table_top,
+                   col, table_top + header_height + row_height*total_rows),
                   fill="black", width=2)
 
     y = table_top + header_height
 
     total_answered = sum(int(r.get("answered_count", 0)) for r in rows)
     total_unanswered = sum(int(r.get("unanswered_count", 0)) for r in rows)
+
     # ================= DATA ROWS =================
     for idx, r in enumerate(rows, 1):
 
-        # ================= TOTAL ROW =================
-
         row_bottom = y + row_height
 
-        # Och kulrang fon
-        draw.rectangle(
-            [table_left, y, table_right, row_bottom],
-            fill=(245, 245, 245)
-        )
-
-        # Qalin yuqori chiziq
-        draw.line(
-            (table_left, y, table_right, y),
-            fill="black",
-            width=3
-        )
-
-        center_y = y + row_height // 2
-
-        # "Jami savollar" yozuvi (Menejer ustuniga)
-        draw.text(
-            (x_name + 20, center_y - 20),
-            "Jami savollar",
-            fill="black",
-            font=font_header
-        )
-
-        # Javob berilgan yig‘indi
-        draw.text(
-            (x_ok + col_equal // 2, center_y),
-            str(total_answered),
-            fill="black",
-            font=font_header,
-            anchor="mm"
-        )
-
-        # Javob berilmagan yig‘indi
-        draw.text(
-            (x_bad + col_equal // 2, center_y),
-            str(total_unanswered),
-            fill="black",
-            font=font_header,
-            anchor="mm"
-        )
-
-        # Pastki chiziq
-        draw.line(
-            (table_left, row_bottom, table_right, row_bottom),
-            fill="black",
-            width=3
-        )
-
-        # Gorizontal chiziq
         draw.line((table_left, row_bottom,
                    table_right, row_bottom),
                   fill="black", width=1)
 
-        # Top 1 highlight
         if idx == 1:
-            draw.rectangle(
-                [table_left, y, table_right, row_bottom],
-                fill=(255, 248, 220)
-            )
+            draw.rectangle([table_left, y, table_right, row_bottom],
+                           fill=(255, 248, 220))
 
         center_y = y + row_height // 2
 
@@ -524,67 +437,75 @@ async def generate_manager_rating_image(rows, bot):
 
         avg = float(r.get("avg_rating") or 0)
 
-        # Medal doira
-        circle_color = (255, 215, 0) if idx == 1 else (200, 200, 200)
-        draw.ellipse(
-            (x_no + 25, center_y - 25,
-             x_no + 75, center_y + 25),
-            fill=circle_color,
-            outline="black"
-        )
+        draw.ellipse((x_no + 25, center_y - 25,
+                      x_no + 75, center_y + 25),
+                     fill=(255, 215, 0) if idx == 1 else (200, 200, 200),
+                     outline="black")
 
         draw.text((x_no + 50, center_y),
-                  str(idx),
-                  fill="black",
-                  font=font_small,
-                  anchor="mm")
+                  str(idx), fill="black",
+                  font=font_small, anchor="mm")
 
-        # Menejer
         draw.text((x_name + 20, center_y - 20),
-                  name,
-                  fill="black",
-                  font=font)
+                  name, fill="black", font=font)
 
-        # Reyting
         draw.text((x_rate + col_equal//2, center_y),
-                  f"{avg:.1f}",
-                  fill="black",
-                  font=font,
-                  anchor="mm")
+                  f"{avg:.1f}", fill="black",
+                  font=font, anchor="mm")
 
-        # Javob berilgan
         draw.text((x_ok + col_equal//2, center_y),
                   str(r.get("answered_count", 0)),
-                  fill="black",
-                  font=font,
-                  anchor="mm")
+                  fill="black", font=font, anchor="mm")
 
-        # Javob berilmagan
         draw.text((x_bad + col_equal//2, center_y),
                   str(r.get("unanswered_count", 0)),
-                  fill="black",
-                  font=font,
-                  anchor="mm")
+                  fill="black", font=font, anchor="mm")
 
-        # Fakultet 2 qator
         faculty = str(r.get("faculty", ""))
         wrapped = textwrap.wrap(faculty, width=28)
 
         for i, line in enumerate(wrapped[:2]):
             draw.text((x_fac + 20,
                        center_y - 30 + i*35),
-                      line,
-                      fill="black",
-                      font=font)
+                      line, fill="black", font=font)
 
         y += row_height
+
+    # ================= TOTAL ROW =================
+    row_bottom = y + row_height
+
+    draw.rectangle([table_left, y, table_right, row_bottom],
+                   fill=(245, 245, 245))
+
+    draw.line((table_left, y, table_right, y),
+              fill="black", width=3)
+
+    center_y = y + row_height // 2
+
+    draw.text((x_name + 20, center_y - 20),
+              "Jami savollar",
+              fill="black",
+              font=font_header)
+
+    draw.text((x_ok + col_equal//2, center_y),
+              str(total_answered),
+              fill="black",
+              font=font_header,
+              anchor="mm")
+
+    draw.text((x_bad + col_equal//2, center_y),
+              str(total_unanswered),
+              fill="black",
+              font=font_header,
+              anchor="mm")
+
+    draw.line((table_left, row_bottom, table_right, row_bottom),
+              fill="black", width=3)
 
     # ================= FOOTER =================
     footer = f"Sana: {datetime.now().strftime('%Y-%m-%d %H:%M')}"
     draw.text((padding_x, height - padding_y),
-              footer,
-              fill="black",
-              font=font_small)
+              footer, fill="black", font=font_small)
 
     buffer = BytesIO()
     img.save(buffer, format="PNG")
