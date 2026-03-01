@@ -505,9 +505,6 @@ async def generate_manager_rating_image(rows, bot):
     # ================= TOTAL ROW =================
     row_bottom = y + row_height
 
-    draw.rectangle([table_left, y, table_right, row_bottom],
-                   fill=(245, 245, 245))
-
     draw.line((table_left, y, table_right, y),
               fill="black", width=3)
 
@@ -530,9 +527,6 @@ async def generate_manager_rating_image(rows, bot):
               font=font_header,
               anchor="mm")
 
-    draw.line((table_left, row_bottom, table_right, row_bottom),
-              fill="black", width=3)
-
 
     # ================= ECONOMY INFO =================
 
@@ -545,12 +539,14 @@ async def generate_manager_rating_image(rows, bot):
     info_text = "Onlayn murojaatlar hisobiga iqtisod qilingan yo‘l xarajati (1 tashrif — 5 000 so‘m bo‘lganda)."
 
     # Kursiv yashil matn
-    text_width = draw.textlength(info_text, font=font_header)
     center_x = table_left + (table_right - table_left) // 2
+    text_width = draw.textlength(info_text, font=font_header)
+
+    shift_left = 120  # qancha chapga surish (100–150 oralig‘ida ideal)
 
     draw_italic_text(
         draw,
-        (center_x - text_width // 2, info_y),
+        (center_x - text_width // 2 - shift_left, info_y),
         info_text,
         font_header,
         green_color
@@ -564,7 +560,7 @@ async def generate_manager_rating_image(rows, bot):
     sum_x = table_left + (table_right - table_left) * 0.75  # 75% markaz tomonga
 
     draw.text(
-        (sum_x, info_y),
+        (sum_x, info_y + 8),  # 6–12 px pastga tushiradi
         sum_text,
         fill=green_color,
         font=font_header,
