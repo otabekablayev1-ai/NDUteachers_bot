@@ -372,9 +372,8 @@ async def generate_manager_rating_image(rows, bot):
     draw.text((width // 2, y), title_line3, fill="black",
               font=font_title_sub, anchor="mm")
 
-    y += 80
-    draw.line((padding_x, y, width - padding_x, y), fill="black", width=3)
-    y += 40
+    y += 30
+
 
     # ================= TABLE =================
     col_no = 100
@@ -546,9 +545,12 @@ async def generate_manager_rating_image(rows, bot):
     info_text = "Onlayn murojaatlar hisobiga iqtisod qilingan yo‘l xarajati (1 tashrif — 5 000 so‘m bo‘lganda)."
 
     # Kursiv yashil matn
+    text_width = draw.textlength(info_text, font=font_header)
+    center_x = table_left + (table_right - table_left) // 2
+
     draw_italic_text(
         draw,
-        (padding_x, info_y),
+        (center_x - text_width // 2, info_y),
         info_text,
         font_header,
         green_color
@@ -557,12 +559,16 @@ async def generate_manager_rating_image(rows, bot):
     # O‘ng tomondagi summa (xuddi shu balandlikda)
     sum_text = f"{saved_money:,} so‘m"
 
+    sum_width = draw.textlength(sum_text, font=font_header)
+
+    sum_x = table_left + (table_right - table_left) * 0.75  # 75% markaz tomonga
+
     draw.text(
-        (table_right - 20, info_y),
+        (sum_x, info_y),
         sum_text,
         fill=green_color,
         font=font_header,
-        anchor="ra"
+        anchor="mm"
     )
     # ================= FOOTER =================
     footer = f"Sana: {datetime.now().strftime('%Y-%m-%d %H:%M')}"
