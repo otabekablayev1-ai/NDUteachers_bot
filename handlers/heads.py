@@ -530,7 +530,7 @@ async def generate_manager_rating_image(rows, bot):
 
     # ================= ECONOMY INFO =================
 
-    gap_between = 70  # Jami savollar bilan yashil yozuv orasidagi masofa
+    gap_between = 90  # Jami savollar bilan yashil yozuv orasidagi masofa
     info_y = y + gap_between
 
     green_color = (0, 128, 0)
@@ -560,7 +560,7 @@ async def generate_manager_rating_image(rows, bot):
     sum_x = table_left + (table_right - table_left) * 0.90  # 75% markaz tomonga
 
     draw.text(
-        (sum_x, info_y + 16),  # 6–12 px pastga tushiradi
+        (sum_x, info_y + 20),  # 6–12 px pastga tushiradi
         sum_text,
         fill=green_color,
         font=font_header,
