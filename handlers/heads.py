@@ -542,7 +542,7 @@ async def generate_manager_rating_image(rows, bot):
     center_x = table_left + (table_right - table_left) // 2
     text_width = draw.textlength(info_text, font=font_header)
 
-    shift_left = 120  # qancha chapga surish (100–150 oralig‘ida ideal)
+    shift_left = 100  # qancha chapga surish (100–150 oralig‘ida ideal)
 
     draw_italic_text(
         draw,
@@ -557,10 +557,10 @@ async def generate_manager_rating_image(rows, bot):
 
     sum_width = draw.textlength(sum_text, font=font_header)
 
-    sum_x = table_left + (table_right - table_left) * 0.75  # 75% markaz tomonga
+    sum_x = table_left + (table_right - table_left) * 0.50  # 75% markaz tomonga
 
     draw.text(
-        (sum_x, info_y + 8),  # 6–12 px pastga tushiradi
+        (sum_x, info_y + 12),  # 6–12 px pastga tushiradi
         sum_text,
         fill=green_color,
         font=font_header,
