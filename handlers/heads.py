@@ -527,7 +527,9 @@ async def generate_manager_rating_image(rows, bot):
               font=font_header,
               anchor="mm")
 
-
+    # ================= OUTER BORDER =================
+    draw.line((table_left, y, table_right, y), fill="black", width=3)
+    draw.line((table_right, table_top, table_right, y), fill="black", width=3)
     # ================= ECONOMY INFO =================
 
     gap_between = 150  # Jami savollar bilan yashil yozuv orasidagi masofa
@@ -536,7 +538,7 @@ async def generate_manager_rating_image(rows, bot):
     green_color = (0, 128, 0)
 
     saved_money = total_answered * 5000
-    info_text = "Onlayn murojaatlar hisobiga iqtisod qilingan yo‘l xarajati (1 tashrif — 5 000 so‘m bo‘lganda)."
+    info_text = "Onlayn tashrifdan iqtisod qilingan yo‘l xarajati (1 tashrif — 5 000 so‘m bo‘lganda)."
 
     # Kursiv yashil matn
     center_x = table_left + (table_right - table_left) // 2
