@@ -356,7 +356,7 @@ async def generate_manager_rating_image(rows, bot):
 
     # ================= TITLE =================
     title_line1 = "Navoiy davlat universiteti Registrator ofisi"
-    title_line2 = "Xizmat ko‘rsatish va Ma’lumotlar bazasi menejerlarining"
+    title_line2 = '"Xizmat ko‘rsatish" va "Ma’lumotlar bazasi" bo`limlari menejerlarining'
     title_line3 = "faoliyat samaradorligi (reyting) ko‘rsatkichlari"
 
     line_spacing = 60
@@ -511,7 +511,7 @@ async def generate_manager_rating_image(rows, bot):
     center_y = y + row_height // 2
 
     draw.text((x_name + 20, center_y - 20),
-              "Jami savollar",
+              "Jami:",
               fill="black",
               font=font_header)
 
@@ -557,10 +557,10 @@ async def generate_manager_rating_image(rows, bot):
 
     sum_width = draw.textlength(sum_text, font=font_header)
 
-    sum_x = table_left + (table_right - table_left) * 0.50  # 75% markaz tomonga
+    sum_x = table_left + (table_right - table_left) * 0.90  # 75% markaz tomonga
 
     draw.text(
-        (sum_x, info_y + 12),  # 6–12 px pastga tushiradi
+        (sum_x, info_y + 16),  # 6–12 px pastga tushiradi
         sum_text,
         fill=green_color,
         font=font_header,
