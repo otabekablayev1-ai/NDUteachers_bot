@@ -502,34 +502,69 @@ async def generate_manager_rating_image(rows, bot):
 
         # 5️⃣ Oxirida pastga tushamiz
         y = row_bottom
-    # ================= TOTAL ROW =================
-    row_bottom = y + row_height
+    # ================= DATA ROWS =================
+    for idx, r in enumerate(rows, 1):
 
-    draw.line((table_left, y, table_right, y),
-              fill="black", width=3)
+        row_bottom = y + row_height
+        center_y = y + row_height // 2
 
-    center_y = y + row_height // 2
+        # 1️⃣ Avval highlight (fon)
+        if idx == 1:
+            draw.rectangle(
+                [table_left, y, table_right, row_bottom],
+                fill=(255, 248, 220)
+            )
 
-    draw.text((x_name + 20, center_y - 20),
-              "Jami:",
-              fill="black",
-              font=font_header)
+        # 2️⃣ Matn va elementlar
 
-    draw.text((x_ok + col_equal//2, center_y),
-              str(total_answered),
-              fill="black",
-              font=font_header,
-              anchor="mm")
+        try:
+            chat = await bot.get_chat(r["manager_id"])
+            name = chat.full_name
+        except:
+            name = str(r["manager_id"])
 
-    draw.text((x_bad + col_equal//2, center_y),
-              str(total_unanswered),
-              fill="black",
-              font=font_header,
-              anchor="mm")
+        avg = float(r.get("avg_rating") or 0)
 
-    # ================= OUTER BORDER =================
-    draw.line((table_left, y, table_right, y), fill="black", width=3)
-    draw.line((table_right, table_top, table_right, y), fill="black", width=3)
+        draw.ellipse(
+            (x_no + 25, center_y - 25,
+             x_no + 75, center_y + 25),
+            fill=(255, 215, 0) if idx == 1 else (200, 200, 200),
+            outline="black"
+        )
+
+        draw.text((x_no + 50, center_y),
+                  str(idx), fill="black",
+                  font=font_small, anchor="mm")
+
+        draw.text((x_name + 20, center_y - 20),
+                  name, fill="black", font=font)
+
+        draw.text((x_rate + col_equal // 2, center_y),
+                  f"{avg:.1f}", fill="black",
+                  font=font, anchor="mm")
+
+        draw.text((x_ok + col_equal // 2, center_y),
+                  str(r.get("answered_count", 0)),
+                  fill="black", font=font, anchor="mm")
+
+        draw.text((x_bad + col_equal // 2, center_y),
+                  str(r.get("unanswered_count", 0)),
+                  fill="black", font=font, anchor="mm")
+
+        faculty = str(r.get("faculty", ""))
+        wrapped = textwrap.wrap(faculty, width=28)
+
+        for i, line in enumerate(wrapped[:2]):
+            draw.text((x_fac + 20,
+                       center_y - 30 + i * 35),
+                      line, fill="black", font=font)
+
+        # 3️⃣ Eng oxirida chiziqlar (to‘g‘ri joyda!)
+        draw.line((table_left, y, table_right, y), fill="black", width=2)
+        draw.line((table_left, row_bottom, table_right, row_bottom), fill="black", width=2)
+
+        # 4️⃣ Keyin y ni pastga siljitamiz
+        y = row_bottom
     # ================= ECONOMY INFO =================
 
     gap_between = 150  # Jami savollar bilan yashil yozuv orasidagi masofa
