@@ -711,9 +711,6 @@ async def get_filtered_teachers(data: dict):
         if data.get("faculty") not in (None, "Barchasi"):
             stmt = stmt.where(Teacher.faculty == data["faculty"])
 
-        if data.get("department") not in (None, "Barchasi"):
-            stmt = stmt.where(Teacher.department == data["department"])
-
         if data.get("fio") not in (None, "Barchasi"):
             stmt = stmt.where(Teacher.fio.ilike(f"%{data['fio']}%"))
 

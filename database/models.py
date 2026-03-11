@@ -30,11 +30,10 @@ class User(Base):
 class Teacher(Base):
     __tablename__ = "teachers"
 
-    user_id = Column(BigInteger, primary_key=True)
+    user_id = Column(BigInteger, primary_key=True)  # ✅ ASOSIY KALIT
     fio = Column(String)
     phone = Column(String)
     faculty = Column(String)
-    department = Column(String)   # 👈 yangi ustun
     role = Column(String)
 
 class Student(Base):
