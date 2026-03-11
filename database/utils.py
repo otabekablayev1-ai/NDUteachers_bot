@@ -69,7 +69,7 @@ def generate_excel(data):
         "Fakultet",
         "Savol",
         "Javob",
-        "Menejer"
+        "Menejer ID"
     ]
 
     ws.append(headers)
@@ -78,12 +78,12 @@ def generate_excel(data):
         ws.append([
             i,
             row.created_at,
-            row.user_name,
-            row.role,
+            row.fio,
+            row.sender_role,
             row.faculty,
-            row.question,
-            row.answer,
-            row.manager
+            row.message_text,
+            row.answer_text,
+            row.manager_id
         ])
 
     buffer = BytesIO()

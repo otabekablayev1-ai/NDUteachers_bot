@@ -1171,7 +1171,7 @@ async def get_all_students():
 # =============================
 
 from sqlalchemy import select
-from database.models import Question, Teacher
+from database.models import Question, Answer, Teacher
 
 
 async def get_all_questions():
@@ -1181,17 +1181,15 @@ async def get_all_questions():
             select(
                 Question.id,
                 Question.created_at,
-                Question.question,
-                Question.answer,
-                Question.user_name,
-                Question.role,
+                Question.fio,
+                Question.sender_role,
                 Question.faculty,
-                Teacher.fio.label("manager")
-            ).join(
-                Teacher,
-                Teacher.user_id == Question.manager_id,
-                isouter=True
-            ).order_by(Question.created_at.desc())
+                Question.message_text,
+                Answer.answer_text,
+                Answer.manager_id
+            )
+            .join(Answer, Answer.question_id == Question.id, isouter=True)
+            .order_by(Question.created_at.desc())
         )
 
         return result.all()
