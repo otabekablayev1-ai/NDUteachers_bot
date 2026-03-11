@@ -50,13 +50,10 @@ async def get_sender_info(user_id: int, full_name: str):
 # =============================
 # 📊 Excel export
 # =============================
-
 from openpyxl import Workbook
 from io import BytesIO
 
-
 def generate_excel(data):
-
     wb = Workbook()
     ws = wb.active
     ws.title = "Murojaatlar"
@@ -69,7 +66,7 @@ def generate_excel(data):
         "Fakultet",
         "Savol",
         "Javob",
-        "Menejer ID"
+        "Menejer"
     ]
 
     ws.append(headers)
@@ -83,7 +80,7 @@ def generate_excel(data):
             row.faculty,
             row.message_text,
             row.answer_text,
-            row.manager_id
+            row.manager_name
         ])
 
     buffer = BytesIO()
