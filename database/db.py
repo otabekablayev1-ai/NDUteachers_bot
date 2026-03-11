@@ -1165,3 +1165,33 @@ async def get_all_students():
     async with AsyncSessionLocal() as session:
         result = await session.execute(select(Student))
         return result.scalars().all()
+
+# =============================
+# 📊 Excel uchun murojaatlarni olish
+# =============================
+
+from sqlalchemy import select
+from database.models import Question, Teacher
+
+
+async def get_all_questions():
+    async with AsyncSessionLocal() as session:
+
+        result = await session.execute(
+            select(
+                Question.id,
+                Question.created_at,
+                Question.question,
+                Question.answer,
+                Question.user_name,
+                Question.role,
+                Question.faculty,
+                Teacher.fio.label("manager")
+            ).join(
+                Teacher,
+                Teacher.user_id == Question.manager_id,
+                isouter=True
+            ).order_by(Question.created_at.desc())
+        )
+
+        return result.all()

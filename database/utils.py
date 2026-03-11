@@ -47,3 +47,47 @@ async def get_sender_info(user_id: int, full_name: str):
 
     return "Rahbar", full_name
 
+# =============================
+# 📊 Excel export
+# =============================
+
+from openpyxl import Workbook
+from io import BytesIO
+
+
+def generate_excel(data):
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Murojaatlar"
+
+    headers = [
+        "№",
+        "Sana",
+        "Foydalanuvchi",
+        "Rol",
+        "Fakultet",
+        "Savol",
+        "Javob",
+        "Menejer"
+    ]
+
+    ws.append(headers)
+
+    for i, row in enumerate(data, 1):
+        ws.append([
+            i,
+            row.created_at,
+            row.user_name,
+            row.role,
+            row.faculty,
+            row.question,
+            row.answer,
+            row.manager
+        ])
+
+    buffer = BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+
+    return buffer

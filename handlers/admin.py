@@ -4,6 +4,13 @@ from database.db import reject_request
 from loader import dp
 from database.models import Teacher, Student
 
+from aiogram import F
+from aiogram.types import Message, BufferedInputFile
+from aiogram import Router
+
+from database.utils import generate_excel
+from database.db import get_all_questions
+
 from aiogram.filters import Command
 from database.scripts import rebuild_students_search
 
@@ -305,3 +312,17 @@ async def fix_search_handler(message: types.Message):
 
     count = await rebuild_students_search()
     await message.answer(f"✅ {count} ta buyruqda students_search yangilandi.")
+
+@router.message(F.text == "📊 Savol–Javoblarni Excelga yuklab olish")
+async def export_excel(message: Message):
+
+    rows = await get_all_questions()
+
+    excel = generate_excel(rows)
+
+    await message.answer_document(
+        BufferedInputFile(
+            excel.getvalue(),
+            filename="murojaatlar.xlsx"
+        )
+    )

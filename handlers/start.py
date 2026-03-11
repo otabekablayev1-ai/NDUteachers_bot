@@ -27,7 +27,7 @@ async def start_handler(message: Message, state: FSMContext):   # 👈 state qo�
                 [KeyboardButton(text="📥 Ro‘yxat so‘rovlari")],
                 [KeyboardButton(text="🏆 Menejerlar reytingi")],
                 [KeyboardButton(text="📊 Statistika")],
-                [KeyboardButton(text="📝 Savol–Javoblar (filter)")],
+                [KeyboardButton(text="📊 Savol–Javoblarni Excelga yuklab olish")],  # YANGI TUGMA
                 [KeyboardButton(text="❌ Foydalanuvchini o‘chirish")],
                 [KeyboardButton(text="📨 Xabar yuborish")],
                 [KeyboardButton(text="📘 Buyruqlar")],
