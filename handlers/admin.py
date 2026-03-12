@@ -318,7 +318,7 @@ async def export_excel(message: Message):
 
     rows = await get_all_questions()
 
-    excel = generate_excel(rows)
+    excel = await generate_excel(rows, message.bot)
 
     await message.answer_document(
         BufferedInputFile(
@@ -326,3 +326,5 @@ async def export_excel(message: Message):
             filename="murojaatlar.xlsx"
         )
     )
+
+    

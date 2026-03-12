@@ -53,7 +53,9 @@ async def get_sender_info(user_id: int, full_name: str):
 from openpyxl import Workbook
 from io import BytesIO
 
-def generate_excel(data):
+
+async def generate_excel(rows, bot):
+
     wb = Workbook()
     ws = wb.active
     ws.title = "Murojaatlar"
@@ -71,7 +73,17 @@ def generate_excel(data):
 
     ws.append(headers)
 
-    for i, row in enumerate(data, 1):
+    for i, row in enumerate(rows, 1):
+
+        manager_name = ""
+
+        if row.manager_id:
+            try:
+                chat = await bot.get_chat(row.manager_id)
+                manager_name = chat.full_name
+            except:
+                manager_name = str(row.manager_id)
+
         ws.append([
             i,
             row.created_at,
@@ -80,7 +92,7 @@ def generate_excel(data):
             row.faculty,
             row.message_text,
             row.answer_text,
-            row.manager_name
+            manager_name
         ])
 
     buffer = BytesIO()
