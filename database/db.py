@@ -1170,7 +1170,7 @@ async def get_all_students():
 # 📊 Excel uchun murojaatlarni olish
 # =============================
 from sqlalchemy import select
-from database.models import Question, Answer, Manager
+from database.models import Question, Answer
 
 
 async def get_all_questions():
@@ -1184,10 +1184,9 @@ async def get_all_questions():
                 Question.faculty,
                 Question.message_text,
                 Answer.answer_text,
-                Manager.full_name.label("manager_name")
+                Answer.manager_id
             )
             .join(Answer, Answer.question_id == Question.id, isouter=True)
-            .join(Manager, Manager.user_id == Answer.manager_id, isouter=True)
             .order_by(Question.created_at.desc())
         )
 
