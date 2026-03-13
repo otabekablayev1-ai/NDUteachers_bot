@@ -223,22 +223,16 @@ async def set_teacher_or_tutor_fio(message: Message, state: FSMContext):
 # =====================================================
 # 4. TALABA OQIMI
 # =====================================================
+
 @router.callback_query(SendMSG.edu_type, F.data.startswith("edu_type_"))
 async def choose_edu_type(call: CallbackQuery, state: FSMContext):
-
-    edu_type = call.data.split("_")[2]
-
+    edu_type = call.data.replace("edu_type_", "")
     await state.update_data(edu_type=edu_type)
 
     if edu_type == "bak":
         forms = ["Kunduzgi", "Kechki", "Sirtqi", "Masofaviy", "Barchasi"]
-
     elif edu_type == "mag":
         forms = ["Kunduzgi", "Kechki", "Masofaviy", "Barchasi"]
-
-    elif edu_type == "all":
-        forms = ["Barchasi"]
-
     else:
         forms = ["Barchasi"]
 
@@ -249,19 +243,15 @@ async def choose_edu_type(call: CallbackQuery, state: FSMContext):
         ]
     )
 
-    await call.message.answer(
-        "Ta’lim shaklini tanlang:",
-        reply_markup=kb
-    )
-
+    await call.message.answer("Ta’lim shaklini tanlang:", reply_markup=kb)
     await state.set_state(SendMSG.edu_form)
     await call.answer()
 
+
+
 @router.callback_query(SendMSG.edu_form, F.data.startswith("edu_form_"))
 async def choose_edu_form(call: CallbackQuery, state: FSMContext):
-
-    edu_form = call.data.split("_", 2)[2]
-
+    edu_form = call.data.replace("edu_form_", "")
     await state.update_data(edu_form=edu_form)
 
     faculties = FACULTIES + ["Barchasi"]
@@ -273,14 +263,11 @@ async def choose_edu_form(call: CallbackQuery, state: FSMContext):
         ]
     )
 
-    await call.message.answer(
-        "Fakultetni tanlang:",
-        reply_markup=kb
-    )
-
+    await call.message.answer("Fakultetni tanlang:", reply_markup=kb)
     await state.set_state(SendMSG.stu_faculty)
-
     await call.answer()
+
+
 
 @router.callback_query(SendMSG.stu_faculty, F.data.startswith("stu_fac_"))
 async def choose_stu_faculty(call: CallbackQuery, state: FSMContext):
@@ -298,30 +285,46 @@ async def choose_stu_faculty(call: CallbackQuery, state: FSMContext):
     elif edu_type == "mag":
         courses = [1, 2]
 
-    # Barchasi
+    # Barchasi → kurs tanlanmaydi
     else:
-        courses = [1, 2, 3, 4, 5]
+        courses = []
 
-    kb = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text=f"{i}-kurs", callback_data=f"course_{i}")]
-            for i in courses
-        ] + [[InlineKeyboardButton(text="Barchasi", callback_data="course_all")]]
-    )
+    if courses:
+        kb = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text=f"{i}-kurs", callback_data=f"course_{i}")]
+                for i in courses
+            ] + [[InlineKeyboardButton(text="Barchasi", callback_data="course_all")]]
+        )
+        await call.message.answer("Kursni tanlang:", reply_markup=kb)
+        await state.set_state(SendMSG.course)
+    else:
+        # Agar "Barchasi" bo‘lsa → guruhga o‘tadi
+        await call.message.answer("Guruh nomini yozing yoki 'Barchasi':")
+        await state.set_state(SendMSG.group)
 
-    await call.message.answer("Kursni tanlang:", reply_markup=kb)
-    await state.set_state(SendMSG.course)
     await call.answer()
+
 
 @router.callback_query(SendMSG.course, F.data.startswith("course_"))
 async def choose_course(call: CallbackQuery, state: FSMContext):
     course = call.data.replace("course_", "")
     await state.update_data(course=course)
 
-    await call.message.answer("Talaba F.I.O yoki 'Barchasi':")
+    await call.message.answer("Guruh nomini yozing yoki 'Barchasi':")
+    await state.set_state(SendMSG.group)
+    await call.answer()
+
+
+
+@router.message(SendMSG.group)
+async def set_group(message: Message, state: FSMContext):
+    txt = message.text.strip()
+    await state.update_data(group=None if txt.lower() == "barchasi" else txt)
+
+    await message.answer("Talaba F.I.O yoki 'Barchasi':")
     await state.set_state(SendMSG.student_fio)
 
-    await call.answer()
 
 
 @router.message(SendMSG.student_fio)

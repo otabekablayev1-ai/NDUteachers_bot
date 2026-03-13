@@ -60,14 +60,15 @@ class SendMSG(StatesGroup):
     fio = State()
 
     # talabalar uchun
-    class SendMSG(StatesGroup):
-        role = State()
-        edu_type = State()
-        edu_form = State()
-        stu_faculty = State()
-        course = State()
-        student_fio = State()
-        msg = State()
+    edu_type = State()     # bak / mag / all
+    edu_form = State()     # Kunduzgi / Kechki / Sirtqi / ...
+    stu_faculty = State()
+    course = State()       # 1..5 / all
+    group = State()
+    student_fio = State()
+
+    msg = State()          # yakuniy xabar
+
 
 def is_faculty_manager(manager_id: int) -> bool:
     for fac in MANAGERS_BY_FACULTY.values():
