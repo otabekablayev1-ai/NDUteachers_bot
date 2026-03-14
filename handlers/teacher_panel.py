@@ -34,6 +34,7 @@ async def start_send_message(message: Message, state: FSMContext):
 
     kb = ReplyKeyboardMarkup(
         keyboard=[
+            [KeyboardButton(text="Rektorat")],
             [KeyboardButton(text="Prorektor (O‘quv ishlari bo‘yicha)"),
              KeyboardButton(text="Prorektor (Yoshlar masalalari va MMIB)")],
 
@@ -44,7 +45,7 @@ async def start_send_message(message: Message, state: FSMContext):
              KeyboardButton(text="Magistratura bo‘limi")],
 
             [KeyboardButton(text="Buxgalteriya (Ustozlar)"),
-             KeyboardButton(text="Buxgalteriya (Talabalar)")],
+             KeyboardButton(text="Stipendiya va TTJ (Yotoqxona)")],
 
             [KeyboardButton(text="Xalqaro aloqalar va akademik mobillik boʻyicha xizmat koʻrsatish sektori menejeri")],
 

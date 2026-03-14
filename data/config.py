@@ -61,6 +61,10 @@ MANAGERS_BY_FACULTY = {
         "teacher": parse_ids(os.getenv("RAHBAR_TEACHER_MED", "")),
         "student": parse_ids(os.getenv("RAHBAR_STUDENT_MED", "")),
     },
+    "Stipendiya va TTJ (Yotoqxona)": {
+        "teacher": parse_ids(os.getenv("RAHBAR_TEACHER_TTJ", "")),
+        "student": parse_ids(os.getenv("RAHBAR_STUDENT_TTJ", "")),
+    },
 }
 
 def is_manager_id(user_id: int) -> bool:
@@ -77,6 +81,7 @@ def is_manager_id(user_id: int) -> bool:
 # 🧑‍💼 UMUMIY RAHBARLAR (barcha rollar uchun)
 # ===============================================
 RAHBARLAR = {
+    "Rektorat": parse_ids(os.getenv("REKTORAT", "")),
     "Prorektor (O‘quv ishlari bo‘yicha)": parse_ids(os.getenv("RAHBAR_PROREKTOR", "")),
     "Prorektor (Yoshlar masalalari va MMIB)": parse_ids(os.getenv("RAHBAR_PROREKTOR_YOSHLAR", "")),
     "O'quv-uslubiy boshqarma (Departament)": parse_ids(os.getenv("RAHBAR_DEPARTAMENT", "")),
@@ -84,7 +89,6 @@ RAHBARLAR = {
     "Ariza va shikoyatlar": parse_ids(os.getenv("RAHBAR_ANTI", "")),
     "Magistratura bo‘limi": parse_ids(os.getenv("RAHBAR_MAG_BOSH", "")),
     "Buxgalteriya (Ustozlar)": parse_ids(os.getenv("RAHBAR_BUX_TEACHER", "")),
-    "Buxgalteriya (Talabalar)": parse_ids(os.getenv("RAHBAR_BUX_DORMIT_STUDENT", "")),
     "Xalqaro aloqalar va akademik mobillik boʻyicha xizmat koʻrsatish sektori menejeri": parse_ids(os.getenv("RAHBAR_XALQARO", "")),
 }
 
