@@ -45,7 +45,7 @@ async def start_send_message(message: Message, state: FSMContext):
              KeyboardButton(text="Magistratura bo‘limi")],
 
             [KeyboardButton(text="Buxgalteriya (Ustozlar)"),
-             KeyboardButton(text="Stipendiya va TTJ (Yotoqxona)")],
+             KeyboardButton(text="Stipendiya va Yotoqxona")],
 
             [KeyboardButton(text="Xalqaro aloqalar va akademik mobillik boʻyicha xizmat koʻrsatish sektori menejeri")],
 

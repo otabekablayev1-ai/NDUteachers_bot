@@ -61,7 +61,7 @@ MANAGERS_BY_FACULTY = {
         "teacher": parse_ids(os.getenv("RAHBAR_TEACHER_MED", "")),
         "student": parse_ids(os.getenv("RAHBAR_STUDENT_MED", "")),
     },
-    "Stipendiya va TTJ (Yotoqxona)": {
+    "Stipendiya va Yotoqxona": {
         "teacher": parse_ids(os.getenv("RAHBAR_TEACHER_TTJ", "")),
         "student": parse_ids(os.getenv("RAHBAR_STUDENT_TTJ", "")),
     },
