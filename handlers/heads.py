@@ -291,6 +291,7 @@ from io import BytesIO
 from datetime import datetime
 import textwrap
 
+
 async def generate_manager_rating_image(rows, bot):
 
     width = 2000
@@ -306,7 +307,6 @@ async def generate_manager_rating_image(rows, bot):
     row_height = 100
     header_height = 170
 
-    # +1 jami qatori uchun
     height = (
         padding_y * 2
         + 150
@@ -317,28 +317,6 @@ async def generate_manager_rating_image(rows, bot):
 
     img = Image.new("RGB", (width, height), "white")
     draw = ImageDraw.Draw(img)
-
-    def draw_italic_text(draw, position, text, font, fill, skew=0.2):
-        x, y = position
-
-        # Matn o'lchamini aniqlaymiz
-        text_width = draw.textlength(text, font=font)
-        text_height = font.size
-
-        # Yangi shaffof rasm
-        temp = Image.new("RGBA", (int(text_width) + 20, text_height + 20), (255, 255, 255, 0))
-        temp_draw = ImageDraw.Draw(temp)
-        temp_draw.text((0, 0), text, font=font, fill=fill)
-
-        # Qiyalashtiramiz (italic effekt)
-        temp = temp.transform(
-            temp.size,
-            Image.AFFINE,
-            (1, skew, 0, 0, 1, 0),
-            resample=Image.BICUBIC
-        )
-
-        img.paste(temp, (int(x), int(y)), temp)
 
     def load_font(size):
         try:
@@ -356,7 +334,7 @@ async def generate_manager_rating_image(rows, bot):
 
     # ================= TITLE =================
     title_line1 = "Navoiy davlat universiteti Registrator ofisi"
-    title_line2 = 'Telegram @NDUteachers_bot ga kelib tushgan murojaatlarni ko‘rib chiqish'
+    title_line2 = "Telegram @NDUteachers_bot ga kelib tushgan murojaatlarni ko‘rib chiqish"
     title_line3 = "samaradorligi bo‘yicha mas’ul ijrochilar faoliyati monitoringi"
 
     line_spacing = 60
@@ -372,10 +350,10 @@ async def generate_manager_rating_image(rows, bot):
     draw.text((width // 2, y), title_line3, fill="black",
               font=font_title_sub, anchor="mm")
 
-    y += 30
-
+    y += 40
 
     # ================= TABLE =================
+
     col_no = 100
     col_name = 700
     col_equal = 200
@@ -404,12 +382,16 @@ async def generate_manager_rating_image(rows, bot):
 
     draw.text((x_no + col_no//2, center_y),
               "№", font=font_header, fill="black", anchor="mm")
+
     draw.text((x_name + 20, center_y),
               "Mas’ul ijrochi", font=font_header, fill="black")
-    draw.text((x_rate + col_equal//2, center_y),
-              "Faoliyat", "Reytingi", font=font_header, fill="black", anchor="mm")
 
-    # Header multi-line
+    draw.text((x_rate + col_equal//2, center_y - 20),
+              "Faoliyat", font=font_header, fill="black", anchor="mm")
+
+    draw.text((x_rate + col_equal//2, center_y + 20),
+              "reytingi", font=font_header, fill="black", anchor="mm")
+
     for i, txt in enumerate(["Ko‘rib chiqilgan", "murojaatlar", "soni"]):
         draw.text((x_ok + col_equal//2, table_top + 40 + i*45),
                   txt, font=font_header, fill="black", anchor="mm")
@@ -418,12 +400,15 @@ async def generate_manager_rating_image(rows, bot):
         draw.text((x_bad + col_equal//2, table_top + 40 + i*45),
                   txt, font=font_header, fill="black", anchor="mm")
 
-    draw.text((x_fac + 20, center_y),
-              "Murojaat","yo‘nalishi", font=font_header, fill="black")
+    draw.text((x_fac + 20, center_y - 20),
+              "Murojaat", font=font_header, fill="black")
 
-    # Grid lines (header + data + jami)
-    total_rows = len(rows) + 1
+    draw.text((x_fac + 20, center_y + 20),
+              "yo‘nalishi", font=font_header, fill="black")
+
     columns = [x_no, x_name, x_rate, x_ok, x_bad, x_fac, table_right]
+
+    total_rows = len(rows) + 1
 
     for col in columns:
         draw.line((col, table_top,
@@ -436,19 +421,17 @@ async def generate_manager_rating_image(rows, bot):
     total_unanswered = sum(int(r.get("unanswered_count", 0)) for r in rows)
 
     # ================= DATA ROWS =================
+
     for idx, r in enumerate(rows, 1):
 
         row_bottom = y + row_height
         center_y = y + row_height // 2
 
-        # 1️⃣ Avval highlight (fon)
         if idx == 1:
             draw.rectangle(
                 [table_left, y, table_right, row_bottom],
                 fill=(255, 248, 220)
             )
-
-        # 2️⃣ Matn va elementlar
 
         try:
             chat = await bot.get_chat(r["manager_id"])
@@ -469,8 +452,12 @@ async def generate_manager_rating_image(rows, bot):
                   str(idx), fill="black",
                   font=font_small, anchor="mm")
 
-        draw.text((x_name + 20, center_y - 20),
-                  name, fill="black", font=font)
+        name_lines = textwrap.wrap(name, width=28)
+
+        for i, line in enumerate(name_lines[:2]):
+            draw.text((x_name + 20,
+                       center_y - 30 + i*35),
+                      line, fill="black", font=font)
 
         draw.text((x_rate + col_equal // 2, center_y),
                   f"{avg:.1f}", fill="black",
@@ -485,6 +472,7 @@ async def generate_manager_rating_image(rows, bot):
                   fill="black", font=font, anchor="mm")
 
         faculty = str(r.get("faculty", ""))
+
         wrapped = textwrap.wrap(faculty, width=28)
 
         for i, line in enumerate(wrapped[:2]):
@@ -492,17 +480,16 @@ async def generate_manager_rating_image(rows, bot):
                        center_y - 30 + i * 35),
                       line, fill="black", font=font)
 
-        # 3️⃣ Eng oxirida chiziqlar (to‘g‘ri joyda!)
         draw.line((table_left, y, table_right, y), fill="black", width=2)
         draw.line((table_left, row_bottom, table_right, row_bottom), fill="black", width=2)
 
-        # 4️⃣ Vertikal chiziqlar (mana shu yerga qo‘yiladi)
         for col in columns:
             draw.line((col, y, col, row_bottom), fill="black", width=2)
 
-        # 5️⃣ Oxirida pastga tushamiz
         y = row_bottom
+
     # ================= TOTAL ROW =================
+
     row_bottom = y + row_height
 
     draw.line((table_left, y, table_right, y),
@@ -527,47 +514,48 @@ async def generate_manager_rating_image(rows, bot):
               font=font_header,
               anchor="mm")
 
-
     # ================= ECONOMY INFO =================
 
-    gap_between = 150  # Jami savollar bilan yashil yozuv orasidagi masofa
+    gap_between = 150
     info_y = y + gap_between
 
     green_color = (0, 128, 0)
 
     saved_money = total_answered * 5000
-    info_text = "Telegram bot orqali qabul qilingan murojaatlar natijasida iqtisod qilingan transport xarajatlari:", "(1 tashrif — 5 000 so‘m bo‘lganda)."
 
-    # Kursiv yashil matn
-    center_x = table_left + (table_right - table_left) // 2
-    text_width = draw.textlength(info_text, font=font_header)
-
-    shift_left = 100  # qancha chapga surish (100–150 oralig‘ida ideal)
-
-    draw_italic_text(
-        draw,
-        (center_x - text_width // 2 - shift_left, info_y),
-        info_text,
-        font_header,
-        green_color
+    info_text = (
+        "Telegram bot orqali qabul qilingan murojaatlar natijasida "
+        "iqtisod qilingan transport xarajatlari "
+        "(1 tashrif — 5 000 so‘m bo‘lganda)."
     )
 
-    # O‘ng tomondagi summa (xuddi shu balandlikda)
-    sum_text = f"{saved_money:,} so‘m"
+    center_x = table_left + (table_right - table_left) // 2
 
-    sum_width = draw.textlength(sum_text, font=font_header)
-
-    sum_x = table_left + (table_right - table_left) * 0.90  # 75% markaz tomonga
+    text_width = draw.textlength(info_text, font=font_header)
 
     draw.text(
-        (sum_x, info_y + 20),  # 6–12 px pastga tushiradi
+        (center_x - text_width//2, info_y),
+        info_text,
+        fill=green_color,
+        font=font_header
+    )
+
+    sum_text = f"{saved_money:,} so‘m"
+
+    sum_x = int(table_left + (table_right - table_left) * 0.90)
+
+    draw.text(
+        (sum_x, info_y + 20),
         sum_text,
         fill=green_color,
         font=font_header,
         anchor="mm"
     )
+
     # ================= FOOTER =================
+
     footer = f"Sana: {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+
     draw.text((padding_x, height - padding_y),
               footer, fill="black", font=font_small)
 
