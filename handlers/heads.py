@@ -302,7 +302,7 @@ async def generate_manager_rating_image(rows, bot):
     TITLE_SIZE_SUB = 40
     HEADER_SIZE = 30
     FONT_SIZE = 32
-    SMALL_SIZE = 20
+    SMALL_SIZE = 22
 
     row_height = 100
     header_height = 170
@@ -312,7 +312,7 @@ async def generate_manager_rating_image(rows, bot):
         + 150
         + header_height
         + row_height * (len(rows) + 1)
-        + 120
+        + 150
     )
 
     img = Image.new("RGB", (width, height), "white")
@@ -333,40 +333,34 @@ async def generate_manager_rating_image(rows, bot):
     y = padding_y
 
     # ================= TITLE =================
-    title_line1 = "Navoiy davlat universiteti Registrator ofisi"
-    title_line2 = "Telegram @NDUteachers_bot ga kelib tushgan murojaatlarni ko‘rib chiqish"
-    title_line3 = "samaradorligi bo‘yicha mas’ul ijrochilar faoliyati monitoringi"
 
-    line_spacing = 60
+    title1 = "Navoiy davlat universiteti Registrator ofisi"
+    title2 = "Telegram @NDUteachers_bot ga kelib tushgan murojaatlarni ko‘rib chiqish"
+    title3 = "samaradorligi bo‘yicha mas’ul ijrochilar faoliyati monitoringi"
 
-    draw.text((width // 2, y), title_line1, fill="black",
-              font=font_title_main, anchor="mm")
-    y += line_spacing
-
-    draw.text((width // 2, y), title_line2, fill="black",
-              font=font_title_sub, anchor="mm")
-    y += line_spacing
-
-    draw.text((width // 2, y), title_line3, fill="black",
-              font=font_title_sub, anchor="mm")
+    draw.text((width//2, y), title1, font=font_title_main, fill="black", anchor="mm")
+    y += 60
+    draw.text((width//2, y), title2, font=font_title_sub, fill="black", anchor="mm")
+    y += 60
+    draw.text((width//2, y), title3, font=font_title_sub, fill="black", anchor="mm")
 
     y += 40
 
     # ================= TABLE =================
 
-    col_no = 100
-    col_name = 700
-    col_equal = 200
-    col_faculty = 600
+    col_no = 120
+    col_name = 650
+    col_equal = 220
+    col_fac = 600
 
     table_left = padding_x
     table_top = y
-    table_right = table_left + col_no + col_name + col_equal*3 + col_faculty
+
+    table_right = table_left + col_no + col_name + col_equal*3 + col_fac
 
     draw.rectangle(
-        [table_left, table_top,
-         table_right, table_top + header_height],
-        fill=(235, 235, 235),
+        [table_left, table_top, table_right, table_top + header_height],
+        fill=(235,235,235),
         outline="black",
         width=2
     )
@@ -378,189 +372,136 @@ async def generate_manager_rating_image(rows, bot):
     x_bad = x_ok + col_equal
     x_fac = x_bad + col_equal
 
-    center_y = table_top + header_height // 2
+    center_y = table_top + header_height//2
 
-    draw.text((x_no + col_no//2, center_y),
-              "№", font=font_header, fill="black", anchor="mm")
+    draw.text((x_no+col_no//2, center_y), "№", font=font_header, fill="black", anchor="mm")
+    draw.text((x_name+col_name//2, center_y), "Mas’ul ijrochi", font=font_header, fill="black", anchor="mm")
 
-    draw.text((x_name + 20, center_y),
-              "Mas’ul ijrochi", font=font_header, fill="black")
+    draw.text((x_rate+col_equal//2, center_y-20), "Faoliyat", font=font_header, fill="black", anchor="mm")
+    draw.text((x_rate+col_equal//2, center_y+20), "reytingi", font=font_header, fill="black", anchor="mm")
 
-    draw.text((x_rate + col_equal//2, center_y - 20),
-              "Faoliyat", font=font_header, fill="black", anchor="mm")
+    for i, txt in enumerate(["Ko‘rib chiqilgan","murojaatlar","soni"]):
+        draw.text((x_ok+col_equal//2, table_top+40+i*45), txt, font=font_header, fill="black", anchor="mm")
 
-    draw.text((x_rate + col_equal//2, center_y + 20),
-              "reytingi", font=font_header, fill="black", anchor="mm")
+    for i, txt in enumerate(["Ko‘rib chiqilmagan","murojaatlar","soni"]):
+        draw.text((x_bad+col_equal//2, table_top+40+i*45), txt, font=font_header, fill="black", anchor="mm")
 
-    for i, txt in enumerate(["Ko‘rib chiqilgan", "murojaatlar", "soni"]):
-        draw.text((x_ok + col_equal//2, table_top + 40 + i*45),
-                  txt, font=font_header, fill="black", anchor="mm")
+    draw.text((x_fac+col_fac//2, center_y-20), "Murojaat", font=font_header, fill="black", anchor="mm")
+    draw.text((x_fac+col_fac//2, center_y+20), "yo‘nalishi", font=font_header, fill="black", anchor="mm")
 
-    for i, txt in enumerate(["Ko‘rib chiqilmagan", "murojaatlar", "soni"]):
-        draw.text((x_bad + col_equal//2, table_top + 40 + i*45),
-                  txt, font=font_header, fill="black", anchor="mm")
+    columns = [x_no,x_name,x_rate,x_ok,x_bad,x_fac,table_right]
 
-    draw.text((x_fac + 20, center_y - 20),
-              "Murojaat", font=font_header, fill="black")
-
-    draw.text((x_fac + 20, center_y + 20),
-              "yo‘nalishi", font=font_header, fill="black")
-
-    columns = [x_no, x_name, x_rate, x_ok, x_bad, x_fac, table_right]
-
-    total_rows = len(rows) + 1
+    total_rows = len(rows)+1
 
     for col in columns:
-        draw.line((col, table_top,
-                   col, table_top + header_height + row_height*total_rows),
-                  fill="black", width=2)
+        draw.line((col, table_top, col, table_top+header_height+row_height*total_rows), fill="black", width=2)
+
+    # ================= NAME CACHE (tezroq) =================
+
+    name_cache = {}
+
+    async def get_name(manager_id):
+        if manager_id in name_cache:
+            return name_cache[manager_id]
+
+        try:
+            chat = await bot.get_chat(manager_id)
+            name_cache[manager_id] = chat.full_name
+        except:
+            name_cache[manager_id] = str(manager_id)
+
+        return name_cache[manager_id]
+
+    # ================= DATA =================
 
     y = table_top + header_height
 
-    total_answered = sum(int(r.get("answered_count", 0)) for r in rows)
-    total_unanswered = sum(int(r.get("unanswered_count", 0)) for r in rows)
+    total_answered = sum(int(r.get("answered_count",0)) for r in rows)
+    total_unanswered = sum(int(r.get("unanswered_count",0)) for r in rows)
 
-    # ================= DATA ROWS =================
+    medals = {1:"🥇",2:"🥈",3:"🥉"}
 
-    for idx, r in enumerate(rows, 1):
+    for idx,r in enumerate(rows,1):
 
-        row_bottom = y + row_height
-        center_y = y + row_height // 2
+        row_bottom = y+row_height
+        center_y = y+row_height//2
 
-        if idx == 1:
-            draw.rectangle(
-                [table_left, y, table_right, row_bottom],
-                fill=(255, 248, 220)
-            )
+        if idx==1:
+            draw.rectangle([table_left,y,table_right,row_bottom],fill=(255,248,220))
 
-        try:
-            chat = await bot.get_chat(r["manager_id"])
-            name = chat.full_name
-        except:
-            name = str(r["manager_id"])
+        name = await get_name(r["manager_id"])
 
         avg = float(r.get("avg_rating") or 0)
 
-        draw.ellipse(
-            (x_no + 25, center_y - 25,
-             x_no + 75, center_y + 25),
-            fill=(255, 215, 0) if idx == 1 else (200, 200, 200),
-            outline="black"
-        )
+        medal = medals.get(idx,str(idx))
 
-        draw.text((x_no + 50, center_y),
-                  str(idx), fill="black",
-                  font=font_small, anchor="mm")
+        draw.text((x_no+col_no//2,center_y),medal,font=font,fill="black",anchor="mm")
 
-        name_lines = textwrap.wrap(name, width=28)
+        name_lines = textwrap.wrap(name,width=28)
 
-        for i, line in enumerate(name_lines[:2]):
-            draw.text((x_name + 20,
-                       center_y - 30 + i*35),
-                      line, fill="black", font=font)
+        for i,line in enumerate(name_lines[:2]):
+            draw.text((x_name+20,center_y-30+i*35),line,font=font,fill="black")
 
-        draw.text((x_rate + col_equal // 2, center_y),
-                  f"{avg:.1f}", fill="black",
-                  font=font, anchor="mm")
+        draw.text((x_rate+col_equal//2,center_y),f"{avg:.1f}",font=font,fill="black",anchor="mm")
 
-        draw.text((x_ok + col_equal // 2, center_y),
-                  str(r.get("answered_count", 0)),
-                  fill="black", font=font, anchor="mm")
+        draw.text((x_ok+col_equal//2,center_y),str(r.get("answered_count",0)),font=font,fill="black",anchor="mm")
 
-        draw.text((x_bad + col_equal // 2, center_y),
-                  str(r.get("unanswered_count", 0)),
-                  fill="black", font=font, anchor="mm")
+        draw.text((x_bad+col_equal//2,center_y),str(r.get("unanswered_count",0)),font=font,fill="black",anchor="mm")
 
-        faculty = str(r.get("faculty", ""))
+        faculty = str(r.get("faculty",""))
 
-        wrapped = textwrap.wrap(faculty, width=28)
+        faculty_lines = textwrap.wrap(faculty,width=28)
 
-        for i, line in enumerate(wrapped[:2]):
-            draw.text((x_fac + 20,
-                       center_y - 30 + i * 35),
-                      line, fill="black", font=font)
+        for i,line in enumerate(faculty_lines[:2]):
+            draw.text((x_fac+20,center_y-30+i*35),line,font=font,fill="black")
 
-        draw.line((table_left, y, table_right, y), fill="black", width=2)
-        draw.line((table_left, row_bottom, table_right, row_bottom), fill="black", width=2)
+        draw.line((table_left,y,table_right,y),fill="black",width=2)
+        draw.line((table_left,row_bottom,table_right,row_bottom),fill="black",width=2)
 
         for col in columns:
-            draw.line((col, y, col, row_bottom), fill="black", width=2)
+            draw.line((col,y,col,row_bottom),fill="black",width=2)
 
-        y = row_bottom
+        y=row_bottom
 
-    # ================= TOTAL ROW =================
+    # ================= TOTAL =================
 
-    row_bottom = y + row_height
+    center_y = y+row_height//2
 
-    draw.line((table_left, y, table_right, y),
-              fill="black", width=3)
+    draw.text((x_name+20,center_y-20),"Jami murojaatlar soni:",font=font_header,fill="black")
 
-    center_y = y + row_height // 2
+    draw.text((x_ok+col_equal//2,center_y),str(total_answered),font=font_header,fill="black",anchor="mm")
 
-    draw.text((x_name + 20, center_y - 20),
-              "Jami murojaatlar soni:",
-              fill="black",
-              font=font_header)
+    draw.text((x_bad+col_equal//2,center_y),str(total_unanswered),font=font_header,fill="black",anchor="mm")
 
-    draw.text((x_ok + col_equal//2, center_y),
-              str(total_answered),
-              fill="black",
-              font=font_header,
-              anchor="mm")
+    # ================= ECONOMY =================
 
-    draw.text((x_bad + col_equal//2, center_y),
-              str(total_unanswered),
-              fill="black",
-              font=font_header,
-              anchor="mm")
-
-    # ================= ECONOMY INFO =================
-
-    gap_between = 150
-    info_y = y + gap_between
-
-    green_color = (0, 128, 0)
-
-    saved_money = total_answered * 5000
+    saved_money = total_answered*5000
 
     info_text = (
         "Telegram bot orqali qabul qilingan murojaatlar natijasida "
-        "iqtisod qilingan transport xarajatlari "
-        "(1 tashrif — 5 000 so‘m bo‘lganda)."
+        "iqtisod qilingan transport xarajatlari (1 tashrif — 5 000 so‘m bo‘lganda)"
     )
 
-    center_x = table_left + (table_right - table_left) // 2
+    info_y = y+150
 
-    text_width = draw.textlength(info_text, font=font_header)
+    center_x = table_left+(table_right-table_left)//2
 
-    draw.text(
-        (center_x - text_width//2, info_y),
-        info_text,
-        fill=green_color,
-        font=font_header
-    )
+    text_width = draw.textlength(info_text,font=font_header)
+
+    draw.text((center_x-text_width//2,info_y),info_text,font=font_header,fill=(0,128,0))
 
     sum_text = f"{saved_money:,} so‘m"
 
-    sum_x = int(table_left + (table_right - table_left) * 0.90)
-
-    draw.text(
-        (sum_x, info_y + 20),
-        sum_text,
-        fill=green_color,
-        font=font_header,
-        anchor="mm"
-    )
+    draw.text((table_right-150,info_y+40),sum_text,font=font_header,fill=(0,128,0),anchor="mm")
 
     # ================= FOOTER =================
 
     footer = f"Sana: {datetime.now().strftime('%Y-%m-%d %H:%M')}"
 
-    draw.text((padding_x, height - padding_y),
-              footer, fill="black", font=font_small)
+    draw.text((padding_x,height-padding_y),footer,font=font_small,fill="black")
 
     buffer = BytesIO()
-    img.save(buffer, format="PNG")
+    img.save(buffer,format="PNG")
     buffer.seek(0)
 
     return buffer
