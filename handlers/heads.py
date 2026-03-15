@@ -356,8 +356,8 @@ async def generate_manager_rating_image(rows, bot):
 
     # ================= TITLE =================
     title_line1 = "Navoiy davlat universiteti Registrator ofisi"
-    title_line2 = '"Xizmat ko‘rsatish" va "Ma’lumotlar bazasi" bo`limlari menejerlarining'
-    title_line3 = "faoliyat samaradorligi (reyting) ko‘rsatkichlari"
+    title_line2 = 'Telegram @NDUteachers_bot ga kelib tushgan murojaatlarni ko‘rib chiqish'
+    title_line3 = "samaradorligi bo‘yicha mas’ul ijrochilar faoliyati monitoringi"
 
     line_spacing = 60
 
@@ -405,21 +405,21 @@ async def generate_manager_rating_image(rows, bot):
     draw.text((x_no + col_no//2, center_y),
               "№", font=font_header, fill="black", anchor="mm")
     draw.text((x_name + 20, center_y),
-              "Menejer", font=font_header, fill="black")
+              "Mas’ul ijrochi", font=font_header, fill="black")
     draw.text((x_rate + col_equal//2, center_y),
-              "Reyting", font=font_header, fill="black", anchor="mm")
+              "Faoliyat", "Reytingi", font=font_header, fill="black", anchor="mm")
 
     # Header multi-line
-    for i, txt in enumerate(["Javob", "berilgan", "savollar"]):
+    for i, txt in enumerate(["Ko‘rib chiqilgan", "murojaatlar", "soni"]):
         draw.text((x_ok + col_equal//2, table_top + 40 + i*45),
                   txt, font=font_header, fill="black", anchor="mm")
 
-    for i, txt in enumerate(["Javob", "berilmagan", "savollar"]):
+    for i, txt in enumerate(["Ko‘rib chiqilmagan", "murojaatlar", "soni"]):
         draw.text((x_bad + col_equal//2, table_top + 40 + i*45),
                   txt, font=font_header, fill="black", anchor="mm")
 
     draw.text((x_fac + 20, center_y),
-              "Fakultet", font=font_header, fill="black")
+              "Murojaat","yo‘nalishi", font=font_header, fill="black")
 
     # Grid lines (header + data + jami)
     total_rows = len(rows) + 1
@@ -511,7 +511,7 @@ async def generate_manager_rating_image(rows, bot):
     center_y = y + row_height // 2
 
     draw.text((x_name + 20, center_y - 20),
-              "Jami:",
+              "Jami murojaatlar soni:",
               fill="black",
               font=font_header)
 
@@ -536,7 +536,7 @@ async def generate_manager_rating_image(rows, bot):
     green_color = (0, 128, 0)
 
     saved_money = total_answered * 5000
-    info_text = "Onlayn tashrifdan  iqtisod qilingan yo‘l xarajatlari (1 tashrif — 5 000 so‘m bo‘lganda)."
+    info_text = "Telegram bot orqali qabul qilingan murojaatlar natijasida iqtisod qilingan transport xarajatlari:", "(1 tashrif — 5 000 so‘m bo‘lganda)."
 
     # Kursiv yashil matn
     center_x = table_left + (table_right - table_left) // 2

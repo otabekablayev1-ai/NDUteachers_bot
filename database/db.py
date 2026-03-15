@@ -1055,7 +1055,6 @@ async def search_orders_by_full_fio(
 
     return filtered
 
-
 # =============================
 # 🏫 Fakultetlar bo‘yicha umumiy statistika
 # (Teacher + Tutor + Student)
