@@ -433,7 +433,6 @@ async def generate_manager_rating_image(rows, bot):
         return name_cache[manager_id]
 
     # ================= DATA =================
-
     y = table_top + header_height
 
     total_answered = sum(int(r.get("answered_count", 0)) for r in rows)
@@ -444,18 +443,11 @@ async def generate_manager_rating_image(rows, bot):
         row_bottom = y + row_height
         center_y = y + row_height // 2
 
-        # 1-o‘rinni rang bilan ajratish (xohlasangiz olib tashlash mumkin)
-        if idx == 1:
-            draw.rectangle(
-                [table_left, y, table_right, row_bottom],
-                fill=(255, 248, 220)
-            )
-
         name = await get_name(r["manager_id"])
 
         avg = float(r.get("avg_rating") or 0)
 
-        # № ustuni — oddiy raqam
+        # № ustuni
         draw.text(
             (x_no + col_no // 2, center_y),
             str(idx),
@@ -464,7 +456,7 @@ async def generate_manager_rating_image(rows, bot):
             anchor="mm"
         )
 
-        # Mas'ul ijrochi — chapdan tekislangan
+        # Mas'ul ijrochi (chapdan)
         draw.text(
             (x_name + 15, center_y),
             name,
@@ -472,6 +464,8 @@ async def generate_manager_rating_image(rows, bot):
             fill="black",
             anchor="lm"
         )
+
+        # Lavozimi ustuni
         position = str(r.get("position", ""))
 
         draw.text(
@@ -482,13 +476,34 @@ async def generate_manager_rating_image(rows, bot):
             anchor="lm"
         )
 
+        # Faoliyat reytingi
+        draw.text(
+            (x_rate + col_rate // 2, center_y),
+            f"{avg:.1f}",
+            font=font,
+            fill="black",
+            anchor="mm"
+        )
 
-        draw.text((x_rate+col_rate//2,center_y),f"{avg:.1f}",font=font,fill="black",anchor="mm")
+        # Ko‘rib chiqilgan
+        draw.text(
+            (x_ok + col_answered // 2, center_y),
+            str(r.get("answered_count", 0)),
+            font=font,
+            fill="black",
+            anchor="mm"
+        )
 
-        draw.text((x_ok+col_answered//2,center_y),str(r.get("answered_count",0)),font=font,fill="black",anchor="mm")
+        # Ko‘rib chiqilmagan
+        draw.text(
+            (x_bad + col_unanswered // 2, center_y),
+            str(r.get("unanswered_count", 0)),
+            font=font,
+            fill="black",
+            anchor="mm"
+        )
 
-        draw.text((x_bad+col_unanswered//2,center_y),str(r.get("unanswered_count",0)),font=font,fill="black",anchor="mm")
-
+        # Murojaat yo‘nalishi
         faculty = str(r.get("faculty", ""))
 
         draw.text(
@@ -499,20 +514,14 @@ async def generate_manager_rating_image(rows, bot):
             anchor="lm"
         )
 
-        draw.text(
-            (x_fac + 15, center_y),
-            faculty,
-            font=font,
-            fill="black",
-            anchor="lm"
-        )
-        draw.line((table_left,y,table_right,y),fill="black",width=2)
-        draw.line((table_left,row_bottom,table_right,row_bottom),fill="black",width=2)
+        # jadval chiziqlari
+        draw.line((table_left, y, table_right, y), fill="black", width=2)
+        draw.line((table_left, row_bottom, table_right, row_bottom), fill="black", width=2)
 
         for col in columns:
-            draw.line((col,y,col,row_bottom),fill="black",width=2)
+            draw.line((col, y, col, row_bottom), fill="black", width=2)
 
-        y=row_bottom
+        y = row_bottom
 
     # ================= TOTAL =================
 

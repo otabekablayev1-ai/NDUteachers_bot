@@ -336,17 +336,25 @@ async def user_already_rated(
 # =====================================================
 # 📊 MENEJERLAR BAHO JADVALI
 # =====================================================
-
-
 async def get_manager_rating_table() -> list[dict]:
     manager_ids: set[int] = set()
     faculty_by_manager: dict[int, str] = {}
+    position_by_manager: dict[int, str] = {}
 
     for faculty, roles in MANAGERS_BY_FACULTY.items():
-        ids = (roles.get("teacher") or []) + (roles.get("student") or [])
-        for mid in ids:
+
+        teacher_ids = roles.get("teacher") or []
+        student_ids = roles.get("student") or []
+
+        for mid in teacher_ids:
             manager_ids.add(mid)
             faculty_by_manager[mid] = faculty
+            position_by_manager[mid] = "Fakultet menejeri"
+
+        for mid in student_ids:
+            manager_ids.add(mid)
+            faculty_by_manager[mid] = faculty
+            position_by_manager[mid] = "Talabalar bilan ishlash menejeri"
 
     if not manager_ids:
         return []
@@ -368,6 +376,7 @@ async def get_manager_rating_table() -> list[dict]:
         {
             "manager_id": r.manager_id,
             "faculty": faculty_by_manager.get(r.manager_id, ""),
+            "position": position_by_manager.get(r.manager_id, ""),  # 👈 Lavozim qo‘shildi
             "answered_count": r.answered_count or 0,
             "unanswered_count": 0,
             "avg_rating": float(r.avg_rating or 0),
@@ -375,12 +384,9 @@ async def get_manager_rating_table() -> list[dict]:
         for r in rows
     ]
 
-    # Reyting bo‘yicha sort
     table.sort(key=lambda x: x["avg_rating"], reverse=True)
 
     return table
-
-
 # =====================================================
 # 📊 FAKULTET BO‘YICHA REYTING
 # =====================================================
