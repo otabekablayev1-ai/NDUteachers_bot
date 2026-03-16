@@ -100,7 +100,8 @@ async def manager_faculty_step(message: Message, state: FSMContext):
 
     except Exception as e:
 
-        await message.answer(f"❌ Xatolik: <code>{str(e)}</code>")
+        await message.answer("❌ Manager qo‘shishda xatolik yuz berdi.")
+        print(e)
 
         print("ADD MANAGER ERROR:", e)
     await state.clear()
