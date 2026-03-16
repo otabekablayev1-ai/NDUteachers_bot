@@ -67,8 +67,7 @@ class RegisterRequest(Base):
 class Manager(Base):
     __tablename__ = "managers"
 
-    id = Column(Integer, primary_key=True)
-    telegram_id = Column(BigInteger, unique=True, index=True)
+    telegram_id = Column(BigInteger, primary_key=True)
     fio = Column(String)
     position = Column(String)
     faculty = Column(String)
