@@ -294,7 +294,7 @@ import textwrap
 
 async def generate_manager_rating_image(rows, bot):
 
-    width = 2000
+    width = 2800
     padding_x = 80
     padding_y = 80
 
@@ -349,15 +349,26 @@ async def generate_manager_rating_image(rows, bot):
     # ================= TABLE =================
 
     col_no = 120
-    col_name = 650
-    col_equal = 220
-    col_fac = 600
+    col_name = 700
+    col_position = 350
+    col_rate = 200
+    col_answered = 260
+    col_unanswered = 260
+    col_fac = 700
 
     table_left = padding_x
     table_top = y
 
-    table_right = table_left + col_no + col_name + col_equal*3 + col_fac
-
+    table_right = (
+            table_left
+            + col_no
+            + col_name
+            + col_position
+            + col_rate
+            + col_answered
+            + col_unanswered
+            + col_fac
+    )
     draw.rectangle(
         [table_left, table_top, table_right, table_top + header_height],
         fill=(235,235,235),
@@ -367,29 +378,39 @@ async def generate_manager_rating_image(rows, bot):
 
     x_no = table_left
     x_name = x_no + col_no
-    x_rate = x_name + col_name
-    x_ok = x_rate + col_equal
-    x_bad = x_ok + col_equal
-    x_fac = x_bad + col_equal
+    x_position = x_name + col_name
+    x_rate = x_position + col_position
+    x_ok = x_rate + col_rate
+    x_bad = x_ok + col_answered
+    x_fac = x_bad + col_unanswered
 
     center_y = table_top + header_height//2
 
     draw.text((x_no+col_no//2, center_y), "№", font=font_header, fill="black", anchor="mm")
-    draw.text((x_name+col_name//2, center_y), "Mas’ul ijrochi", font=font_header, fill="black", anchor="mm")
-
-    draw.text((x_rate+col_equal//2, center_y-20), "Faoliyat", font=font_header, fill="black", anchor="mm")
-    draw.text((x_rate+col_equal//2, center_y+20), "reytingi", font=font_header, fill="black", anchor="mm")
+    draw.text((x_name + col_name // 2, center_y), "Mas’ul ijrochi", font=font_header, fill="black", anchor="mm")
+    draw.text((x_position + col_position // 2, center_y), "Lavozimi", font=font_header, fill="black", anchor="mm")
+    draw.text((x_rate+col_rate//2, center_y-20), "Faoliyat", font=font_header, fill="black", anchor="mm")
+    draw.text((x_rate+col_rate//2, center_y+20), "reytingi", font=font_header, fill="black", anchor="mm")
 
     for i, txt in enumerate(["Ko‘rib chiqilgan","murojaatlar","soni"]):
-        draw.text((x_ok+col_equal//2, table_top+40+i*45), txt, font=font_header, fill="black", anchor="mm")
+        draw.text((x_ok+col_answered//2, table_top+40+i*45), txt, font=font_header, fill="black", anchor="mm")
 
     for i, txt in enumerate(["Ko‘rib chiqilmagan","murojaatlar","soni"]):
-        draw.text((x_bad+col_equal//2, table_top+40+i*45), txt, font=font_header, fill="black", anchor="mm")
+        draw.text((x_bad+col_unanswered//2, table_top+40+i*45), txt, font=font_header, fill="black", anchor="mm")
 
     draw.text((x_fac+col_fac//2, center_y-20), "Murojaat", font=font_header, fill="black", anchor="mm")
     draw.text((x_fac+col_fac//2, center_y+20), "yo‘nalishi", font=font_header, fill="black", anchor="mm")
 
-    columns = [x_no,x_name,x_rate,x_ok,x_bad,x_fac,table_right]
+    columns = [
+        x_no,
+        x_name,
+        x_position,
+        x_rate,
+        x_ok,
+        x_bad,
+        x_fac,
+        table_right
+    ]
 
     total_rows = len(rows)+1
 
@@ -435,26 +456,50 @@ async def generate_manager_rating_image(rows, bot):
 
         medal = medals.get(idx,str(idx))
 
-        draw.text((x_no+col_no//2,center_y),medal,font=font,fill="black",anchor="mm")
+        draw.text((x_no + col_no // 2, center_y), medal, font=font, fill="black", anchor="mm")
 
-        name_lines = textwrap.wrap(name,width=28)
+        draw.text(
+            (x_name + col_name // 2, center_y),
+            name,
+            font=font,
+            fill="black",
+            anchor="mm"
+        )
 
-        for i,line in enumerate(name_lines[:2]):
-            draw.text((x_name+20,center_y-30+i*35),line,font=font,fill="black")
+        position = str(r.get("position", ""))
 
-        draw.text((x_rate+col_equal//2,center_y),f"{avg:.1f}",font=font,fill="black",anchor="mm")
+        draw.text(
+            (x_position + col_position // 2, center_y),
+            position,
+            font=font,
+            fill="black",
+            anchor="mm"
+        )
 
-        draw.text((x_ok+col_equal//2,center_y),str(r.get("answered_count",0)),font=font,fill="black",anchor="mm")
 
-        draw.text((x_bad+col_equal//2,center_y),str(r.get("unanswered_count",0)),font=font,fill="black",anchor="mm")
+        draw.text((x_rate+col_rate//2,center_y),f"{avg:.1f}",font=font,fill="black",anchor="mm")
+
+        draw.text((x_ok+col_answered//2,center_y),str(r.get("answered_count",0)),font=font,fill="black",anchor="mm")
+
+        draw.text((x_bad+col_unanswered//2,center_y),str(r.get("unanswered_count",0)),font=font,fill="black",anchor="mm")
 
         faculty = str(r.get("faculty",""))
 
-        faculty_lines = textwrap.wrap(faculty,width=28)
+        draw.text(
+            (x_fac + col_fac // 2, center_y),
+            faculty,
+            font=font,
+            fill="black",
+            anchor="mm"
+        )
 
-        for i,line in enumerate(faculty_lines[:2]):
-            draw.text((x_fac+20,center_y-30+i*35),line,font=font,fill="black")
-
+        draw.text(
+            (x_fac + col_fac // 2, center_y),
+            faculty,
+            font=font,
+            fill="black",
+            anchor="mm"
+        )
         draw.line((table_left,y,table_right,y),fill="black",width=2)
         draw.line((table_left,row_bottom,table_right,row_bottom),fill="black",width=2)
 
@@ -469,9 +514,9 @@ async def generate_manager_rating_image(rows, bot):
 
     draw.text((x_name+20,center_y-20),"Jami murojaatlar soni:",font=font_header,fill="black")
 
-    draw.text((x_ok+col_equal//2,center_y),str(total_answered),font=font_header,fill="black",anchor="mm")
+    draw.text((x_ok+col_answered//2,center_y),str(total_answered),font=font_header,fill="black",anchor="mm")
 
-    draw.text((x_bad+col_equal//2,center_y),str(total_unanswered),font=font_header,fill="black",anchor="mm")
+    draw.text((x_bad+col_unanswered//2,center_y),str(total_unanswered),font=font_header,fill="black",anchor="mm")
 
     # ================= ECONOMY =================
 
