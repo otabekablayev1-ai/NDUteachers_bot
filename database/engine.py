@@ -7,3 +7,8 @@ engine = create_async_engine(
     echo=False,
     pool_pre_ping=True,
 )
+
+from database.engine import engine
+from database.models import Base
+
+Base.metadata.create_all(bind=engine)

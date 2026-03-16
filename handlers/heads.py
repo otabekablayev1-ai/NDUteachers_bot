@@ -9,12 +9,8 @@ from aiogram.types import (
     Message,
     CallbackQuery
 )
-from PIL import Image, ImageDraw, ImageFont
-from io import BytesIO
-from aiogram.types import BufferedInputFile
 from database.db import (get_university_statistics, get_question_by_id,
 )
-from aiogram.types import BufferedInputFile
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.fsm.context import FSMContext
 from database.db import get_manager_rating_table
@@ -31,10 +27,9 @@ from database.db import (
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill
 from openpyxl.utils import get_column_letter
-from io import BytesIO
 from aiogram.types import BufferedInputFile
-from datetime import datetime
 from database.db import get_all_students
+from database.db import get_manager_by_id
 
 router = Router()
 
@@ -416,17 +411,26 @@ async def generate_manager_rating_image(rows, bot):
     for col in columns:
         draw.line((col, table_top, col, table_top+header_height+row_height*total_rows), fill="black", width=2)
 
-    # ================= NAME CACHE (tezroq) =================
+    # ================= NAME CACHE =================
 
     name_cache = {}
 
     async def get_name(manager_id):
+
         if manager_id in name_cache:
             return name_cache[manager_id]
 
         try:
-            chat = await bot.get_chat(manager_id)
-            name_cache[manager_id] = chat.full_name
+            manager = await get_manager_by_id(manager_id)
+
+            if manager:
+                name = manager.fio
+            else:
+                chat = await bot.get_chat(manager_id)
+                name = chat.full_name
+
+            name_cache[manager_id] = name
+
         except:
             name_cache[manager_id] = str(manager_id)
 

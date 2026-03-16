@@ -64,6 +64,16 @@ class RegisterRequest(Base):
     course = Column(String)
     student_group = Column(String)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+class Manager(Base):
+    __tablename__ = "managers"
+
+    id = Column(Integer, primary_key=True)
+    telegram_id = Column(BigInteger, unique=True, index=True)
+    fio = Column(String)
+    position = Column(String)
+    faculty = Column(String)
+
 # =========================
 # ❓ SAVOLLAR
 # =========================

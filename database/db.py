@@ -24,6 +24,9 @@ from database.models import (
     CommandsFile,
 )
 from data.config import MANAGERS_BY_FACULTY
+from database.models import Manager
+from sqlalchemy import select
+
 
 # =====================================================
 # 🔧 DATABASE URL CHECK
@@ -1204,3 +1207,27 @@ async def get_all_questions():
         )
 
         return result.all()
+
+async def add_manager(telegram_id: int, fio: str, position: str, faculty: str):
+
+    async with AsyncSessionLocal() as session:
+
+        manager = Manager(
+            telegram_id=telegram_id,
+            fio=fio,
+            position=position,
+            faculty=faculty
+        )
+
+        session.add(manager)
+        await session.commit()
+
+async def get_manager_by_id(telegram_id: int):
+
+    async with AsyncSessionLocal() as session:
+
+        result = await session.execute(
+            select(Manager).where(Manager.telegram_id == telegram_id)
+        )
+
+        return result.scalar_one_or_none()

@@ -21,7 +21,7 @@ from handlers import (
     admin_delete_order,
     tutor_orders,
 )
-
+from handlers import admin_managers
 async def main():
     logger.info("🤖 Bot ishga tushmoqda...")
 
@@ -38,6 +38,7 @@ async def main():
     dp.include_router(admin.router)
     dp.include_router(admin_register_check.router)
     dp.include_router(admin_message.router)
+    dp.include_router(admin_managers.router)  # ← shu qatorni qo‘shasiz
     dp.include_router(commands_orders.router)
     dp.include_router(heads.router)
     dp.include_router(teacher_panel.router)
