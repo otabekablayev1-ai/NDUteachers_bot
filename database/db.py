@@ -337,10 +337,20 @@ async def user_already_rated(
 # 📊 MENEJERLAR BAHO JADVALI
 # =====================================================
 async def get_manager_rating_table() -> list[dict]:
+
     manager_ids: set[int] = set()
     faculty_by_manager: dict[int, str] = {}
     position_by_manager: dict[int, str] = {}
 
+    # 🔹 Maxsus rahbar lavozimlari
+    HEAD_POSITIONS = {
+        123456789: "Registrator ofisi direktori",
+        987654321: "Buxgalter",
+        555666777: "Prorektor",
+        444333222: "Rektorat"
+    }
+
+    # 🔹 Fakultet menejerlari
     for faculty, roles in MANAGERS_BY_FACULTY.items():
 
         teacher_ids = roles.get("teacher") or []
@@ -349,12 +359,18 @@ async def get_manager_rating_table() -> list[dict]:
         for mid in teacher_ids:
             manager_ids.add(mid)
             faculty_by_manager[mid] = faculty
-            position_by_manager[mid] = "Fakultet menejeri"
+            position_by_manager[mid] = "Menejer"
 
         for mid in student_ids:
             manager_ids.add(mid)
             faculty_by_manager[mid] = faculty
-            position_by_manager[mid] = "Talabalar bilan ishlash menejeri"
+            position_by_manager[mid] = "Menejer"
+
+    # 🔹 Maxsus rahbarlarni qo‘shish
+    for mid, pos in HEAD_POSITIONS.items():
+        manager_ids.add(mid)
+        position_by_manager[mid] = pos
+        faculty_by_manager[mid] = "Rahbariyat"
 
     if not manager_ids:
         return []
@@ -376,7 +392,7 @@ async def get_manager_rating_table() -> list[dict]:
         {
             "manager_id": r.manager_id,
             "faculty": faculty_by_manager.get(r.manager_id, ""),
-            "position": position_by_manager.get(r.manager_id, ""),  # 👈 Lavozim qo‘shildi
+            "position": position_by_manager.get(r.manager_id, ""),
             "answered_count": r.answered_count or 0,
             "unanswered_count": 0,
             "avg_rating": float(r.avg_rating or 0),
