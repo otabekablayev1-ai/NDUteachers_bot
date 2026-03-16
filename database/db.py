@@ -380,26 +380,23 @@ async def get_manager_rating_table() -> list[dict]:
         )
 
         rows = result.all()
-
         ratings_map = {r.manager_id: r for r in rows}
 
-        table = []
+    table = [
+        {
+            "manager_id": r.manager_id,
+            "faculty": faculty_by_manager.get(r.manager_id, ""),
+            "position": position_by_manager.get(r.manager_id, ""),
+            "answered_count": r.answered_count or 0,
+            "unanswered_count": 0,
+            "avg_rating": float(r.avg_rating or 0),
+        }
+        for r in rows
+    ]
 
-        for mid in manager_ids:
-            r = ratings_map.get(mid)
+    table.sort(key=lambda x: x["avg_rating"], reverse=True)
 
-            table.append({
-                "manager_id": mid,
-                "faculty": faculty_by_manager.get(mid, ""),
-                "position": position_by_manager.get(mid, ""),
-                "answered_count": r.answered_count if r else 0,
-                "unanswered_count": 0,
-                "avg_rating": float(r.avg_rating or 0) if r else 0,
-            })
-
-        table.sort(key=lambda x: x["avg_rating"], reverse=True)
-
-        return table
+    return table
 # =====================================================
 # 📊 FAKULTET BO‘YICHA REYTING
 # =====================================================
