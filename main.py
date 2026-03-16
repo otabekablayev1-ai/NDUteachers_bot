@@ -6,7 +6,7 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.fsm.storage.memory import MemoryStorage
 
 from data.config import BOT_TOKEN
-from database.db import init_db
+from database.engine import init_db
 from handlers import (
     start,
     registration,
