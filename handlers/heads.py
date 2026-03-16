@@ -289,7 +289,6 @@ async def handle_rating(call: CallbackQuery):
 from PIL import Image, ImageDraw, ImageFont
 from io import BytesIO
 from datetime import datetime
-import textwrap
 
 
 async def generate_manager_rating_image(rows, bot):
@@ -437,43 +436,50 @@ async def generate_manager_rating_image(rows, bot):
 
     y = table_top + header_height
 
-    total_answered = sum(int(r.get("answered_count",0)) for r in rows)
-    total_unanswered = sum(int(r.get("unanswered_count",0)) for r in rows)
+    total_answered = sum(int(r.get("answered_count", 0)) for r in rows)
+    total_unanswered = sum(int(r.get("unanswered_count", 0)) for r in rows)
 
-    medals = {1:"🥇",2:"🥈",3:"🥉"}
+    for idx, r in enumerate(rows, 1):
 
-    for idx,r in enumerate(rows,1):
+        row_bottom = y + row_height
+        center_y = y + row_height // 2
 
-        row_bottom = y+row_height
-        center_y = y+row_height//2
-
-        if idx==1:
-            draw.rectangle([table_left,y,table_right,row_bottom],fill=(255,248,220))
+        # 1-o‘rinni rang bilan ajratish (xohlasangiz olib tashlash mumkin)
+        if idx == 1:
+            draw.rectangle(
+                [table_left, y, table_right, row_bottom],
+                fill=(255, 248, 220)
+            )
 
         name = await get_name(r["manager_id"])
 
         avg = float(r.get("avg_rating") or 0)
 
-        medal = medals.get(idx,str(idx))
-
-        draw.text((x_no + col_no // 2, center_y), medal, font=font, fill="black", anchor="mm")
-
+        # № ustuni — oddiy raqam
         draw.text(
-            (x_name + col_name // 2, center_y),
-            name,
+            (x_no + col_no // 2, center_y),
+            str(idx),
             font=font,
             fill="black",
             anchor="mm"
         )
 
+        # Mas'ul ijrochi — chapdan tekislangan
+        draw.text(
+            (x_name + 15, center_y),
+            name,
+            font=font,
+            fill="black",
+            anchor="lm"
+        )
         position = str(r.get("position", ""))
 
         draw.text(
-            (x_position + col_position // 2, center_y),
+            (x_position + 15, center_y),
             position,
             font=font,
             fill="black",
-            anchor="mm"
+            anchor="lm"
         )
 
 
@@ -483,22 +489,22 @@ async def generate_manager_rating_image(rows, bot):
 
         draw.text((x_bad+col_unanswered//2,center_y),str(r.get("unanswered_count",0)),font=font,fill="black",anchor="mm")
 
-        faculty = str(r.get("faculty",""))
+        faculty = str(r.get("faculty", ""))
 
         draw.text(
-            (x_fac + col_fac // 2, center_y),
+            (x_fac + 15, center_y),
             faculty,
             font=font,
             fill="black",
-            anchor="mm"
+            anchor="lm"
         )
 
         draw.text(
-            (x_fac + col_fac // 2, center_y),
+            (x_fac + 15, center_y),
             faculty,
             font=font,
             fill="black",
-            anchor="mm"
+            anchor="lm"
         )
         draw.line((table_left,y,table_right,y),fill="black",width=2)
         draw.line((table_left,row_bottom,table_right,row_bottom),fill="black",width=2)
