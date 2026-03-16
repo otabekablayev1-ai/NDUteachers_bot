@@ -12,7 +12,6 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import declarative_base, relationship
 from datetime import datetime
-from sqlalchemy.orm import relationship
 Base = declarative_base()
 
 # =========================
@@ -164,15 +163,6 @@ class OrderLink(Base):
     students_search = Column(Text)    # normalize qilingan
 
     created_at = Column(DateTime, default=datetime.utcnow)
-
-# =========================
-# 👔 MENEJER ISMI
-# =========================
-class Manager(Base):
-    __tablename__ = "managers"
-
-    user_id = Column(BigInteger, primary_key=True)
-    full_name = Column(String)
 
 # =========================
 # 📎 BUYRUQLAR FAYLI
