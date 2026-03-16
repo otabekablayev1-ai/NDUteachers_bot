@@ -294,7 +294,7 @@ import textwrap
 
 async def generate_manager_rating_image(rows, bot):
 
-    width = 2900
+    width = 3000
     padding_x = 80
     padding_y = 80
 
@@ -352,9 +352,9 @@ async def generate_manager_rating_image(rows, bot):
     col_name = 700
     col_position = 350
     col_rate = 200
-    col_answered = 280
-    col_unanswered = 280
-    col_fac = 750
+    col_answered = 300
+    col_unanswered = 300
+    col_fac = 800
 
     table_left = padding_x
     table_top = y
