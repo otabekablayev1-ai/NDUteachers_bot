@@ -23,7 +23,7 @@ from database.models import (
     OrderLink,
     CommandsFile,
 )
-from data.config import RAHBARLAR, MANAGERS_BY_FACULTY
+from data.config import MANAGERS_BY_FACULTY
 
 # =====================================================
 # 🔧 DATABASE URL CHECK
@@ -342,16 +342,14 @@ async def get_manager_rating_table() -> list[dict]:
     faculty_by_manager: dict[int, str] = {}
     position_by_manager: dict[int, str] = {}
 
-    position_by_manager: dict[int, str] = {}
+    # 🔹 Maxsus rahbarlar
+    HEAD_POSITIONS = {
+        7428267938: "Registrator ofisi direktori",
+        1153176982: "Stipendiya va Yotoqxona",
+        555666777: "Prorektor",
+        444333222: "Rektorat"
+    }
 
-    # Umumiy rahbarlarni qo'shish
-    for position, ids in RAHBARLAR.items():
-        for mid in ids:
-            manager_ids.add(mid)
-            faculty_by_manager[mid] = "Rahbariyat"
-            position_by_manager[mid] = position
-
-    # Fakultet menejerlari
     for faculty, roles in MANAGERS_BY_FACULTY.items():
 
         teacher_ids = roles.get("teacher") or []
@@ -362,7 +360,10 @@ async def get_manager_rating_table() -> list[dict]:
             manager_ids.add(mid)
             faculty_by_manager[mid] = faculty
 
-            if mid not in position_by_manager:
+            # 🔹 Agar maxsus lavozim bo‘lsa
+            if mid in HEAD_POSITIONS:
+                position_by_manager[mid] = HEAD_POSITIONS[mid]
+            else:
                 position_by_manager[mid] = "Menejer"
 
     if not manager_ids:
@@ -380,7 +381,6 @@ async def get_manager_rating_table() -> list[dict]:
         )
 
         rows = result.all()
-        ratings_map = {r.manager_id: r for r in rows}
 
     table = [
         {
