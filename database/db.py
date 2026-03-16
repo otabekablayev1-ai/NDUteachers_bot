@@ -23,7 +23,7 @@ from database.models import (
     OrderLink,
     CommandsFile,
 )
-from data.config import MANAGERS_BY_FACULTY
+from data.config import RAHBARLAR, MANAGERS_BY_FACULTY
 
 # =====================================================
 # 🔧 DATABASE URL CHECK
@@ -342,35 +342,28 @@ async def get_manager_rating_table() -> list[dict]:
     faculty_by_manager: dict[int, str] = {}
     position_by_manager: dict[int, str] = {}
 
-    # 🔹 Maxsus rahbar lavozimlari
-    HEAD_POSITIONS = {
-        123456789: "Registrator ofisi direktori",
-        987654321: "Buxgalter",
-        555666777: "Prorektor",
-        444333222: "Rektorat"
-    }
+    position_by_manager: dict[int, str] = {}
 
-    # 🔹 Fakultet menejerlari
+    # Umumiy rahbarlarni qo'shish
+    for position, ids in RAHBARLAR.items():
+        for mid in ids:
+            manager_ids.add(mid)
+            faculty_by_manager[mid] = "Rahbariyat"
+            position_by_manager[mid] = position
+
+    # Fakultet menejerlari
     for faculty, roles in MANAGERS_BY_FACULTY.items():
 
         teacher_ids = roles.get("teacher") or []
         student_ids = roles.get("student") or []
 
-        for mid in teacher_ids:
+        for mid in teacher_ids + student_ids:
+
             manager_ids.add(mid)
             faculty_by_manager[mid] = faculty
-            position_by_manager[mid] = "Menejer"
 
-        for mid in student_ids:
-            manager_ids.add(mid)
-            faculty_by_manager[mid] = faculty
-            position_by_manager[mid] = "Menejer"
-
-    # 🔹 Maxsus rahbarlarni qo‘shish
-    for mid, pos in HEAD_POSITIONS.items():
-        manager_ids.add(mid)
-        position_by_manager[mid] = pos
-        faculty_by_manager[mid] = "Rahbariyat"
+            if mid not in position_by_manager:
+                position_by_manager[mid] = "Menejer"
 
     if not manager_ids:
         return []
