@@ -374,7 +374,7 @@ async def get_manager_rating_table() -> list[dict]:
             select(
                 Rating.manager_id,
                 func.count(Rating.id).label("answered_count"),
-                func.round(func.avg(Rating.rating), 2).label("avg_rating"),
+                func.sum(Rating.rating).label("total_rating"),  # 🔥 YIG‘INDI
             )
             .where(Rating.manager_id.in_(manager_ids))
             .group_by(Rating.manager_id)
@@ -389,7 +389,7 @@ async def get_manager_rating_table() -> list[dict]:
             "position": position_by_manager.get(r.manager_id, ""),
             "answered_count": r.answered_count or 0,
             "unanswered_count": 0,
-            "avg_rating": float(r.avg_rating or 0),
+            "avg_rating": float(r.total_rating or 0),  # 🔥 endi SUM
         }
         for r in rows
     ]
