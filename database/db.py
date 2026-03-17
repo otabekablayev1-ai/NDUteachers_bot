@@ -344,8 +344,8 @@ async def get_manager_rating_table() -> list[dict]:
 
     # 🔹 Maxsus rahbarlar
     HEAD_POSITIONS = {
-        2355525565: "R.O. direktori",
-        2154683225: "Buxgalteriya",
+        7428267938: "R.O. direktori",
+        556565656: "Buxgalteriya",
         555666777: "Prorektor",
         444333222: "Rektorat"
     }
