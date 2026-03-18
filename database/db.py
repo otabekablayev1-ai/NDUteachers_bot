@@ -342,10 +342,9 @@ async def get_manager_rating_table() -> list[dict]:
     faculty_by_manager: dict[int, str] = {}
     position_by_manager: dict[int, str] = {}
 
-    # 🔹 Maxsus rahbarlar
     HEAD_POSITIONS = {
         7428267938: "R.O. direktori",
-        556565656: "Buxgalteriya",
+        1040796931: "Adminstrator",
         555666777: "Prorektor",
         444333222: "Rektorat"
     }
@@ -356,11 +355,9 @@ async def get_manager_rating_table() -> list[dict]:
         student_ids = roles.get("student") or []
 
         for mid in teacher_ids + student_ids:
-
             manager_ids.add(mid)
             faculty_by_manager[mid] = faculty
 
-            # 🔹 Agar maxsus lavozim bo‘lsa
             if mid in HEAD_POSITIONS:
                 position_by_manager[mid] = HEAD_POSITIONS[mid]
             else:
@@ -380,27 +377,40 @@ async def get_manager_rating_table() -> list[dict]:
             .group_by(Rating.manager_id)
         )
 
-        rows = result.all()
+        rows = result.all()  # ✅ faqat 1 marta
 
-        # 🔥 MANA SHU QATORNI QO‘SHASIZ
-        total_questions = await session.scalar(
-            select(func.count(Question.id))
+        # 🔥 Managerga kelgan savollar
+        questions_res = await session.execute(
+            select(
+                Question.manager_id,
+                func.count(Question.id).label("total_questions")
+            )
+            .group_by(Question.manager_id)
         )
+
+        questions_res = questions_res.all()  # ✅ MUHIM
+
+        questions_map = {
+            r.manager_id: r.total_questions
+            for r in questions_res
+        }
 
     table = []
 
     for r in rows:
+        manager_id = r.manager_id
+
         answered = r.answered_count or 0
-        total = total_questions or 0
+        total = questions_map.get(manager_id, 0)
 
         unanswered = max(total - answered, 0)
 
         table.append({
-            "manager_id": r.manager_id,
-            "faculty": faculty_by_manager.get(r.manager_id, ""),
-            "position": position_by_manager.get(r.manager_id, ""),
+            "manager_id": manager_id,
+            "faculty": faculty_by_manager.get(manager_id, ""),
+            "position": position_by_manager.get(manager_id, ""),
             "answered_count": answered,
-            "unanswered_count": unanswered,  # 🔥 FIX
+            "unanswered_count": unanswered,
             "avg_rating": float(r.total_rating or 0),
         })
 
@@ -858,25 +868,25 @@ async def save_question(
     faculty: str,
     message_text: str,
     fio: str,
-) -> int | None:
+    manager_id: int | None = None,  # 🔥 SAFE
+):
     async with AsyncSessionLocal() as session:
-        try:
-            q = Question(
-                sender_id=sender_id,
-                sender_role=sender_role,
-                faculty=faculty,
-                message_text=message_text,
-                fio=fio,
-                answered=False,
-            )
-            session.add(q)
-            await session.commit()
-            await session.refresh(q)
-            return q.id
-        except Exception:
-            await session.rollback()
-            return None
 
+        question = Question(
+            sender_id=sender_id,
+            sender_role=sender_role,
+            faculty=faculty,
+            message_text=message_text,
+            fio=fio,
+            manager_id=manager_id,
+            answered=False
+        )
+
+        session.add(question)
+        await session.commit()
+        await session.refresh(question)
+
+        return question.id
 
 async def save_question_message_id(
     question_id: int,

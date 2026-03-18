@@ -216,6 +216,25 @@ async def send_to_head(message: Message, state: FSMContext):
 
     for head_id in recipients:
         try:
+            # 🔥 HAR BIR MANAGER UCHUN ALohida SAVE
+            question_id = await save_question(
+                sender_id=message.from_user.id,
+                sender_role="student",
+                faculty=faculty,
+                message_text=message.text if message.text else "[FAYL]",
+                fio=fio,
+                manager_id=head_id  # 🔥 ENG MUHIM
+            )
+
+            reply_kb = InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [InlineKeyboardButton(
+                        text="✉️ Javob yozish",
+                        callback_data=f"reply_{question_id}"
+                    )]
+                ]
+            )
+
             if message.text:
                 await message.bot.send_message(
                     head_id,
@@ -223,6 +242,7 @@ async def send_to_head(message: Message, state: FSMContext):
                     parse_mode="HTML",
                     reply_markup=reply_kb
                 )
+
             elif message.document:
                 await message.bot.send_document(
                     head_id,
@@ -230,6 +250,7 @@ async def send_to_head(message: Message, state: FSMContext):
                     caption=info_text,
                     reply_markup=reply_kb
                 )
+
             elif message.photo:
                 await message.bot.send_photo(
                     head_id,
@@ -237,6 +258,7 @@ async def send_to_head(message: Message, state: FSMContext):
                     caption=info_text,
                     reply_markup=reply_kb
                 )
+
             elif message.video:
                 await message.bot.send_video(
                     head_id,
@@ -250,7 +272,6 @@ async def send_to_head(message: Message, state: FSMContext):
 
         except Exception as e:
             print("[STUDENT SEND ERROR]", e, "HEAD_ID:", head_id)
-
     # ============================
     # TALABAGA TASDIQ
     # ============================
