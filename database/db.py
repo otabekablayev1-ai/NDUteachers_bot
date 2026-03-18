@@ -374,7 +374,7 @@ async def get_manager_rating_table() -> list[dict]:
             select(
                 Rating.manager_id,
                 func.count(Rating.id).label("answered_count"),
-                func.sum(Rating.rating).label("total_rating"),  # 🔥 YIG‘INDI
+                func.sum(Rating.rating).label("total_rating"),
             )
             .where(Rating.manager_id.in_(manager_ids))
             .group_by(Rating.manager_id)
@@ -382,17 +382,27 @@ async def get_manager_rating_table() -> list[dict]:
 
         rows = result.all()
 
-    table = [
-        {
+        # 🔥 MANA SHU QATORNI QO‘SHASIZ
+        total_questions = await session.scalar(
+            select(func.count(Question.id))
+        )
+
+    table = []
+
+    for r in rows:
+        answered = r.answered_count or 0
+        total = total_questions or 0
+
+        unanswered = max(total - answered, 0)
+
+        table.append({
             "manager_id": r.manager_id,
             "faculty": faculty_by_manager.get(r.manager_id, ""),
             "position": position_by_manager.get(r.manager_id, ""),
-            "answered_count": r.answered_count or 0,
-            "unanswered_count": 0,
-            "avg_rating": float(r.total_rating or 0),  # 🔥 endi SUM
-        }
-        for r in rows
-    ]
+            "answered_count": answered,
+            "unanswered_count": unanswered,  # 🔥 FIX
+            "avg_rating": float(r.total_rating or 0),
+        })
 
     table.sort(key=lambda x: x["avg_rating"], reverse=True)
 
