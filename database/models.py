@@ -77,12 +77,16 @@ class Manager(Base):
 # =========================
 class Question(Base):
     __tablename__ = "questions"
+
     id = Column(Integer, primary_key=True)
     sender_id = Column(BigInteger, nullable=False)
-    sender_role = Column(String, nullable=False)     # <-- NOT NULL
+    sender_role = Column(String, nullable=False)
     fio = Column(String)
     faculty = Column(String)
     message_text = Column(Text)
+
+    manager_id = Column(BigInteger)  # 🔥 SHUNI QO‘SHING
+
     answered = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
