@@ -350,7 +350,6 @@ async def get_manager_rating_table() -> list[dict]:
     }
 
     for faculty, roles in MANAGERS_BY_FACULTY.items():
-
         teacher_ids = roles.get("teacher") or []
         student_ids = roles.get("student") or []
 
@@ -367,6 +366,8 @@ async def get_manager_rating_table() -> list[dict]:
         return []
 
     async with AsyncSessionLocal() as session:
+
+        # 🔹 JAVOB BERILGANLAR
         result = await session.execute(
             select(
                 Rating.manager_id,
@@ -377,22 +378,21 @@ async def get_manager_rating_table() -> list[dict]:
             .group_by(Rating.manager_id)
         )
 
-        rows = result.all()  # ✅ faqat 1 marta
+        rows = result.all()
 
-        # 🔥 Managerga kelgan savollar
+        # 🔹 HAMMA SAVOLLAR (manager bo‘yicha)
         questions_res = await session.execute(
             select(
                 Question.manager_id,
                 func.count(Question.id).label("total_questions")
             )
+            .where(Question.manager_id != None)
             .group_by(Question.manager_id)
         )
 
-        questions_res = questions_res.all()  # ✅ MUHIM
-
         questions_map = {
             r.manager_id: r.total_questions
-            for r in questions_res
+            for r in questions_res.all()
         }
 
     table = []
