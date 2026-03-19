@@ -9,6 +9,7 @@ from aiogram.types import (
     Message,
     CallbackQuery
 )
+
 from database.db import (get_university_statistics, get_question_by_id,
 )
 from aiogram.exceptions import TelegramBadRequest
@@ -30,7 +31,7 @@ from openpyxl.utils import get_column_letter
 from aiogram.types import BufferedInputFile
 from database.db import get_all_students
 from database.db import get_manager_by_id
-
+from database.db import debug_last_questions
 router = Router()
 
 class ReplyFSM(StatesGroup):
@@ -800,3 +801,4 @@ async def export_stats_excel(call: CallbackQuery):
         BufferedInputFile(file_stream.read(), filename=filename)
     )
 
+    await debug_last_questions()

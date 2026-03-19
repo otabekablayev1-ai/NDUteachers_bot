@@ -1245,3 +1245,16 @@ async def get_manager_by_id(telegram_id: int):
         )
 
         return result.scalar_one_or_none()
+
+async def debug_last_questions():
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(Question.id, Question.manager_id)
+            .order_by(Question.id.desc())
+            .limit(5)
+        )
+
+        rows = result.all()
+
+        for r in rows:
+            print("QUESTION:", r.id, "MANAGER:", r.manager_id)
