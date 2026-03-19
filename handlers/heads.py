@@ -573,8 +573,9 @@ async def generate_manager_rating_image(rows, bot):
 
 @router.message(F.text == "🏆 Menejerlar reytingi")
 async def show_managers_rating(message: Message):
-
     rows = await get_manager_rating_table()
+
+    await debug_last_questions()  # 🔥 SHU YERGA (ENG MUHIM)
 
     await debug_last_questions()  # 🔥 SHU YERGA
 
