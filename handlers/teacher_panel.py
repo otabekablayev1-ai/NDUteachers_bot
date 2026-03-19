@@ -27,7 +27,7 @@ class TeacherSendFSM(StatesGroup):
 
 @router.message(
     F.text == "📨 Rahbarlarga savol va murojaatlar yuborish",
-    lambda m: get_teacher(m.from_user.id) is not None
+    #lambda m: get_teacher(m.from_user.id) is not None
 )
 async def start_send_message(message: Message, state: FSMContext):
     print("[TEACHER HANDLER TUSHDI]")
