@@ -367,7 +367,6 @@ async def get_manager_rating_table() -> list[dict]:
 
     async with AsyncSessionLocal() as session:
 
-        # 🔹 JAVOB BERILGANLAR
         result = await session.execute(
             select(
                 Rating.manager_id,
@@ -380,21 +379,21 @@ async def get_manager_rating_table() -> list[dict]:
 
         rows = result.all()
 
-        # 🔹 HAMMA SAVOLLAR (manager bo‘yicha)
+        # 🔥 SHU YERGA QO‘YASIZ
         questions_res = await session.execute(
             select(
                 Question.manager_id,
                 func.count(Question.id).label("total_questions")
             )
-            .where(Question.manager_id != None)
+            .where(Question.manager_id.isnot(None))  # 🔥 MUHIM
             .group_by(Question.manager_id)
         )
 
         questions_map = {
             r.manager_id: r.total_questions
-            for r in questions_res.all()
+            for r in questions_res
         }
-
+        
     table = []
 
     for r in rows:
