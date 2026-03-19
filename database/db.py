@@ -1,14 +1,11 @@
 import os
 from datetime import datetime
-
-from sqlalchemy import or_
 from sqlalchemy import (
     select,
     delete,
     update,
     func,
 )
-from database.engine import engine
 from database.session import AsyncSessionLocal
 from database.models import (
     Base,
@@ -23,6 +20,7 @@ from database.models import (
     OrderLink,
     CommandsFile,
 )
+
 from data.config import MANAGERS_BY_FACULTY
 from database.models import Manager
 from sqlalchemy import select
@@ -393,7 +391,7 @@ async def get_manager_rating_table() -> list[dict]:
             r.manager_id: r.total_questions
             for r in questions_res
         }
-        
+
     table = []
 
     for r in rows:
@@ -867,7 +865,7 @@ async def save_question(
     faculty: str,
     message_text: str,
     fio: str,
-    manager_id: int | None = None,  # 🔥 SAFE
+    manager_id: int | None = None,
 ):
     async with AsyncSessionLocal() as session:
 

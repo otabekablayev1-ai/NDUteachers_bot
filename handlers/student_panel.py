@@ -11,6 +11,7 @@ from aiogram.fsm.state import StatesGroup, State
 
 from data.config import MANAGERS_BY_FACULTY, RAHBARLAR
 from database.db import get_student, save_question
+from database.db import save_question
 
 router = Router()
 
@@ -270,6 +271,7 @@ async def send_to_head(message: Message, state: FSMContext):
 
         except Exception as e:
             print("[STUDENT SEND ERROR]", e, "HEAD_ID:", head_id)
+
     # ============================
     # TALABAGA TASDIQ
     # ============================

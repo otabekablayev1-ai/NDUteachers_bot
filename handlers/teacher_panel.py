@@ -175,6 +175,7 @@ async def send_to_head(message: Message, state: FSMContext):
 
     sent = 0
 
+
     for head_id in recipients:
         try:
             question_id = await save_question(
