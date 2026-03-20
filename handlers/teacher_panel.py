@@ -143,13 +143,15 @@ async def send_to_head(message: Message, state: FSMContext):
     # ============================
     msg_text_for_db = message.text if message.text else "[FAYL]"
 
-    question_id = await save_question(
-        sender_id=message.from_user.id,
-        sender_role="teacher",
-        faculty=faculty,
-        message_text=msg_text_for_db,
-        fio=fio
-    )
+    for head_id in recipients:
+        question_id = await save_question(
+            sender_id=message.from_user.id,
+            sender_role="teacher",  # yoki teacher
+            faculty=faculty,
+            message_text=msg_text_for_db,
+            fio=fio,
+            manager_id=head_id  # 🔥 MUHIM
+        )
 
     if not question_id:
         await message.answer("❌ Savolni saqlashda xatolik. Administrator bilan bog‘laning.")

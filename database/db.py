@@ -428,14 +428,49 @@ async def get_manager_rating_table() -> list[dict]:
             r.manager_id: r.total_rating
             for r in rating_res
         }
-    # =========================
+    # ================================
     # YAKUNIY TABLE
-    # =========================
+    # ================================
     table = []
 
+    # 🔥 SAVOLLAR BO‘YICHA STATISTIKA (1 MARTA)
+    q_result = await session.execute(
+        select(
+            Question.manager_id,
+            func.count(Question.id).label("total"),
+            func.sum(
+                case((Question.answered == True, 1), else_=0)
+            ).label("answered_count"),
+            func.sum(
+                case((Question.answered == False, 1), else_=0)
+            ).label("unanswered_count"),
+        )
+        .where(
+            Question.manager_id.in_(manager_ids),
+            Question.manager_id.is_not(None)
+        )
+        .group_by(Question.manager_id)
+    )
+
+    q_rows = q_result.all()
+
+    # 🔥 MAP
+    q_map = {
+        r.manager_id: {
+            "answered": r.answered_count or 0,
+            "unanswered": r.unanswered_count or 0
+        }
+        for r in q_rows
+    }
+
+    # ================================
+    # TABLE YIG‘ISH
+    # ================================
     for mid in manager_ids:
-        answered = answered_map.get(mid, 0)
-        unanswered = unanswered_map.get(mid, 0)
+        stats = q_map.get(mid, {})
+
+        answered = stats.get("answered", 0)
+        unanswered = stats.get("unanswered", 0)
 
         table.append({
             "manager_id": mid,
@@ -443,17 +478,16 @@ async def get_manager_rating_table() -> list[dict]:
             "position": position_by_manager.get(mid, ""),
             "answered_count": answered,
             "unanswered_count": unanswered,
-            "avg_rating": float(rating_map.get(mid, 0)),
+            "avg_rating": float(rating_map.get(mid, 0)),  # sizda oldindan bor
         })
 
-    # Avval ball bo‘yicha, keyin answered_count bo‘yicha sort
+    # 🔥 SORT
     table.sort(
         key=lambda x: (x["avg_rating"], x["answered_count"]),
         reverse=True
     )
 
     return table
-
 # =====================================================
 # 📊 FAKULTET BO‘YICHA REYTING
 # =====================================================
