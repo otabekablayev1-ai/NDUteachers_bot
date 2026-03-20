@@ -334,6 +334,8 @@ async def user_already_rated(
 # =====================================================
 # 📊 MENEJERLAR BAHO JADVALI
 # =====================================================
+from sqlalchemy import select, func, case
+
 async def get_manager_rating_table() -> list[dict]:
 
     manager_ids: set[int] = set()
@@ -347,7 +349,11 @@ async def get_manager_rating_table() -> list[dict]:
         444333222: "Rektorat"
     }
 
+    # =========================
+    # MANAGERLARNI YIG‘ISH
+    # =========================
     for faculty, roles in MANAGERS_BY_FACULTY.items():
+
         teacher_ids = roles.get("teacher") or []
         student_ids = roles.get("student") or []
 
@@ -365,52 +371,66 @@ async def get_manager_rating_table() -> list[dict]:
 
     async with AsyncSessionLocal() as session:
 
-        result = await session.execute(
+        # =========================
+        # JAVOB BERILGAN / BERILMAGAN
+        # =========================
+        q = await session.execute(
+            select(
+                Question.manager_id,
+
+                # ✅ javob berilganlar soni
+                func.sum(
+                    case((Question.answered == True, 1), else_=0)
+                ).label("answered_count"),
+
+                # ✅ javob berilmaganlar soni
+                func.sum(
+                    case((Question.answered == False, 1), else_=0)
+                ).label("unanswered_count"),
+
+            )
+            .where(Question.manager_id.in_(manager_ids))
+            .group_by(Question.manager_id)
+        )
+
+        q_rows = {r.manager_id: r for r in q}
+
+        # =========================
+        # REYTING (SUM)
+        # =========================
+        r = await session.execute(
             select(
                 Rating.manager_id,
-                func.count(Rating.id).label("answered_count"),
-                func.sum(Rating.rating).label("total_rating"),
+                func.sum(Rating.rating).label("total_rating")
             )
             .where(Rating.manager_id.in_(manager_ids))
             .group_by(Rating.manager_id)
         )
 
-        rows = result.all()
+        rating_map = {r.manager_id: r.total_rating for r in r}
 
-        # 🔥 SHU YERGA QO‘YASIZ
-        questions_res = await session.execute(
-            select(
-                Question.manager_id,
-                func.count(Question.id).label("total_questions")
-            )
-            .where(Question.manager_id.isnot(None))  # 🔥 MUHIM
-            .group_by(Question.manager_id)
-        )
-
-        questions_map = {
-            r.manager_id: r.total_questions
-            for r in questions_res
-        }
-
+    # =========================
+    # TABLE YASASH
+    # =========================
     table = []
 
-    for r in rows:
-        manager_id = r.manager_id
+    for mid in manager_ids:
+        row = q_rows.get(mid)
 
-        answered = r.answered_count or 0
-        total = questions_map.get(manager_id, 0)
-
-        unanswered = max(total - answered, 0)
+        answered = row.answered_count if row else 0
+        unanswered = row.unanswered_count if row else 0
+        total_rating = rating_map.get(mid, 0)
 
         table.append({
-            "manager_id": manager_id,
-            "faculty": faculty_by_manager.get(manager_id, ""),
-            "position": position_by_manager.get(manager_id, ""),
-            "answered_count": answered,
-            "unanswered_count": unanswered,
-            "avg_rating": float(r.total_rating or 0),
+            "manager_id": mid,
+            "faculty": faculty_by_manager.get(mid, ""),
+            "position": position_by_manager.get(mid, ""),
+            "answered_count": int(answered or 0),
+            "unanswered_count": int(unanswered or 0),
+            "avg_rating": float(total_rating or 0),  # siz SUM ishlatyapsiz
         })
 
+    # 🔥 SORT
     table.sort(key=lambda x: x["avg_rating"], reverse=True)
 
     return table
