@@ -350,6 +350,11 @@ async def get_manager_rating_table() -> list[dict]:
         376399142: "Buxgalter",
         1608446045: "Buxgalter"
     }
+    EXCLUDED_MANAGER_IDS = {
+        1040796931,
+        8722281391,
+        1017100005, # 🔥 siz aytgan admin ID
+    }
 
     # =========================
     # MANAGERLARNI YIG‘ISH
