@@ -337,7 +337,6 @@ async def user_already_rated(
 from sqlalchemy import select, func, case
 
 async def get_manager_rating_table() -> list[dict]:
-
     manager_ids: set[int] = set()
     faculty_by_manager: dict[int, str] = {}
     position_by_manager: dict[int, str] = {}
@@ -346,59 +345,62 @@ async def get_manager_rating_table() -> list[dict]:
         7428267938: "R.O. direktori",
         1040796931: "Adminstrator",
         555666777: "Prorektor",
-        444333222: "Rektorat"
+        3232323222: "Buxgalter",
+        1043877684: "Buxgalter",
+        376399142: "Buxgalter",
+        1608446045: "Buxgalter"
     }
 
     # =========================
     # MANAGERLARNI YIG‘ISH
     # =========================
     for faculty, roles in MANAGERS_BY_FACULTY.items():
-
         teacher_ids = roles.get("teacher") or []
         student_ids = roles.get("student") or []
 
         for mid in teacher_ids + student_ids:
             manager_ids.add(mid)
             faculty_by_manager[mid] = faculty
-
-            if mid in HEAD_POSITIONS:
-                position_by_manager[mid] = HEAD_POSITIONS[mid]
-            else:
-                position_by_manager[mid] = "Menejer"
+            position_by_manager[mid] = HEAD_POSITIONS.get(mid, "Menejer")
 
     if not manager_ids:
         return []
 
     async with AsyncSessionLocal() as session:
-
         # =========================
-        # JAVOB BERILGAN / BERILMAGAN
+        # SAVOLLAR BO‘YICHA STATISTIKA
+        # answered_count   -> Question.answered = True
+        # unanswered_count -> Question.answered = False
         # =========================
-        q = await session.execute(
+        q_result = await session.execute(
             select(
                 Question.manager_id,
-
-                # ✅ javob berilganlar soni
                 func.sum(
-                    case((Question.answered == True, 1), else_=0)
+                    case((Question.answered.is_(True), 1), else_=0)
                 ).label("answered_count"),
-
-                # ✅ javob berilmaganlar soni
                 func.sum(
-                    case((Question.answered == False, 1), else_=0)
+                    case((Question.answered.is_(False), 1), else_=0)
                 ).label("unanswered_count"),
-
             )
-            .where(Question.manager_id.in_(manager_ids))
+            .where(
+                Question.manager_id.in_(manager_ids),
+                Question.manager_id.isnot(None),
+            )
             .group_by(Question.manager_id)
         )
 
-        q_rows = {r.manager_id: r for r in q}
+        q_map = {
+            row.manager_id: {
+                "answered_count": int(row.answered_count or 0),
+                "unanswered_count": int(row.unanswered_count or 0),
+            }
+            for row in q_result.all()
+        }
 
         # =========================
-        # REYTING (SUM)
+        # BALL YIG‘INDISI
         # =========================
-        r = await session.execute(
+        rating_result = await session.execute(
             select(
                 Rating.manager_id,
                 func.sum(Rating.rating).label("total_rating")
@@ -407,33 +409,39 @@ async def get_manager_rating_table() -> list[dict]:
             .group_by(Rating.manager_id)
         )
 
-        rating_map = {r.manager_id: r.total_rating for r in r}
+        rating_map = {
+            row.manager_id: float(row.total_rating or 0)
+            for row in rating_result.all()
+        }
 
     # =========================
-    # TABLE YASASH
+    # YAKUNIY TABLE
     # =========================
     table = []
 
     for mid in manager_ids:
-        row = q_rows.get(mid)
-
-        answered = row.answered_count if row else 0
-        unanswered = row.unanswered_count if row else 0
-        total_rating = rating_map.get(mid, 0)
+        stats = q_map.get(mid, {})
+        answered_count = stats.get("answered_count", 0)
+        unanswered_count = stats.get("unanswered_count", 0)
+        total_rating = rating_map.get(mid, 0.0)
 
         table.append({
             "manager_id": mid,
             "faculty": faculty_by_manager.get(mid, ""),
             "position": position_by_manager.get(mid, ""),
-            "answered_count": int(answered or 0),
-            "unanswered_count": int(unanswered or 0),
-            "avg_rating": float(total_rating or 0),  # siz SUM ishlatyapsiz
+            "answered_count": answered_count,
+            "unanswered_count": unanswered_count,
+            "avg_rating": total_rating,  # sizda shu kalit ishlatilmoqda, lekin bu SUM
         })
 
-    # 🔥 SORT
-    table.sort(key=lambda x: x["avg_rating"], reverse=True)
+    # Avval ball bo‘yicha, keyin answered_count bo‘yicha sort
+    table.sort(
+        key=lambda x: (x["avg_rating"], x["answered_count"]),
+        reverse=True
+    )
 
     return table
+
 # =====================================================
 # 📊 FAKULTET BO‘YICHA REYTING
 # =====================================================
