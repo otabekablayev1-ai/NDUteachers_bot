@@ -27,7 +27,7 @@ class TeacherSendFSM(StatesGroup):
 
 @router.message(
     F.text == "📨 Rahbarlarga savol va murojaatlar yuborish",
-    #lambda m: get_teacher(m.from_user.id) is not None
+    lambda m: get_teacher(m.from_user.id) is not None
 )
 async def start_send_message(message: Message, state: FSMContext):
     print("[TEACHER HANDLER TUSHDI]")
@@ -91,23 +91,14 @@ def normalize_faculty(name: str | None) -> str:
         return "Noma'lum"
     return " ".join(name.strip().split())
 
-# ===========================================================
-# 3️⃣ O‘QITUVCHI / TYUTOR — RAHBARGA SAVOL YUBORISH
-# ===========================================================
 @router.message(TeacherSendFSM.waiting_message, F.text | F.photo | F.video | F.document)
 async def send_to_head(message: Message, state: FSMContext):
     print("[TEACHER SEND] handler ishladi")
 
-    # 🔴 MUHIM: data ENG BOSHIDA olinadi
     data = await state.get_data()
 
     faculty_raw = data.get("faculty")
     faculty = normalize_faculty(faculty_raw)
-
-    print("==== SEND TO HEAD DEBUG ====")
-    print("RAW faculty:", faculty_raw)
-    print("NORMALIZED faculty:", faculty)
-    print("MANAGERS_BY_FACULTY KEYS:", list(MANAGERS_BY_FACULTY.keys()))
 
     teacher = await get_teacher(message.from_user.id)
     if not teacher:
@@ -116,7 +107,6 @@ async def send_to_head(message: Message, state: FSMContext):
         return
 
     fio = teacher.fio or message.from_user.full_name
-    phone = getattr(teacher, "phone", "Noma’lum")
 
     # ============================
     # RAHBARLARNI ANIQLASH
@@ -125,7 +115,7 @@ async def send_to_head(message: Message, state: FSMContext):
 
     for key, value in MANAGERS_BY_FACULTY.items():
         if key.lower().strip() == faculty.lower().strip():
-            recipients = value.get("teacher", [])
+            recipients = value.get("teacher", []) or []
             break
 
     if not recipients:
@@ -133,27 +123,12 @@ async def send_to_head(message: Message, state: FSMContext):
             recipients.extend(ids)
 
     recipients = list(set(recipients))
-    print("[DEBUG] FINAL RECIPIENTS:", recipients)
 
     if not recipients:
         await message.answer("❌ Rahbar topilmadi.")
         await state.clear()
         return
 
-    # ============================
-    # SAVOLNI DB GA SAQLASH
-    # ============================
-    question_id = await save_question(
-        sender_id=message.from_user.id,
-        sender_role="teacher",  # 🔥 MUHIM
-        faculty=faculty,
-        message_text=message.text if message.text else "[FAYL]",
-        fio=fio
-    )
-
-    # ============================
-    # RAHBARGA YUBORISH
-    # ============================
     role_title = "TYUTOR" if (teacher.role or "").lower() == "tutor" else "O‘QITUVCHI"
 
     info_text = (
@@ -161,23 +136,14 @@ async def send_to_head(message: Message, state: FSMContext):
         f"👤 <b>{teacher.fio}</b>\n"
         f"📞 {teacher.phone or 'Noma’lum'}\n"
         f"🏛 Fakultet: {teacher.faculty or 'Noma’lum'}\n"
-        f"🧑‍💼 Rol: {teacher.role or 'Noma’lum'}\n"
-    )
-
-    reply_kb = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(
-                text="✉️ Javob yozish",
-                callback_data=f"reply_{question_id}"
-            )]
-        ]
+        f"🧑‍💼 Rol: {teacher.role or 'Noma’lum'}\n\n"
     )
 
     sent = 0
 
-
     for head_id in recipients:
         try:
+            # 🔥 HAR BIR MANAGER UCHUN SAQLASH
             question_id = await save_question(
                 sender_id=message.from_user.id,
                 sender_role="teacher",
@@ -187,43 +153,43 @@ async def send_to_head(message: Message, state: FSMContext):
                 manager_id=head_id
             )
 
+            manager_info = f"\n👨‍💼 <b>Manager ID:</b> {head_id}\n"
+
             reply_kb = InlineKeyboardMarkup(
                 inline_keyboard=[
-                    [
-                        InlineKeyboardButton(
-                            text="✉️ Javob yozish",
-                            callback_data=f"reply_{question_id}"
-                        )
-                    ]
+                    [InlineKeyboardButton(text="✉️ Javob yozish", callback_data=f"reply_{question_id}")]
                 ]
             )
 
             if message.text:
                 await message.bot.send_message(
                     head_id,
-                    info_text + f"<b>Savol:</b>\n{message.text}",
+                    info_text + manager_info + f"<b>Savol:</b>\n{message.text}",
                     parse_mode="HTML",
                     reply_markup=reply_kb
                 )
+
             elif message.document:
                 await message.bot.send_document(
                     head_id,
                     message.document.file_id,
-                    caption=info_text,
+                    caption=info_text + manager_info,
                     reply_markup=reply_kb
                 )
+
             elif message.photo:
                 await message.bot.send_photo(
                     head_id,
                     message.photo[-1].file_id,
-                    caption=info_text,
+                    caption=info_text + manager_info,
                     reply_markup=reply_kb
                 )
+
             elif message.video:
                 await message.bot.send_video(
                     head_id,
                     message.video.file_id,
-                    caption=info_text,
+                    caption=info_text + manager_info,
                     reply_markup=reply_kb
                 )
 
@@ -232,6 +198,9 @@ async def send_to_head(message: Message, state: FSMContext):
 
         except Exception as e:
             print("[SEND ERROR]", e, "HEAD_ID:", head_id)
+
+    await message.answer(f"✅ {sent} ta rahbarga yuborildi")
+    await state.clear()
     # ============================
     # O‘QITUVCHIGA TASDIQ
     # ============================
