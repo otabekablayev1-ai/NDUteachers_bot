@@ -372,35 +372,50 @@ async def get_manager_rating_table() -> list[dict]:
         # answered_count   -> Question.answered = True
         # unanswered_count -> Question.answered = False
         # =========================
-        q_result = await session.execute(
+        # =========================
+        # ANSWERED
+        # =========================
+        answered_res = await session.execute(
             select(
                 Question.manager_id,
-                func.sum(
-                    case((Question.answered.is_(True), 1), else_=0)
-                ).label("answered_count"),
-                func.sum(
-                    case((Question.answered.is_(False), 1), else_=0)
-                ).label("unanswered_count"),
+                func.count(Question.id)
             )
             .where(
                 Question.manager_id.in_(manager_ids),
-                Question.manager_id.isnot(None),
+                Question.answered.is_(True)
             )
             .group_by(Question.manager_id)
         )
 
-        q_map = {
-            row.manager_id: {
-                "answered_count": int(row.answered_count or 0),
-                "unanswered_count": int(row.unanswered_count or 0),
-            }
-            for row in q_result.all()
+        answered_map = {
+            r[0]: r[1]
+            for r in answered_res
+        }
+
+        # =========================
+        # UNANSWERED
+        # =========================
+        unanswered_res = await session.execute(
+            select(
+                Question.manager_id,
+                func.count(Question.id)
+            )
+            .where(
+                Question.manager_id.in_(manager_ids),
+                Question.answered.is_(False)
+            )
+            .group_by(Question.manager_id)
+        )
+
+        unanswered_map = {
+            r[0]: r[1]
+            for r in unanswered_res
         }
 
         # =========================
         # BALL YIG‘INDISI
         # =========================
-        rating_result = await session.execute(
+        rating_res = await session.execute(
             select(
                 Rating.manager_id,
                 func.sum(Rating.rating).label("total_rating")
@@ -410,28 +425,25 @@ async def get_manager_rating_table() -> list[dict]:
         )
 
         rating_map = {
-            row.manager_id: float(row.total_rating or 0)
-            for row in rating_result.all()
+            r.manager_id: r.total_rating
+            for r in rating_res
         }
-
     # =========================
     # YAKUNIY TABLE
     # =========================
     table = []
 
     for mid in manager_ids:
-        stats = q_map.get(mid, {})
-        answered_count = stats.get("answered_count", 0)
-        unanswered_count = stats.get("unanswered_count", 0)
-        total_rating = rating_map.get(mid, 0.0)
+        answered = answered_map.get(mid, 0)
+        unanswered = unanswered_map.get(mid, 0)
 
         table.append({
             "manager_id": mid,
             "faculty": faculty_by_manager.get(mid, ""),
             "position": position_by_manager.get(mid, ""),
-            "answered_count": answered_count,
-            "unanswered_count": unanswered_count,
-            "avg_rating": total_rating,  # sizda shu kalit ishlatilmoqda, lekin bu SUM
+            "answered_count": answered,
+            "unanswered_count": unanswered,
+            "avg_rating": float(rating_map.get(mid, 0)),
         })
 
     # Avval ball bo‘yicha, keyin answered_count bo‘yicha sort
