@@ -1258,3 +1258,14 @@ async def debug_last_questions():
 
         for r in rows:
             print("QUESTION:", r.id, "MANAGER:", r.manager_id)
+
+from sqlalchemy import select
+from database.models import Manager
+
+
+async def get_manager_by_id(telegram_id: int):
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(Manager).where(Manager.telegram_id == telegram_id)
+        )
+        return result.scalar_one_or_none()

@@ -13,6 +13,7 @@ from database.db import get_teacher, save_manager_rating
 from database.db import save_question
 from keyboards.send_to_head import get_send_to_head_panel
 from data.config import MANAGERS_BY_FACULTY
+from database.db import get_manager_by_id
 
 router = Router()
 
@@ -152,8 +153,14 @@ async def send_to_head(message: Message, state: FSMContext):
                 fio=fio,
                 manager_id=head_id
             )
+            manager = await get_manager_by_id(head_id)
 
-            manager_info = f"\n👨‍💼 <b>Manager ID:</b> {head_id}\n"
+            if manager:
+                manager_name = manager.fio
+            else:
+                manager_name = str(head_id)
+
+            manager_info = f"\n👨‍💼 <b>{manager.fio}</b> ({manager.position})\n"
 
             reply_kb = InlineKeyboardMarkup(
                 inline_keyboard=[
