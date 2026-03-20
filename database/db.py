@@ -364,6 +364,8 @@ async def get_manager_rating_table() -> list[dict]:
         student_ids = roles.get("student") or []
 
         for mid in teacher_ids + student_ids:
+            if mid in EXCLUDED_MANAGER_IDS:
+                continue
             manager_ids.add(mid)
             faculty_by_manager[mid] = faculty
             position_by_manager[mid] = HEAD_POSITIONS.get(mid, "Menejer")
@@ -435,6 +437,7 @@ async def get_manager_rating_table() -> list[dict]:
     table = []
 
     for mid in manager_ids:
+
         table.append({
             "manager_id": mid,
             "faculty": faculty_by_manager.get(mid, ""),
