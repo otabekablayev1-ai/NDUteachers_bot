@@ -1310,7 +1310,7 @@ async def get_manager_by_id(telegram_id: int):
         )
         return result.scalar_one_or_none()
 
-    
+
 async def get_questions_by_manager(manager_id: int, answered: bool):
     async with AsyncSessionLocal() as session:
         result = await session.execute(

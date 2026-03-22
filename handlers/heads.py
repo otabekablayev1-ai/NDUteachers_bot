@@ -9,7 +9,8 @@ from aiogram.types import (
     Message,
     CallbackQuery
 )
-
+from database.db import get_manager_rating_table
+from handlers.interactive_table import build_interactive_table
 from database.db import (get_university_statistics, get_question_by_id,
 )
 from aiogram.exceptions import TelegramBadRequest
@@ -810,4 +811,17 @@ async def show_rating(message: Message):
 
     text, kb = await build_interactive_table(rows, message.bot)
 
+    await message.answer(text, parse_mode="HTML", reply_markup=kb)
+
+
+@router.message(F.text == "📊 Interaktiv reyting")
+async def show_interactive_rating(message: Message):
+
+    # 🔥 DATA
+    rows = await get_manager_rating_table()
+
+    # 🔥 UI
+    text, kb = await build_interactive_table(rows, message.bot)
+
+    # 🔥 YUBORISH
     await message.answer(text, parse_mode="HTML", reply_markup=kb)

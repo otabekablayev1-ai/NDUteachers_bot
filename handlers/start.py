@@ -26,6 +26,7 @@ async def start_handler(message: Message, state: FSMContext):   # 👈 state qo�
             keyboard=[
                 [KeyboardButton(text="📥 Ro‘yxat so‘rovlari")],
                 [KeyboardButton(text="🏆 Menejerlar reytingi")],
+                [KeyboardButton(text="📊 Interaktiv reyting")],  # 🔥 YANGI
                 [KeyboardButton(text="📊 Statistika")],
                 [KeyboardButton(text="📊 Savol–Javoblarni Excelga yuklab olish")],  # YANGI TUGMA
                 [KeyboardButton(text="❌ Foydalanuvchini o‘chirish")],
@@ -53,6 +54,7 @@ async def start_handler(message: Message, state: FSMContext):   # 👈 state qo�
                 keyboard=[
                     [KeyboardButton(text="📥 Savollarni ko‘rish")],
                     [KeyboardButton(text="🏆 Menejerlar reytingi")],
+                    [KeyboardButton(text="📊 Interaktiv reyting")],  # 🔥 YANGI
                     [KeyboardButton(text="📨 Xabar yuborish")],
                     [KeyboardButton(text="📊 Statistika")],
                     [KeyboardButton(text="📘 Buyruqlar")],
@@ -73,6 +75,7 @@ async def start_handler(message: Message, state: FSMContext):   # 👈 state qo�
                 keyboard=[
                     [KeyboardButton(text="📥 Savollarni ko‘rish")],
                     [KeyboardButton(text="🏆 Menejerlar reytingi")],
+                    [KeyboardButton(text="📊 Interaktiv reyting")],  # 🔥 YANGI
                     [KeyboardButton(text="📨 Xabar yuborish")],
                     [KeyboardButton(text="📊 Statistika")],
                     [KeyboardButton(text="📘 Buyruqlar")],
