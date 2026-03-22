@@ -1309,3 +1309,17 @@ async def get_manager_by_id(telegram_id: int):
             select(Manager).where(Manager.telegram_id == telegram_id)
         )
         return result.scalar_one_or_none()
+
+    
+async def get_questions_by_manager(manager_id: int, answered: bool):
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(Question)
+            .where(
+                Question.manager_id == manager_id,
+                Question.answered == answered
+            )
+            .order_by(Question.created_at.desc())
+        )
+
+        return result.scalars().all()

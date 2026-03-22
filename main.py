@@ -21,6 +21,7 @@ from handlers import (
     admin_delete_order,
     tutor_orders,
 )
+from handlers.interactive_table import router as interactive_router
 from handlers import admin_managers
 async def main():
     logger.info("🤖 Bot ishga tushmoqda...")
@@ -47,6 +48,7 @@ async def main():
     dp.include_router(student_orders.router)
     dp.include_router(admin_delete_order.router)
     dp.include_router(tutor_orders.router)
+    dp.include_router(interactive_router)
 
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)

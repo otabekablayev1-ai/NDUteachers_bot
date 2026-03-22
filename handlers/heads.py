@@ -804,3 +804,10 @@ async def export_stats_excel(call: CallbackQuery):
         BufferedInputFile(file_stream.read(), filename=filename)
     )
 
+@router.message(F.text == "📊 Reyting")
+async def show_rating(message: Message):
+    rows = await get_manager_rating_table()
+
+    text, kb = await build_interactive_table(rows, message.bot)
+
+    await message.answer(text, parse_mode="HTML", reply_markup=kb)
