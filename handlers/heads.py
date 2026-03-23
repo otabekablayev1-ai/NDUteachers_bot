@@ -9,8 +9,7 @@ from aiogram.types import (
     Message,
     CallbackQuery
 )
-from database.db import get_manager_rating_table
-from handlers.interactive_table import build_interactive_table
+
 from database.db import (get_university_statistics, get_question_by_id,
 )
 from aiogram.exceptions import TelegramBadRequest
@@ -804,26 +803,3 @@ async def export_stats_excel(call: CallbackQuery):
     await call.message.answer_document(
         BufferedInputFile(file_stream.read(), filename=filename)
     )
-
-@router.message(F.text == "📊 Reyting")
-async def show_rating(message: Message):
-    rows = await get_manager_rating_table()
-
-    text, kb = await build_interactive_table(rows, message.bot)
-
-    await message.answer(text, parse_mode="HTML", reply_markup=kb)
-
-
-from database.db import get_manager_rating_table
-from handlers.interactive_table import build_interactive_table
-
-@router.message(F.text == "📊 Interaktiv reyting")
-async def show_interactive_rating(message: Message):
-    rows = await get_manager_rating_table()
-
-    # pagination callback lar uchun vaqtincha bot xotirasida saqlaymiz
-    message.bot["interactive_rating_rows"] = rows
-
-    text, kb = await build_interactive_table(rows, message.bot, page=1)
-
-    await message.answer(text, parse_mode="HTML", reply_markup=kb)

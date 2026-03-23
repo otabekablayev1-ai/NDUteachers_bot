@@ -345,6 +345,8 @@ async def get_manager_rating_table() -> list[dict]:
         7428267938: "R.O. direktori",
         1040796931: "Adminstrator",
         555666777: "Prorektor",
+        810299183: "Bo'lim boshlig'i",
+        745476572: "Bo'lim boshlig'i",
         3232323222: "Buxgalter",
         1043877684: "Buxgalter",
         376399142: "Buxgalter",
