@@ -814,14 +814,16 @@ async def show_rating(message: Message):
     await message.answer(text, parse_mode="HTML", reply_markup=kb)
 
 
+from database.db import get_manager_rating_table
+from handlers.interactive_table import build_interactive_table
+
 @router.message(F.text == "📊 Interaktiv reyting")
 async def show_interactive_rating(message: Message):
-
-    # 🔥 DATA
     rows = await get_manager_rating_table()
 
-    # 🔥 UI
-    text, kb = await build_interactive_table(rows, message.bot)
+    # pagination callback lar uchun vaqtincha bot xotirasida saqlaymiz
+    message.bot["interactive_rating_rows"] = rows
 
-    # 🔥 YUBORISH
+    text, kb = await build_interactive_table(rows, message.bot, page=1)
+
     await message.answer(text, parse_mode="HTML", reply_markup=kb)
