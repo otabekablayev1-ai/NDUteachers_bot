@@ -4,7 +4,7 @@ import os
 
 from io import BytesIO
 from data.config import RAHBARLAR, MANAGERS_BY_FACULTY
-from database.db import get_teacher
+from database.db import get_student, get_teacher
 from sqlalchemy import select
 from openpyxl import Workbook
 from datetime import datetime
@@ -108,51 +108,92 @@ async def log_activity(user_id: int, role: str, command: str):
             print("LOG ERROR:", e)
 
 
+from collections import defaultdict
+
 async def export_activity_excel():
+
     async with AsyncSessionLocal() as session:
-        result = await session.execute(
-            select(UserActivity)
-        )
+        result = await session.execute(select(UserActivity))
         rows = result.scalars().all()
 
-    stats = {}
+    stats = defaultdict(lambda: {
+        "fio": "",
+        "role": "",
+        "commands": defaultdict(int),
+        "last": None
+    })
 
+    # 🔥 USER NOMINI OLISH FUNKSIYA
+    async def get_user_name(user_id):
+        from database.db import get_student, get_teacher
+        from database.models import Manager
+        from data.config import RAHBARLAR
+
+        # ✅ STUDENT
+        student = await get_student(user_id)
+        if student:
+            return student.fio
+
+        # ✅ TEACHER / TUTOR
+        teacher = await get_teacher(user_id)
+        if teacher:
+            return teacher.fio
+
+        # ✅ MANAGER (DB dan)
+        async with AsyncSessionLocal() as s:
+            res = await s.execute(
+                select(Manager).where(Manager.telegram_id == user_id)
+            )
+            manager = res.scalar_one_or_none()
+            if manager:
+                return manager.fio
+
+        # 🔥 ✅ RAHBARLAR (CONFIG dan)
+        for role_name, ids in RAHBARLAR.items():
+            if user_id in ids:
+                return f"{role_name} (Rahbar)"
+
+        # fallback
+        return str(user_id)
+
+    # 🔥 DATA YIG‘ISH
     for r in rows:
-        if r.user_id not in stats:
-            stats[r.user_id] = {
-                "count": 0,
-                "last": r.created_at,
-                "role": r.role
-            }
+        user = stats[r.user_id]
 
-        stats[r.user_id]["count"] += 1
+        user["role"] = r.role
+        user["commands"][r.command] += 1
 
-        if r.created_at > stats[r.user_id]["last"]:
-            stats[r.user_id]["last"] = r.created_at
+        if not user["last"] or r.created_at > user["last"]:
+            user["last"] = r.created_at
 
+    # 🔥 EXCEL
     wb = Workbook()
     ws = wb.active
     ws.title = "Faollik"
 
     ws.append([
-        "User ID",
+        "F.I.O",
         "Rol",
-        "Foydalanish soni",
+        "Buyruq",
+        "Necha marta",
         "Oxirgi aktivlik"
     ])
 
-    for uid, data in stats.items():
-        ws.append([
-            uid,
-            data["role"],
-            data["count"],
-            data["last"].strftime("%Y-%m-%d %H:%M")
-        ])
+    # 🔥 HAR BIR USER + COMMAND
+    for user_id, data in stats.items():
+
+        fio = await get_user_name(user_id)
+
+        for cmd, count in data["commands"].items():
+            ws.append([
+                fio,
+                data["role"],
+                cmd,
+                count,
+                data["last"].strftime("%Y-%m-%d %H:%M") if data["last"] else ""
+            ])
 
     filename = f"activity_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx"
-    path = os.path.join(os.getcwd(), filename)
+    wb.save(filename)
 
-    wb.save(path)
-
-    return path
-
+    return filename
