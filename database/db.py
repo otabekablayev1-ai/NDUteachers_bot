@@ -1,11 +1,12 @@
 import os
 from datetime import datetime
 from sqlalchemy import (
-    select,
     delete,
     update,
-    func,
 )
+from sqlalchemy import select, func, case
+from sqlalchemy import or_
+from database.helpers import normalize_text
 from database.session import AsyncSessionLocal
 from database.models import (
     Base,
@@ -331,8 +332,6 @@ async def user_already_rated(
 # =====================================================
 # 📊 MENEJERLAR BAHO JADVALI
 # =====================================================
-from sqlalchemy import select, func, case
-
 async def get_manager_rating_table() -> list[dict]:
     manager_ids: set[int] = set()
     faculty_by_manager: dict[int, str] = {}
@@ -987,9 +986,6 @@ async def get_manager_fio(manager_id: int) -> str:
 # =============================
 # 🔍 OrderLink — PROFESSIONAL qidiruv
 # =============================
-from sqlalchemy import or_
-from database.utils import normalize_text
-
 async def search_orders_multi(
     faculty: str | None = None,
     type: str | None = None,
@@ -1056,8 +1052,6 @@ async def delete_order_link_by_id(order_id: int) -> bool:
         await session.commit()
         return True
 
-
-from sqlalchemy import or_
 
 async def search_users_by_fio_or_id(
     text: str,
@@ -1238,10 +1232,6 @@ async def get_all_students():
 # =============================
 # 📊 Excel uchun murojaatlarni olish
 # =============================
-from sqlalchemy import select
-from database.models import Question, Answer
-
-
 async def get_all_questions():
     async with AsyncSessionLocal() as session:
         result = await session.execute(
@@ -1297,10 +1287,6 @@ async def debug_last_questions():
 
         for r in rows:
             print("QUESTION:", r.id, "MANAGER:", r.manager_id)
-
-from sqlalchemy import select
-from database.models import Manager
-
 
 async def get_manager_by_id(telegram_id: int):
     async with AsyncSessionLocal() as session:

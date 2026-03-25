@@ -1,7 +1,7 @@
 # handlers/utils.py
 
 import os
-import re
+
 from io import BytesIO
 from data.config import RAHBARLAR, MANAGERS_BY_FACULTY
 from database.db import get_teacher
@@ -19,16 +19,6 @@ async def send_long_message(message, text, chunk=4000):
             text[i:i + chunk],
             parse_mode="HTML"
         )
-def normalize_text(text: str) -> str:
-    if not text:
-        return ""
-
-    text = text.lower()
-    text = re.sub(r"[‘’ʻʼ`´]", "'", text)
-    text = re.sub(r"\s+", " ", text)
-    return text.strip()
-
-
 
 async def get_sender_info(user_id: int, full_name: str):
     """

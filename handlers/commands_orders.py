@@ -1,4 +1,4 @@
-from database.utils import normalize_text
+from database.helpers import normalize_text
 
 from aiogram import Router, F
 from aiogram.types import (

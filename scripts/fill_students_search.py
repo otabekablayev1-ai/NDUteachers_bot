@@ -3,7 +3,7 @@ import asyncio
 from sqlalchemy import select
 from database.session import AsyncSessionLocal
 from database.models import OrderLink
-from database.utils import normalize_text
+from database.helpers import normalize_text
 
 async def fill_students_search():
     async with AsyncSessionLocal() as session:

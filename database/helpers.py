@@ -1,0 +1,11 @@
+import re
+
+def normalize_text(text: str) -> str:
+    if not text:
+        return ""
+
+    text = text.lower()
+    text = re.sub(r"[‘’ʻʼ`´]", "'", text)
+    text = re.sub(r"\s+", " ", text)
+    return text.strip()
+
