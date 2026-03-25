@@ -10,7 +10,7 @@ from aiogram.types import (
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from database.utils import send_long_message
-
+from database.utils import log_activity
 from data.config import ADMINS
 from handlers.constants import YEARS, FACULTIES, ORDER_TYPES
 from database.db import (
@@ -105,6 +105,13 @@ async def orders_filter_menu(call: CallbackQuery):
 # ==========================
 @router.callback_query(F.data == "open_faculties")
 async def dropdown_faculties(call: CallbackQuery):
+
+    await log_activity(
+        call.from_user.id,
+        "user",
+        "open_faculties"
+    )
+
     kb = InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text=fac, callback_data=f"set_fac_{i}")]
@@ -126,6 +133,12 @@ async def set_fac(call: CallbackQuery, state: FSMContext):
 # ==========================
 @router.callback_query(F.data == "open_types")
 async def dropdown_types(call: CallbackQuery):
+
+    await log_activity(
+        call.from_user.id,
+        "user",
+        "open_types"
+    )
     kb = InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text=t, callback_data=f"set_type_{i}")]
@@ -147,6 +160,12 @@ async def set_type(call: CallbackQuery, state: FSMContext):
 # ==========================
 @router.callback_query(F.data == "filter_lastname")
 async def filter_lastname_start(call: CallbackQuery, state: FSMContext):
+
+    await log_activity(
+        call.from_user.id,
+        "user",
+        "filter_lastname_start"
+    )
     await call.message.answer("🔎 Familiyani kiriting:")
     await state.set_state(OrderFilterState.lastname)
     await call.answer()
@@ -160,6 +179,21 @@ async def set_lastname(message: Message, state: FSMContext):
 
 @router.callback_query(F.data == "filter_search")
 async def filter_search(call: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+
+    # 🔥 1. UMUMIY STATISTIKA
+    await log_activity(
+        call.from_user.id,
+        "user",
+        "filter_search"
+    )
+
+    # 🔥 2. ANIQ QIDIRUV
+    await log_activity(
+        call.from_user.id,
+        "user",
+        f"search:{data.get('lastname')}"
+    )
     data = await state.get_data()
 
     if not data.get("lastname"):

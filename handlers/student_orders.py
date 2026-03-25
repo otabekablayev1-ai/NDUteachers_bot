@@ -1,13 +1,20 @@
 from aiogram import Router, F
 from aiogram.types import CallbackQuery
 from database.utils import send_long_message
-
+from database.utils import log_activity
 router = Router()
 
 from database.db import search_orders_multi, get_student
 
 @router.callback_query(F.data == "student_my_orders")
 async def student_my_orders(call: CallbackQuery):
+
+    # 🔥 LOG QO‘SHILADI
+    await log_activity(
+        call.from_user.id,
+        "student",
+        "student_my_orders"
+    )
     try:
         student = await get_student(call.from_user.id)
         if not student:

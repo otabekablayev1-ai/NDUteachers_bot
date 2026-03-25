@@ -1,6 +1,17 @@
 # handlers/utils.py
+
+import os
 import re
-import unicodedata
+from io import BytesIO
+from data.config import RAHBARLAR, MANAGERS_BY_FACULTY
+from database.db import get_teacher
+from sqlalchemy import select
+from openpyxl import Workbook
+from datetime import datetime
+
+
+from database.session import AsyncSessionLocal
+from database.models import UserActivity
 
 async def send_long_message(message, text, chunk=4000):
     for i in range(0, len(text), chunk):
@@ -8,9 +19,6 @@ async def send_long_message(message, text, chunk=4000):
             text[i:i + chunk],
             parse_mode="HTML"
         )
-
-import re
-
 def normalize_text(text: str) -> str:
     if not text:
         return ""
@@ -20,8 +28,6 @@ def normalize_text(text: str) -> str:
     text = re.sub(r"\s+", " ", text)
     return text.strip()
 
-from data.config import RAHBARLAR, MANAGERS_BY_FACULTY
-from database.db import get_teacher
 
 
 async def get_sender_info(user_id: int, full_name: str):
@@ -50,9 +56,6 @@ async def get_sender_info(user_id: int, full_name: str):
 # =============================
 # 📊 Excel export
 # =============================
-from openpyxl import Workbook
-from io import BytesIO
-
 
 async def generate_excel(rows, bot):
 
@@ -86,7 +89,7 @@ async def generate_excel(rows, bot):
 
         ws.append([
             i,
-            row.created_at,
+            row.created_at.strftime("%Y-%m-%d %H:%M"),
             row.fio,
             row.sender_role,
             row.faculty,
@@ -100,3 +103,66 @@ async def generate_excel(rows, bot):
     buffer.seek(0)
 
     return buffer
+
+async def log_activity(user_id: int, role: str, command: str):
+    async with AsyncSessionLocal() as session:
+        try:
+            session.add(UserActivity(
+                user_id=user_id,
+                role=role,
+                command=command
+            ))
+            await session.commit()
+        except Exception as e:
+            await session.rollback()
+            print("LOG ERROR:", e)
+
+
+async def export_activity_excel():
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(UserActivity)
+        )
+        rows = result.scalars().all()
+
+    stats = {}
+
+    for r in rows:
+        if r.user_id not in stats:
+            stats[r.user_id] = {
+                "count": 0,
+                "last": r.created_at,
+                "role": r.role
+            }
+
+        stats[r.user_id]["count"] += 1
+
+        if r.created_at > stats[r.user_id]["last"]:
+            stats[r.user_id]["last"] = r.created_at
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Faollik"
+
+    ws.append([
+        "User ID",
+        "Rol",
+        "Foydalanish soni",
+        "Oxirgi aktivlik"
+    ])
+
+    for uid, data in stats.items():
+        ws.append([
+            uid,
+            data["role"],
+            data["count"],
+            data["last"].strftime("%Y-%m-%d %H:%M")
+        ])
+
+    filename = f"activity_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx"
+    path = os.path.join(os.getcwd(), filename)
+
+    wb.save(path)
+
+    return path
+

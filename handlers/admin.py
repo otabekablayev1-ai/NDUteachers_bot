@@ -28,7 +28,7 @@ from database.db import (
     get_teacher,
 )
 from database.db import search_users_by_fio_or_id, delete_user_by_id
-
+from database.utils import export_activity_excel
 router = Router()
 
 # =====================================================
@@ -327,3 +327,10 @@ async def export_excel(message: Message):
         )
     )
 
+@router.message(F.text == "📊 Faollik Excel")
+async def export_activity(message: Message):
+    file_path = await export_activity_excel()
+
+    await message.answer_document(
+        BufferedInputFile(open(file_path, "rb").read(), filename="activity.xlsx")
+    )

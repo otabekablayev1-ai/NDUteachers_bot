@@ -22,9 +22,6 @@ from database.models import (
 )
 
 from data.config import MANAGERS_BY_FACULTY
-from database.models import Manager
-from sqlalchemy import select
-
 
 # =====================================================
 # 🔧 DATABASE URL CHECK
@@ -864,7 +861,7 @@ async def save_manager_name(
         await session.commit()
 
 # =============================
-# 🗑️ Foydalanuvchini o‘chirish
+# 🗑️ Foydalanuvchini ochirish
 # =============================
 async def delete_user_by_id(user_id: int) -> None:
     async with AsyncSessionLocal() as session:
@@ -1325,3 +1322,4 @@ async def get_questions_by_manager(manager_id: int, answered: bool):
         )
 
         return result.scalars().all()
+

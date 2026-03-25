@@ -1,4 +1,3 @@
-
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy import (
     Column,
@@ -98,9 +97,6 @@ class Question(Base):
 # =========================
 # 🧾 JAVOBLAR
 # =========================
-from sqlalchemy import Column, Integer, BigInteger, Text, ForeignKey, DateTime
-from sqlalchemy.orm import relationship
-from datetime import datetime
 
 class Answer(Base):
     __tablename__ = "answers"
@@ -167,6 +163,7 @@ class OrderLink(Base):
 
     created_at = Column(DateTime, default=datetime.utcnow)
 
+
 # =========================
 # 📎 BUYRUQLAR FAYLI
 # =========================
@@ -176,3 +173,12 @@ class CommandsFile(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     file_id = Column(String)
     uploaded_at = Column(DateTime, default=datetime.utcnow)
+
+class UserActivity(Base):
+    __tablename__ = "user_activity"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(BigInteger, index=True)
+    role = Column(String)  # student / teacher / manager / admin
+    command = Column(String)
+    created_at = Column(DateTime, default=datetime.utcnow)
