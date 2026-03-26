@@ -100,14 +100,28 @@ async def start_handler(message: Message, state: FSMContext):   # 👈 state qo�
             resize_keyboard=True
         )
 
+
         inline_kb = InlineKeyboardMarkup(
             inline_keyboard=[
+                [
+                    InlineKeyboardButton(
+                        text="🎓 AI Yordam va Maslahat",
+                        url="https://student.nspi.uz/dashboard/login"
+                    )
+                ],
+                [
+                    InlineKeyboardButton(
+                        text="📩 Fakultet menejeriga murojaat",
+                        callback_data="faculty_manager_send"
+                    )
+                ],
                 [
                     InlineKeyboardButton(
                         text="📄 Mening buyruqlarim",
                         callback_data="student_my_orders"
                     )
                 ],
+
                 [
                     InlineKeyboardButton(
                         text="🎓 Hemis",
