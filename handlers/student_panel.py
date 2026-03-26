@@ -8,7 +8,7 @@ from aiogram.types import (
 )
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
-
+from aiogram.types import CallbackQuery
 from data.config import MANAGERS_BY_FACULTY, RAHBARLAR
 from database.db import get_student, save_question
 from database.db import save_question
@@ -292,3 +292,37 @@ async def send_to_head(message: Message, state: FSMContext):
         await message.answer("⚠️ Savol saqlandi, lekin rahbarga yuborilmadi. Administratorga murojaat qiling.")
 
     await state.clear()
+
+@router.callback_query(F.data == "faculty_manager_send")
+async def faculty_manager_send(call: CallbackQuery, state: FSMContext):
+    print("🔥 BUTTON BOSILDI")  # 👈 TEST
+
+    student = await get_student(call.from_user.id)
+
+    if not student:
+        await call.answer("❌ Talaba topilmadi", show_alert=True)
+        return
+
+    faculty = student.faculty
+
+    from data.config import MANAGERS_BY_FACULTY
+
+    manager_id = None
+
+    for fac, roles in MANAGERS_BY_FACULTY.items():
+        if fac.lower().strip() == faculty.lower().strip():
+            manager_ids = roles.get("student", [])
+            if manager_ids:
+                manager_id = manager_ids[0]
+            break
+
+    if not manager_id:
+        await call.answer("❌ Menejer topilmadi", show_alert=True)
+        return
+
+    await state.update_data(selected_manager=manager_id)
+
+    await call.message.answer("✏️ Savolingizni yozing:")
+    await state.set_state(StudentSendFSM.waiting_message)
+
+    await call.answer()

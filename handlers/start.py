@@ -103,12 +103,12 @@ async def start_handler(message: Message, state: FSMContext):   # 👈 state qo�
 
         inline_kb = InlineKeyboardMarkup(
             inline_keyboard=[
-                [
-                    InlineKeyboardButton(
-                        text="🎓 AI Yordam va Maslahat",
-                        url="https://student.nspi.uz/dashboard/login"
-                    )
-                ],
+                #[
+                    #InlineKeyboardButton(
+                        #text="🎓 AI Yordam va Maslahat",
+                        #url="https://student.nspi.uz/dashboard/login"
+                    #)
+                #],
                 [
                     InlineKeyboardButton(
                         text="📩 Fakultet menejeriga murojaat",
