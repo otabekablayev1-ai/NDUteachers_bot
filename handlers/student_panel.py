@@ -275,24 +275,17 @@ async def send_to_head(message: Message, state: FSMContext):
                 )
 
             sent += 1
+            print(f"[STUDENT SEND OK] HEAD_ID: {head_id}")
             await asyncio.sleep(0.2)
 
         except Exception as e:
             print("[STUDENT SEND ERROR]", e, "HEAD_ID:", head_id)
 
-    await message.answer("✅ Savolingiz yuborildi.")
-    await state.clear()
-
-    # ============================
-    # TALABAGA TASDIQ
-    # ============================
     if sent > 0:
-        await message.answer("✅ Savolingiz rahbarga yuborildi.")
+        await message.answer("✅ Savolingiz yuborildi.")
     else:
-        await message.answer("⚠️ Savol saqlandi, lekin rahbarga yuborilmadi. Administratorga murojaat qiling.")
-
-    await state.clear()
-
+        await message.answer("❌ Savol menejerga yuborilmadi.")
+        
 @router.callback_query(F.data == "faculty_manager_send")
 async def faculty_manager_send(call: CallbackQuery, state: FSMContext):
     print("🔥 BUTTON BOSILDI")  # 👈 TEST
