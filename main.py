@@ -5,7 +5,7 @@ from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
 from aiogram.fsm.storage.memory import MemoryStorage
-
+from datetime import datetime, timedelta
 from data.config import BOT_TOKEN
 from database.engine import init_db
 from handlers import (
@@ -22,8 +22,38 @@ from handlers import (
     admin_delete_order,
     tutor_orders,
 )
-
+from database.utils import send_daily_notifications
 from handlers import admin_managers
+from datetime import datetime, timedelta, timezone
+
+UZ_TZ = timezone(timedelta(hours=5))
+
+async def daily_scheduler(bot):
+    while True:
+        now = datetime.now(UZ_TZ)
+
+        target = now.replace(hour=9, minute=0, second=0, microsecond=0)
+
+        if now >= target:
+            target += timedelta(days=1)
+
+        sleep_seconds = (target - now).total_seconds()
+
+        logger.info(f"⏳ Keyingi ishga tushish: {target}")
+
+        await asyncio.sleep(sleep_seconds)
+
+        logger.info("🚀 09:00 notification yuborilmoqda...")
+        await send_daily_notifications(bot)
+
+async def test_scheduler(bot):
+    while True:
+        print("⏳ TEST: 1 daqiqa kutyapti...")
+        await asyncio.sleep(60)  # 🔥 1 daqiqa
+
+        print("🚀 TEST: notification yuborilmoqda...")
+        await send_daily_notifications(bot)
+
 async def main():
     logger.info("🤖 Bot ishga tushmoqda...")
 
@@ -51,7 +81,11 @@ async def main():
     dp.include_router(tutor_orders.router)
 
     await bot.delete_webhook(drop_pending_updates=True)
+
+    asyncio.create_task(test_scheduler(bot))  # 🔥 SHU YERGA KO‘CHIRING
+
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
     asyncio.run(main())
+

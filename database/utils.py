@@ -9,7 +9,7 @@ from sqlalchemy import select
 from openpyxl import Workbook
 from datetime import datetime
 
-
+from datetime import datetime, timedelta
 from database.session import AsyncSessionLocal
 from database.models import UserActivity
 
@@ -197,3 +197,66 @@ async def export_activity_excel():
     wb.save(filename)
 
     return filename
+
+
+async def get_users_for_notification(hours=24):
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(select(UserActivity))
+        rows = result.scalars().all()
+
+    users = {}
+
+    for r in rows:
+        if r.user_id not in users:
+            users[r.user_id] = r
+        else:
+            if r.created_at > users[r.user_id].created_at:
+                users[r.user_id] = r
+
+    now = datetime.utcnow()
+    result_users = []
+
+    for user_id, r in users.items():
+        inactive = now - r.created_at > timedelta(hours=hours)
+
+        # ❗ faqat 1 marta yuborish (24h ichida qayta yubormaydi)
+        already_notified = (
+            r.last_notified_at and
+            now - r.last_notified_at < timedelta(hours=24)
+        )
+
+        if inactive and not already_notified:
+            result_users.append(user_id)
+
+    return result_users
+
+async def send_daily_notifications(bot):
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(select(UserActivity))
+        rows = result.scalars().all()
+
+    users = await get_users_for_notification()
+
+    for uid in users:
+        try:
+            await bot.send_message(
+                uid,
+                "👋 Assalomu alaykum!\n\n"
+                "📌 Siz bugun botdan foydalanmadingiz.\n"
+                "Yangi buyruqlarni tekshirib ko‘ring!"
+            )
+
+            # 🔥 notified vaqtini update qilish
+            async with AsyncSessionLocal() as session:
+                result = await session.execute(
+                    select(UserActivity).where(UserActivity.user_id == uid)
+                )
+                user = result.scalars().first()
+
+                if user:
+                    user.last_notified_at = datetime.utcnow()
+                    await session.commit()
+
+        except Exception as e:
+            print("NOTIFY ERROR:", uid, e)
+
