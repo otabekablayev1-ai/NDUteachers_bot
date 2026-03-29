@@ -134,33 +134,30 @@ async def send_to_head(message: Message, state: FSMContext):
     data = await state.get_data()
     selected_manager = data.get("selected_manager")
 
-    faculty_raw = data.get("faculty")
-    faculty = normalize_faculty(faculty_raw)
-
-    print("==== SEND TO HEAD DEBUG (STUDENT) ====")
-    print("RAW faculty:", faculty_raw)
-    print("NORMALIZED faculty:", faculty)
-    print("MANAGERS_BY_FACULTY KEYS:", list(MANAGERS_BY_FACULTY.keys()))
-
     student = await get_student(message.from_user.id)
     if not student:
         await message.answer("⚠️ Avval ro‘yxatdan o‘ting.")
         await state.clear()
         return
 
+    # ✅ Fakultetni state dan emas, student jadvalidan olamiz
+    faculty = student.faculty
+
+    print("==== SEND TO HEAD DEBUG (STUDENT) ====")
+    print("STUDENT FACULTY:", faculty)
+    print("MANAGERS_BY_FACULTY KEYS:", list(MANAGERS_BY_FACULTY.keys()))
+
     fio, phone, student_faculty = _extract_student_fields(
-        student, message.from_user.full_name
+        student,
+        message.from_user.full_name
     )
 
     # ============================
     # RAHBAR / MENEJERNI ANIQLASH
     # ============================
 
-    # 🔥 1. AGAR TANLANGAN MENEJER BO‘LSA
     if selected_manager:
         recipients = [selected_manager]
-
-    # 🔥 2. AKS HOLDA ESKI LOGIKA
     else:
         recipients = []
 
@@ -169,7 +166,6 @@ async def send_to_head(message: Message, state: FSMContext):
                 recipients = value.get("student", []) or []
                 break
 
-        # fallback — rahbarlar
         if not recipients:
             for ids in RAHBARLAR.values():
                 recipients.extend(ids)
@@ -190,7 +186,6 @@ async def send_to_head(message: Message, state: FSMContext):
 
     question_id = None
 
-    # 🔥 HAR BIR MANAGER UCHUN ALohida SAVE
     for head_id in recipients:
         q_id = await save_question(
             sender_id=message.from_user.id,
@@ -285,7 +280,7 @@ async def send_to_head(message: Message, state: FSMContext):
         await message.answer("✅ Savolingiz yuborildi.")
     else:
         await message.answer("❌ Savol menejerga yuborilmadi.")
-        
+
 @router.callback_query(F.data == "faculty_manager_send")
 async def faculty_manager_send(call: CallbackQuery, state: FSMContext):
     print("🔥 BUTTON BOSILDI")  # 👈 TEST

@@ -1309,3 +1309,9 @@ async def get_questions_by_manager(manager_id: int, answered: bool):
 
         return result.scalars().all()
 
+async def get_question_by_id(q_id: int):
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(Question).where(Question.id == q_id)
+        )
+        return result.scalar_one_or_none()
