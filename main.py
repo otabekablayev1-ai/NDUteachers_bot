@@ -49,7 +49,8 @@ async def daily_scheduler(bot):
 async def test_scheduler(bot):
     while True:
         print("TEST SCHEDULER STARTED")
-        asyncio.create_task(daily_scheduler(bot))
+        print("⏳ TEST: 1 daqiqa kutyapti...")
+        await asyncio.sleep(60)  # 🔥 1 daqiqa
 
         print("🚀 TEST: notification yuborilmoqda...")
         await send_daily_notifications(bot)
