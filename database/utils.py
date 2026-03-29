@@ -231,32 +231,14 @@ async def get_users_for_notification(hours=24):
     return result_users
 
 async def send_daily_notifications(bot):
-    async with AsyncSessionLocal() as session:
-        result = await session.execute(select(UserActivity))
-        rows = result.scalars().all()
+    test_users = [5243733922]  # 👈 o‘zingizni ID yozing
 
-    users = await get_users_for_notification()
-
-    for uid in users:
+    for uid in test_users:
         try:
             await bot.send_message(
                 uid,
-                "👋 Assalomu alaykum!\n\n"
-                "📌 Siz bugun botdan foydalanmadingiz.\n"
-                "Yangi buyruqlarni tekshirib ko‘ring!"
+                "✅ TEST XABAR KELDI"
             )
-
-            # 🔥 notified vaqtini update qilish
-            async with AsyncSessionLocal() as session:
-                result = await session.execute(
-                    select(UserActivity).where(UserActivity.user_id == uid)
-                )
-                user = result.scalars().first()
-
-                if user:
-                    user.last_notified_at = datetime.utcnow()
-                    await session.commit()
-
         except Exception as e:
-            print("NOTIFY ERROR:", uid, e)
+            print("ERROR:", e)
 
