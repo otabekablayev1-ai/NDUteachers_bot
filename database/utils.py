@@ -199,46 +199,45 @@ async def export_activity_excel():
     return filename
 
 
+from datetime import datetime, timedelta
+from sqlalchemy import select
+
 async def get_users_for_notification(hours=24):
     async with AsyncSessionLocal() as session:
         result = await session.execute(select(UserActivity))
         rows = result.scalars().all()
 
-    users = {}
+    last_activity = {}
 
+    # 🔥 har bir user uchun ENG OXIRGI vaqt
     for r in rows:
-        if r.user_id not in users:
-            users[r.user_id] = r
+        if r.user_id not in last_activity:
+            last_activity[r.user_id] = r.created_at
         else:
-            if r.created_at > users[r.user_id].created_at:
-                users[r.user_id] = r
+            if r.created_at > last_activity[r.user_id]:
+                last_activity[r.user_id] = r.created_at
 
     now = datetime.utcnow()
-    result_users = []
+    users = []
 
-    for user_id, r in users.items():
-        inactive = now - r.created_at > timedelta(hours=hours)
+    for user_id, last_time in last_activity.items():
+        if now - last_time > timedelta(hours=hours):
+            users.append(user_id)
 
-        # ❗ faqat 1 marta yuborish (24h ichida qayta yubormaydi)
-        already_notified = (
-            r.last_notified_at and
-            now - r.last_notified_at < timedelta(hours=24)
-        )
-
-        if inactive and not already_notified:
-            result_users.append(user_id)
-
-    return result_users
+    return users
 
 async def send_daily_notifications(bot):
-    test_users = [5243733922]  # 👈 o‘zingizni ID yozing
+    users = await get_users_for_notification(24)
 
-    for uid in test_users:
+    print("USERS:", users)  # debug
+
+    for uid in users:
         try:
             await bot.send_message(
                 uid,
-                "✅ TEST XABAR KELDI"
+                "👋 Assalomu alaykum!\n\n"
+                "📌 Siz 24 soatdan beri botdan foydalanmadingiz.\n"
+                "Yangi buyruqlarni tekshirib ko‘ring!"
             )
         except Exception as e:
-            print("ERROR:", e)
-
+            print("NOTIFY ERROR:", uid, e)
