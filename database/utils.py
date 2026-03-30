@@ -5,13 +5,14 @@ import os
 from io import BytesIO
 from data.config import RAHBARLAR, MANAGERS_BY_FACULTY
 from database.db import get_student, get_teacher
-from sqlalchemy import select
 from openpyxl import Workbook
-from datetime import datetime
-
-from datetime import datetime, timedelta
-from database.session import AsyncSessionLocal
+from loguru import logger
+from datetime import datetime, timedelta, timezone
+from sqlalchemy import select, func
+from database.db import AsyncSessionLocal
 from database.models import UserActivity
+from database.models import User
+from collections import defaultdict
 
 async def send_long_message(message, text, chunk=4000):
     for i in range(0, len(text), chunk):
@@ -108,8 +109,6 @@ async def log_activity(user_id: int, role: str, command: str):
             print("LOG ERROR:", e)
 
 
-from collections import defaultdict
-
 async def export_activity_excel():
 
     async with AsyncSessionLocal() as session:
@@ -199,45 +198,67 @@ async def export_activity_excel():
     return filename
 
 
-from datetime import datetime, timedelta
-from sqlalchemy import select
+
+UTC = timezone.utc
 
 async def get_users_for_notification(hours=24):
     async with AsyncSessionLocal() as session:
-        result = await session.execute(select(UserActivity))
-        rows = result.scalars().all()
+        cutoff = datetime.now(UTC) - timedelta(hours=hours)
 
-    last_activity = {}
+        subquery = (
+            select(
+                UserActivity.user_id,
+                func.max(UserActivity.created_at).label("last_activity")
+            )
+            .group_by(UserActivity.user_id)
+            .subquery()
+        )
 
-    # 🔥 har bir user uchun ENG OXIRGI vaqt
-    for r in rows:
-        if r.user_id not in last_activity:
-            last_activity[r.user_id] = r.created_at
-        else:
-            if r.created_at > last_activity[r.user_id]:
-                last_activity[r.user_id] = r.created_at
+        result = await session.execute(
+            select(subquery.c.user_id)
+            .where(subquery.c.last_activity < cutoff)
+        )
 
-    now = datetime.utcnow()
-    users = []
-
-    for user_id, last_time in last_activity.items():
-        if now - last_time > timedelta(hours=hours):
-            users.append(user_id)
-
-    return users
+        return result.scalars().all()
 
 async def send_daily_notifications(bot):
     users = await get_users_for_notification(24)
 
-    print("USERS:", users)  # debug
+    if not users:
+        logger.info("📭 Notification uchun userlar topilmadi")
+        return
 
-    for uid in users:
-        try:
-            await bot.send_message(
-                uid,
-                "👋 Assalomu alaykum!\n\n"
-                "📌 Siz 24 soatdan beri botdan foydalanmadingiz.\n"
-                "Yangi buyruqlarni tekshirib ko‘ring!"
-            )
-        except Exception as e:
-            print("NOTIFY ERROR:", uid, e)
+    logger.info(f"📨 {len(users)} ta userga yuboriladi")
+
+    async with AsyncSessionLocal() as session:
+        for uid in users:
+            try:
+                # userni olish
+                result = await session.execute(
+                    select(User).where(User.user_id == uid)
+                )
+                user = result.scalar_one_or_none()
+
+                if not user:
+                    continue
+
+                now = datetime.now(UTC)
+
+                # ❗ spamni oldini olish
+                if user.last_notified_at:
+                    if now - user.last_notified_at < timedelta(hours=24):
+                        continue
+
+                await bot.send_message(
+                    uid,
+                    "👋 Assalomu alaykum!\n\n"
+                    "📌 Siz 24 soatdan beri botdan foydalanmadingiz.\n"
+                    "Yangi buyruqlarni tekshirib ko‘ring!"
+                )
+
+                # ✅ update qilish
+                user.last_notified_at = now
+                await session.commit()
+
+            except Exception as e:
+                logger.error(f"❌ User {uid} ga yuborilmadi: {e}")

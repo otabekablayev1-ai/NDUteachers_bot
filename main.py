@@ -5,7 +5,6 @@ from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
 from aiogram.fsm.storage.memory import MemoryStorage
-from datetime import datetime, timedelta
 from data.config import BOT_TOKEN
 from database.engine import init_db
 from handlers import (
@@ -26,11 +25,13 @@ from database.utils import send_daily_notifications
 from handlers import admin_managers
 from datetime import datetime, timedelta, timezone
 
-UZ_TZ = timezone(timedelta(hours=5))
+logger.add("logs/bot.log", rotation="10 MB", level="INFO")
+
+UTC = timezone.utc
 
 async def daily_scheduler(bot):
     while True:
-        now = datetime.now(UZ_TZ)
+        now = datetime.now(UTC)
 
         target = now.replace(hour=9, minute=0, second=0, microsecond=0)
 
