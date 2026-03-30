@@ -181,5 +181,5 @@ class UserActivity(Base):
     user_id = Column(BigInteger, index=True)
     role = Column(String)  # student / teacher / manager / admin
     command = Column(String)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    last_notified_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime)  # timezone=False (default)
+    last_notified_at = Column(DateTime, nullable=True)

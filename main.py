@@ -23,38 +23,17 @@ from handlers import (
 )
 from database.utils import send_daily_notifications
 from handlers import admin_managers
-from datetime import datetime, timedelta, timezone
 
 logger.add("logs/bot.log", rotation="10 MB", level="INFO")
 
-UTC = timezone.utc
 
-async def daily_scheduler(bot):
+async def activity_scheduler(bot):
     while True:
-        now = datetime.now(UTC)
+        print("🔍 Faollik tekshirilmoqda...")
 
-        target = now.replace(hour=9, minute=0, second=0, microsecond=0)
-
-        if now >= target:
-            target += timedelta(days=1)
-
-        sleep_seconds = (target - now).total_seconds()
-
-        logger.info(f"⏳ Keyingi ishga tushish: {target}")
-
-        await asyncio.sleep(sleep_seconds)
-
-        logger.info("🚀 09:00 notification yuborilmoqda...")
         await send_daily_notifications(bot)
 
-async def test_scheduler(bot):
-    while True:
-        print("TEST SCHEDULER STARTED")
-        print("⏳ TEST: 1 daqiqa kutyapti...")
-        await asyncio.sleep(60)  # 🔥 1 daqiqa
-
-        print("🚀 TEST: notification yuborilmoqda...")
-        await send_daily_notifications(bot)
+        await asyncio.sleep(600)  # 🔥 har 10 minut
 
 async def main():
     logger.info("🤖 Bot ishga tushmoqda...")
@@ -67,6 +46,8 @@ async def main():
     )
 
     dp = Dispatcher(storage=MemoryStorage())
+
+    asyncio.create_task(activity_scheduler(bot))  # 🔥 SHU YERGA KO‘CHIRING
 
     dp.include_router(start.router)
     dp.include_router(admin.router)
@@ -84,7 +65,7 @@ async def main():
 
     await bot.delete_webhook(drop_pending_updates=True)
 
-    asyncio.create_task(test_scheduler(bot))  # 🔥 SHU YERGA KO‘CHIRING
+
 
     await dp.start_polling(bot)
 

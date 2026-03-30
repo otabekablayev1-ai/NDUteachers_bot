@@ -201,64 +201,44 @@ async def export_activity_excel():
 
 UTC = timezone.utc
 
-async def get_users_for_notification(hours=24):
+from datetime import datetime, timedelta
+
+async def get_users_for_notification(hours=12):
     async with AsyncSessionLocal() as session:
-        cutoff = datetime.now(UTC) - timedelta(hours=hours)
+        result = await session.execute(select(UserActivity))
+        rows = result.scalars().all()
 
-        subquery = (
-            select(
-                UserActivity.user_id,
-                func.max(UserActivity.created_at).label("last_activity")
-            )
-            .group_by(UserActivity.user_id)
-            .subquery()
-        )
+    last_activity = {}
 
-        result = await session.execute(
-            select(subquery.c.user_id)
-            .where(subquery.c.last_activity < cutoff)
-        )
+    for r in rows:
+        if r.user_id not in last_activity:
+            last_activity[r.user_id] = r.created_at
+        else:
+            if r.created_at > last_activity[r.user_id]:
+                last_activity[r.user_id] = r.created_at
 
-        return result.scalars().all()
+    now = datetime.utcnow()  # 🔥 timezone ishlatmaymiz
+
+    users = []
+
+    for user_id, last_time in last_activity.items():
+        if now - last_time > timedelta(hours=hours):
+            users.append(user_id)
+
+    return users
 
 async def send_daily_notifications(bot):
-    users = await get_users_for_notification(24)
+    users = await get_users_for_notification(12)
 
-    if not users:
-        logger.info("📭 Notification uchun userlar topilmadi")
-        return
+    print("USERS:", users)
 
-    logger.info(f"📨 {len(users)} ta userga yuboriladi")
-
-    async with AsyncSessionLocal() as session:
-        for uid in users:
-            try:
-                # userni olish
-                result = await session.execute(
-                    select(User).where(User.user_id == uid)
-                )
-                user = result.scalar_one_or_none()
-
-                if not user:
-                    continue
-
-                now = datetime.now(UTC)
-
-                # ❗ spamni oldini olish
-                if user.last_notified_at:
-                    if now - user.last_notified_at < timedelta(hours=24):
-                        continue
-
-                await bot.send_message(
-                    uid,
-                    "👋 Assalomu alaykum!\n\n"
-                    "📌 Siz 24 soatdan beri botdan foydalanmadingiz.\n"
-                    "Yangi buyruqlarni tekshirib ko‘ring!"
-                )
-
-                # ✅ update qilish
-                user.last_notified_at = now
-                await session.commit()
-
-            except Exception as e:
-                logger.error(f"❌ User {uid} ga yuborilmadi: {e}")
+    for uid in users:
+        try:
+            await bot.send_message(
+                uid,
+                "👋 Assalomu alaykum!\n\n"
+                "📌 Siz 12 soatdan beri botdan foydalanmadingiz.\n"
+                "Yangi buyruqlarni tekshirib ko‘ring!"
+            )
+        except Exception as e:
+            print("NOTIFY ERROR:", uid, e)
