@@ -236,9 +236,10 @@ async def get_users_for_notification(hours=12):
     return users
 
 async def send_daily_notifications(bot):
-    
-    # faqat inactive va mavjud userlar
-    users = await get_all_users()
+    all_users = await get_all_users()
+    inactive_users = await get_users_for_notification(12)
+
+    users = [u for u in all_users if u in inactive_users]
 
     async with AsyncSessionLocal() as session:
         for uid in users:
