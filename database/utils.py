@@ -209,20 +209,28 @@ async def get_users_for_notification(hours=12):
         rows = result.scalars().all()
 
     last_activity = {}
+    last_notified = {}
 
     for r in rows:
-        if r.user_id not in last_activity:
+        # oxirgi activity
+        if r.user_id not in last_activity or r.created_at > last_activity[r.user_id]:
             last_activity[r.user_id] = r.created_at
-        else:
-            if r.created_at > last_activity[r.user_id]:
-                last_activity[r.user_id] = r.created_at
 
-    now = datetime.utcnow()  # 🔥 timezone ishlatmaymiz
+        # oxirgi notify
+        if r.user_id not in last_notified or (r.last_notified_at and r.last_notified_at > last_notified.get(r.user_id, datetime.min)):
+            last_notified[r.user_id] = r.last_notified_at
 
+    now = datetime.utcnow()
     users = []
 
     for user_id, last_time in last_activity.items():
-        if now - last_time > timedelta(hours=hours):
+        inactive = now - last_time > timedelta(hours=hours)
+
+        already_notified = False
+        if user_id in last_notified and last_notified[user_id]:
+            already_notified = now - last_notified[user_id] < timedelta(hours=hours)
+
+        if inactive and not already_notified:
             users.append(user_id)
 
     return users
@@ -230,15 +238,25 @@ async def get_users_for_notification(hours=12):
 async def send_daily_notifications(bot):
     users = await get_users_for_notification(12)
 
-    print("USERS:", users)
+    async with AsyncSessionLocal() as session:
+        for uid in users:
+            try:
+                await bot.send_message(
+                    uid,
+                    "👋 Assalomu alaykum!\n\n"
+                    "📌 Siz 12 soatdan beri botdan foydalanmadingiz.\n"
+                    "Yangi buyruqlarni tekshirib ko‘ring!"
+                )
+                # 🔥 UPDATE
+                result = await session.execute(
+                    select(UserActivity).where(UserActivity.user_id == uid)
+                )
+                user = result.scalars().first()
 
-    for uid in users:
-        try:
-            await bot.send_message(
-                uid,
-                "👋 Assalomu alaykum!\n\n"
-                "📌 Siz 12 soatdan beri botdan foydalanmadingiz.\n"
-                "Yangi buyruqlarni tekshirib ko‘ring!"
-            )
-        except Exception as e:
-            print("NOTIFY ERROR:", uid, e)
+                if user:
+                    user.last_notified_at = datetime.utcnow()
+
+            except Exception as e:
+                print("ERROR:", e)
+
+        await session.commit()

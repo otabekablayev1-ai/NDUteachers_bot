@@ -28,12 +28,18 @@ logger.add("logs/bot.log", rotation="10 MB", level="INFO")
 
 
 async def activity_scheduler(bot):
+    print("SCHEDULER STARTED")
     while True:
         print("🔍 Faollik tekshirilmoqda...")
 
         await send_daily_notifications(bot)
 
         await asyncio.sleep(600)  # 🔥 har 10 minut
+
+async def on_startup(dispatcher: Dispatcher):
+    bot = dispatcher.bot
+    print("🚀 Scheduler ishga tushdi")
+    asyncio.create_task(activity_scheduler(bot))
 
 async def main():
     logger.info("🤖 Bot ishga tushmoqda...")
@@ -46,8 +52,6 @@ async def main():
     )
 
     dp = Dispatcher(storage=MemoryStorage())
-
-    asyncio.create_task(activity_scheduler(bot))  # 🔥 SHU YERGA KO‘CHIRING
 
     dp.include_router(start.router)
     dp.include_router(admin.router)
@@ -65,7 +69,7 @@ async def main():
 
     await bot.delete_webhook(drop_pending_updates=True)
 
-
+    dp.startup.register(on_startup)
 
     await dp.start_polling(bot)
 
