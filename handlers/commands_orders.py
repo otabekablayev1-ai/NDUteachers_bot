@@ -1,5 +1,5 @@
 from database.helpers import normalize_text
-
+import html
 from aiogram import Router, F
 from aiogram.types import (
     Message,
@@ -211,10 +211,13 @@ async def filter_search(call: CallbackQuery, state: FSMContext):
         await call.message.answer("❌ Hech narsa topilmadi.")
         return await call.answer()
 
-    text = "📄 <b>Natijalar:</b>\n\n"
+    text = "📋 <b>Natijalar:</b>\n\n"
     for row in rows:
         r = row._mapping
-        text += f"👉 <a href=\"{r['link']}\">{r['title']}</a>\n"
+        link = r.get("link") or "#"
+        title = r.get("title") or "Noma’lum"
+
+        text += f"👉 <a href=\"{link}\">{html.escape(title)}</a>\n"
 
     await send_long_message(call.message, text)
     await call.answer()
