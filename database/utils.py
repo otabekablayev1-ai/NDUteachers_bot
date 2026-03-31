@@ -236,11 +236,9 @@ async def get_users_for_notification(hours=12):
     return users
 
 async def send_daily_notifications(bot):
-    all_users = await get_all_users()
-    inactive_users = await get_users_for_notification(12)
-
+    
     # faqat inactive va mavjud userlar
-    users = [u for u in inactive_users if u in all_users]
+    users = await get_all_users()
 
     async with AsyncSessionLocal() as session:
         for uid in users:
@@ -265,27 +263,22 @@ async def send_daily_notifications(bot):
 
         await session.commit()
 
-from database.models import UserActivity, Student, Teacher, Manager
+from database.models import Student, Teacher, Manager
 from sqlalchemy import select
-
 
 async def get_all_users():
     async with AsyncSessionLocal() as session:
         users = set()
 
-        # 1️⃣ activity dan
-        result = await session.execute(select(UserActivity.user_id))
-        users.update(result.scalars().all())
-
-        # 2️⃣ studentlar
+        # 🧑‍🎓 studentlar
         result = await session.execute(select(Student.user_id))
         users.update(result.scalars().all())
 
-        # 3️⃣ teacherlar
+        # 👨‍🏫 teacherlar
         result = await session.execute(select(Teacher.user_id))
         users.update(result.scalars().all())
 
-        # 4️⃣ managerlar (⚠️ telegram_id)
+        # 🧑‍💼 managerlar
         result = await session.execute(select(Manager.telegram_id))
         users.update(result.scalars().all())
 
