@@ -36,8 +36,7 @@ async def activity_scheduler(bot):
 
         await asyncio.sleep(600)  # 🔥 har 10 minut
 
-async def on_startup(dispatcher: Dispatcher):
-    bot = dispatcher.bot
+async def on_startup(bot: Bot):
     print("🚀 Scheduler ishga tushdi")
     asyncio.create_task(activity_scheduler(bot))
 
@@ -69,7 +68,7 @@ async def main():
 
     await bot.delete_webhook(drop_pending_updates=True)
 
-    dp.startup.register(on_startup)
+    await on_startup(bot)  # 🔥 SHU
 
     await dp.start_polling(bot)
 
