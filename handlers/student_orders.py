@@ -1,4 +1,3 @@
-import html
 from aiogram import Router, F
 from aiogram.types import CallbackQuery
 from database.utils import send_long_message
@@ -34,12 +33,11 @@ async def student_my_orders(call: CallbackQuery):
 
         text = "📄 <b>Mening buyruqlarim:</b>\n\n"
 
-        for row in rows:
-            r = row._mapping
-            link = r.get("link") or "#"
-            title = r.get("title") or "Noma’lum"
-
-            text += f"👉 <a href=\"{link}\">{html.escape(title)}</a>\n"
+        for r in rows:
+            data = r._mapping
+            link = data.get("link") or "#"
+            title = data.get("title") or "Noma’lum"
+            text += f"👉 <a href=\"{link}\">{title}</a>\n"
 
         await send_long_message(call.message, text)
         await call.answer()
