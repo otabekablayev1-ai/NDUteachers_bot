@@ -246,9 +246,9 @@ async def send_daily_notifications(bot):
             try:
                 await bot.send_message(
                     uid,
-                    "👋 Assalomu alaykum!\n\n"
-                    "📌 Siz 12 soatdan beri botdan foydalanmadingiz.\n"
-                    "Yangi buyruqlarni tekshirib ko‘ring!"
+                    "👋 Assalomu alaykum, NDUteachers_bot foydalanuvchisi!\n\n"
+                    "📌 Siz 12 soatdan beri bot imkoniyatlaridan foydalanmadingiz.\n"
+                    "AI ko'makchisi yaqin kunlarda ishga tushadi!"
                 )
                 # 🔥 UPDATE
                 result = await session.execute(
