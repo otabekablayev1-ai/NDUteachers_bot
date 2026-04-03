@@ -123,6 +123,24 @@ def _extract_student_fields(student_obj, fallback_full_name: str):
     faculty = faculty or "Noma’lum"
     return fio, phone, faculty
 
+# =========================
+# 🔔 REMINDER FUNKSIYA
+# =========================
+async def remind_manager(bot, manager_id):
+    print("⏰ REMINDER STARTED:", manager_id)
+
+    await asyncio.sleep(30)
+
+    print("📩 REMINDER YUBORILYAPTI:", manager_id)
+
+    try:
+        await bot.send_message(
+            manager_id,
+            "⏰ Sizda javob berilmagan savol bor!\n\n"
+            "Iltimos tekshiring 👇"
+        )
+    except Exception as e:
+        print("REMINDER ERROR:", e)
 
 # ===========================================================
 # 3️⃣ TALABA — RAHBARGA SAVOL YUBORISH
@@ -238,20 +256,39 @@ async def send_to_head(message: Message, state: FSMContext):
             )
 
             if message.text:
-                await message.bot.send_message(
+                sent_msg = await message.bot.send_message(
                     head_id,
-                    info_text + f"<b>Savol:</b>\n{message.text}",
+                    "🚨 <b>YANGI SAVOL KELDI!</b>\n\n" +
+                    info_text +
+                    f"<b>Savol:</b>\n{message.text}",
                     parse_mode="HTML",
+                    reply_markup=reply_kb,
+                    disable_notification=False  # 🔥 MUHIM
+                )
+
+                # 🔥 PIN QILAMIZ (KO‘RINISHI UCHUN)
+                try:
+                    await message.bot.pin_chat_message(
+                        chat_id=head_id,
+                        message_id=sent_msg.message_id
+                    )
+                except:
+                    pass
+
+                sent_msg = await message.bot.send_document(
+                    head_id,
+                    message.document.file_id,
+                    caption="🚨 <b>YANGI SAVOL!</b>\n\n" + info_text,
                     reply_markup=reply_kb
                 )
 
-            elif message.document:
-                await message.bot.send_document(
-                    head_id,
-                    message.document.file_id,
-                    caption=info_text,
-                    reply_markup=reply_kb
-                )
+                try:
+                    await message.bot.pin_chat_message(
+                        chat_id=head_id,
+                        message_id=sent_msg.message_id
+                    )
+                except:
+                    pass
 
             elif message.photo:
                 await message.bot.send_photo(
@@ -271,6 +308,10 @@ async def send_to_head(message: Message, state: FSMContext):
 
             sent += 1
             print(f"[STUDENT SEND OK] HEAD_ID: {head_id}")
+
+            # 🔥 REMINDER START
+            asyncio.create_task(remind_manager(message.bot, head_id))
+
             await asyncio.sleep(0.2)
 
         except Exception as e:
