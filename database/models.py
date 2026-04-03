@@ -70,8 +70,7 @@ class Manager(Base):
     fio = Column(String)
     position = Column(String)
     faculty = Column(String)
-    is_active = Column(Boolean, default=True)
-    
+
 # =========================
 # ❓ SAVOLLAR
 # =========================

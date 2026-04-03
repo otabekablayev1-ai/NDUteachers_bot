@@ -1,4 +1,4 @@
-# database/utils.py
+# handlers/utils.py
 
 import os
 
@@ -13,7 +13,7 @@ from database.db import AsyncSessionLocal
 from database.models import UserActivity
 from database.models import User
 from collections import defaultdict
-from database.utils import mark_user_inactive
+
 async def send_long_message(message, text, chunk=4000):
     for i in range(0, len(text), chunk):
         await message.answer(
@@ -284,15 +284,3 @@ async def get_all_users():
         users.update(result.scalars().all())
 
     return list(users)
-
-
-async def mark_user_inactive(user_id):
-    async with AsyncSessionLocal() as session:
-        result = await session.execute(
-            select(Manager).where(Manager.telegram_id == user_id)
-        )
-        user = result.scalar_one_or_none()
-
-        if user:
-            user.is_active = False
-            await session.commit()
