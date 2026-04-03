@@ -12,7 +12,7 @@ from aiogram.types import CallbackQuery
 from data.config import MANAGERS_BY_FACULTY, RAHBARLAR
 from database.db import get_student, save_question
 from database.db import save_question
-
+from database.utils import mark_user_inactive
 router = Router()
 
 
@@ -315,7 +315,14 @@ async def send_to_head(message: Message, state: FSMContext):
             await asyncio.sleep(0.2)
 
         except Exception as e:
-            print("[STUDENT SEND ERROR]", e, "HEAD_ID:", head_id)
+            error_text = str(e)
+            if "bot was blocked" in error_text:
+                print(f"🚫 USER BLOCKED BOT: {head_id}")
+
+                await mark_user_inactive(head_id)  # 🔥 SHU
+
+            else:
+                print(f"❌ SEND ERROR: {e} HEAD_ID: {head_id}")
 
     if sent > 0:
         await message.answer("✅ Savolingiz yuborildi.")
