@@ -225,15 +225,7 @@ async def get_users_for_notification(hours=12):
             last_activity[r.user_id] = r.created_at
 
         # oxirgi notify
-        if (
-            r.user_id not in last_notified
-            or last_notified.get(r.user_id) is None
-            or (
-                r.last_notified_at is not None
-                and r.last_notified_at > last_notified.get(r.user_id)
-            )
-        ):
-            last_notified[r.user_id] = r.last_notified_at
+        if r.user_id not in last_notified or (r.last_notified_at and r.last_notified_at > last_notified.get(r.user_id, datetime.min)):
             last_notified[r.user_id] = r.last_notified_at
 
     now = datetime.utcnow()
@@ -303,7 +295,7 @@ async def get_all_users():
 
 
 async def get_unanswered_questions(session):
-    time_limit = datetime.utcnow() - timedelta(seconds=30)
+    time_limit = datetime.utcnow() - timedelta(minutes=10)
 
     result = await session.execute(
         select(Question).where(
