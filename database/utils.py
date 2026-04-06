@@ -214,11 +214,26 @@ async def get_users_for_notification(hours=12):
 
     for r in rows:
         # oxirgi activity
-        if r.user_id not in last_activity or r.created_at > last_activity[r.user_id]:
+        if (
+            r.user_id not in last_activity
+            or last_activity.get(r.user_id) is None
+            or (
+                r.created_at is not None
+                and r.created_at > last_activity[r.user_id]
+            )
+        ):
             last_activity[r.user_id] = r.created_at
 
         # oxirgi notify
-        if r.user_id not in last_notified or (r.last_notified_at and r.last_notified_at > last_notified.get(r.user_id, datetime.min)):
+        if (
+            r.user_id not in last_notified
+            or last_notified.get(r.user_id) is None
+            or (
+                r.last_notified_at is not None
+                and r.last_notified_at > last_notified.get(r.user_id)
+            )
+        ):
+            last_notified[r.user_id] = r.last_notified_at
             last_notified[r.user_id] = r.last_notified_at
 
     now = datetime.utcnow()
