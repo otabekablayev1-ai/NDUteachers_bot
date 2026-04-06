@@ -21,7 +21,6 @@ from handlers import (
     admin_delete_order,
     tutor_orders,
 )
-from sqlalchemy import text
 from workers.reminder import reminder_worker
 from database.db import AsyncSessionLocal
 from database.utils import send_daily_notifications
@@ -43,20 +42,10 @@ async def on_startup(bot: Bot):
     print("🚀 Scheduler ishga tushdi")
     asyncio.create_task(activity_scheduler(bot))
 
-async def add_column():
-    async with AsyncSessionLocal() as session:
-        await session.execute(text(
-            "ALTER TABLE questions ADD COLUMN last_reminded TIMESTAMP"
-        ))
-        await session.commit()
-        print("✅ COLUMN QO‘SHILDI")
-
 async def main():
     logger.info("🤖 Bot ishga tushmoqda...")
 
     await init_db()
-
-    await add_column()  # 🔥 SHU QATORNI QO‘SHING
 
     bot = Bot(
         token=BOT_TOKEN,
