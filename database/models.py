@@ -88,6 +88,7 @@ class Question(Base):
 
     answered = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+    last_reminded = Column(DateTime, nullable=True)
 
     answers = relationship(
         "Answer",

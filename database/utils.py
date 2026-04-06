@@ -2,6 +2,7 @@
 
 import os
 
+from .models import Question  # yoki sizda qayerda bo‘lsa
 from io import BytesIO
 from data.config import RAHBARLAR, MANAGERS_BY_FACULTY
 from database.db import get_student, get_teacher
@@ -284,3 +285,16 @@ async def get_all_users():
         users.update(result.scalars().all())
 
     return list(users)
+
+
+async def get_unanswered_questions(session):
+    time_limit = datetime.utcnow() - timedelta(seconds=30)
+
+    result = await session.execute(
+        select(Question).where(
+            Question.answered == False,   # ❗ sizga moslab o‘zgartirdim
+            Question.created_at <= time_limit
+        )
+    )
+
+    return result.scalars().all()

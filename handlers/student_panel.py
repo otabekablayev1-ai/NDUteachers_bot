@@ -12,7 +12,7 @@ from aiogram.types import CallbackQuery
 from data.config import MANAGERS_BY_FACULTY, RAHBARLAR
 from database.db import get_student, save_question
 from database.db import save_question
-
+from utils.notifications import send_question_notification
 router = Router()
 
 
@@ -163,7 +163,7 @@ async def send_to_head(message: Message, state: FSMContext):
 
         for key, value in MANAGERS_BY_FACULTY.items():
             if key.lower().strip() == faculty.lower().strip():
-                recipients = value.get("student", []) or []
+                recipients = [1017100005]
                 break
 
         if not recipients:
@@ -269,19 +269,17 @@ async def send_to_head(message: Message, state: FSMContext):
                     reply_markup=reply_kb
                 )
 
-            sent += 1
-            print(f"[STUDENT SEND OK] HEAD_ID: {head_id}")
-            await asyncio.sleep(0.2)
-
         except Exception as e:
             print("[STUDENT SEND ERROR]", e, "HEAD_ID:", head_id)
 
     if sent > 0:
+
         await message.answer("✅ Savolingiz yuborildi.")
     else:
         await message.answer("❌ Savol menejerga yuborilmadi.")
 
 @router.callback_query(F.data == "faculty_manager_send")
+
 async def faculty_manager_send(call: CallbackQuery, state: FSMContext):
     print("🔥 BUTTON BOSILDI")  # 👈 TEST
 

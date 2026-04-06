@@ -49,8 +49,14 @@ async def main():
         token=BOT_TOKEN,
         default=DefaultBotProperties(parse_mode=ParseMode.HTML),
     )
+    from workers.reminder import reminder_worker
+    from database.db import AsyncSessionLocal
+
+    asyncio.create_task(reminder_worker(bot, AsyncSessionLocal))
 
     dp = Dispatcher(storage=MemoryStorage())
+
+
 
     dp.include_router(start.router)
     dp.include_router(admin.router)
