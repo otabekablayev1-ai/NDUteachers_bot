@@ -285,8 +285,9 @@ async def send_to_head(message: Message, state: FSMContext):
 
     await state.clear()
 
+@router.callback_query(F.data == "faculty_manager_send")
 async def faculty_manager_send(call: CallbackQuery, state: FSMContext):
-    print("🔥 BUTTON BOSILDI")  # 👈 TEST
+    print("🔥 BUTTON BOSILDI")
 
     student = await get_student(call.from_user.id)
 
@@ -295,8 +296,6 @@ async def faculty_manager_send(call: CallbackQuery, state: FSMContext):
         return
 
     faculty = student.faculty
-
-    from data.config import MANAGERS_BY_FACULTY
 
     manager_id = None
 
