@@ -242,7 +242,8 @@ async def send_to_head(message: Message, state: FSMContext):
                     head_id,
                     info_text + f"<b>Savol:</b>\n{message.text}",
                     parse_mode="HTML",
-                    reply_markup=reply_kb
+                    reply_markup=reply_kb,
+                    disable_notification=False
                 )
 
             elif message.document:
@@ -269,16 +270,17 @@ async def send_to_head(message: Message, state: FSMContext):
                     reply_markup=reply_kb
                 )
 
-        except Exception as e:
-            print("[STUDENT SEND ERROR]", e, "HEAD_ID:", head_id)
+            sent += 1  # 🔥 ENG MUHIM QATOR
 
+        except Exception as e:
+            print("[STUDENT SEND ERROR]:", e, "HEAD_ID:", head_id)
+
+    # ✅ NATIJA
     if sent > 0:
         await message.answer("✅ Savolingiz menejerga yuborildi.")
     else:
         await message.answer("❌ Xatolik yuz berdi. Iltimos qayta urinib ko‘ring.")
-
-@router.callback_query(F.data == "faculty_manager_send")
-
+        
 async def faculty_manager_send(call: CallbackQuery, state: FSMContext):
     print("🔥 BUTTON BOSILDI")  # 👈 TEST
 
