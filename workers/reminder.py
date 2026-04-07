@@ -1,27 +1,61 @@
 import asyncio
-from datetime import datetime
-from database.utils import get_unanswered_questions
+from datetime import datetime, timedelta
+from sqlalchemy import select
+from database.models import Question
+
 
 async def reminder_worker(bot, session_maker):
     while True:
-        await asyncio.sleep(300)  # har 5 minut
-
         async with session_maker() as session:
-            questions = await get_unanswered_questions(session)
+            result = await session.execute(
+                select(Question).where(Question.answered == False)
+            )
+            questions = result.scalars().all()
+
+            now = datetime.utcnow()
 
             for q in questions:
-                try:
-                    await bot.send_message(
-                        q.manager_id,
-                        f"⏰ <b>Eslatma!</b>\n\n"
-                        f"Sizda javobsiz savol bor:\n\n"
-                        f"{q.message_text}",
-                        parse_mode="HTML",
-                        disable_notification=False
-                    )
+                # ❌ eski savollarni skip
+                if q.created_at < now - timedelta(hours=24):
+                    continue
 
-                    q.last_reminded = datetime.utcnow()
-                    await session.commit()
+                # ❌ max 2 marta
+                if q.remind_count >= 2:
+                    continue
 
-                except Exception as e:
-                    print("REMINDER ERROR:", e)
+                should_send = False
+
+                if q.remind_count == 0:
+                    if now - q.created_at >= timedelta(minutes=10):
+                        should_send = True
+
+                elif q.remind_count == 1:
+                    if q.last_reminded and now - q.last_reminded >= timedelta(minutes=30):
+                        should_send = True
+
+                if not should_send:
+                    continue
+
+                recipients = []
+
+                if q.manager_id:
+                    recipients = [q.manager_id]
+
+                if not recipients:
+                    continue
+
+                for manager_id in recipients:
+                    try:
+                        await bot.send_message(
+                            manager_id,
+                            f"⏰ Eslatma!\n\nSavol hali javob berilmadi:\n\n{q.message_text}"
+                        )
+                    except Exception as e:
+                        print("SEND ERROR:", e)
+
+                q.remind_count += 1
+                q.last_reminded = now
+
+            await session.commit()
+
+        await asyncio.sleep(60)
