@@ -273,10 +273,9 @@ async def send_to_head(message: Message, state: FSMContext):
             print("[STUDENT SEND ERROR]", e, "HEAD_ID:", head_id)
 
     if sent > 0:
-
-        await message.answer("✅ Savolingiz yuborildi.")
+        await message.answer("✅ Savolingiz menejerga yuborildi.")
     else:
-        await message.answer("❌ Savol menejerga yuborilmadi.")
+        await message.answer("❌ Xatolik yuz berdi. Iltimos qayta urinib ko‘ring.")
 
 @router.callback_query(F.data == "faculty_manager_send")
 
