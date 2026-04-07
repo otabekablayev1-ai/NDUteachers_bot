@@ -76,7 +76,7 @@ async def reminder_worker(bot, session_maker):
                     await bot.send_message(
                         q.manager_id,
                         f"🚨 <b>ESLATMA!</b>\n\n"
-                        f"❗ Savol hali javob berilmadi:\n\n"
+                        f"❗ Savolga hali javob bermadingiz:\n\n"
                         f"💬 {q.message_text}",
                         parse_mode="HTML",
                         disable_notification=False
