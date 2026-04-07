@@ -251,7 +251,8 @@ async def send_to_head(message: Message, state: FSMContext):
                     head_id,
                     message.document.file_id,
                     caption=info_text,
-                    reply_markup=reply_kb
+                    reply_markup=reply_kb,
+                    disable_notification=False
                 )
 
             elif message.photo:
@@ -259,7 +260,8 @@ async def send_to_head(message: Message, state: FSMContext):
                     head_id,
                     message.photo[-1].file_id,
                     caption=info_text,
-                    reply_markup=reply_kb
+                    reply_markup=reply_kb,
+                    disable_notification=False
                 )
 
             elif message.video:
@@ -267,20 +269,22 @@ async def send_to_head(message: Message, state: FSMContext):
                     head_id,
                     message.video.file_id,
                     caption=info_text,
-                    reply_markup=reply_kb
+                    reply_markup=reply_kb,
+                    disable_notification=False
                 )
 
-            sent += 1  # 🔥 ENG MUHIM QATOR
+            sent += 1
 
         except Exception as e:
             print("[STUDENT SEND ERROR]:", e, "HEAD_ID:", head_id)
 
-    # ✅ NATIJA
     if sent > 0:
         await message.answer("✅ Savolingiz menejerga yuborildi.")
     else:
         await message.answer("❌ Xatolik yuz berdi. Iltimos qayta urinib ko‘ring.")
-        
+
+    await state.clear()
+
 async def faculty_manager_send(call: CallbackQuery, state: FSMContext):
     print("🔥 BUTTON BOSILDI")  # 👈 TEST
 
