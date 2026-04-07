@@ -163,7 +163,7 @@ async def send_to_head(message: Message, state: FSMContext):
 
         for key, value in MANAGERS_BY_FACULTY.items():
             if key.lower().strip() == faculty.lower().strip():
-                recipients = [1017100005]
+                recipients = value.get("student", [])
                 break
 
         if not recipients:
