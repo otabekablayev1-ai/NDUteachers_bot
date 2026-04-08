@@ -8,7 +8,7 @@ from database.models import Question
 def get_delay(remind_count: int):
     # 🔹 0–4 → 10 min
     if remind_count < 5:
-        return timedelta(minutes=10)
+        return timedelta(seconds=10)
 
     # 🔹 5–9 → 30 min
     elif remind_count < 10:
