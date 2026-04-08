@@ -52,7 +52,7 @@ async def main():
         default=DefaultBotProperties(parse_mode=ParseMode.HTML),
     )
 
-    #asyncio.create_task(reminder_worker(bot, AsyncSessionLocal))
+    asyncio.create_task(reminder_worker(bot, AsyncSessionLocal))
 
     dp = Dispatcher(storage=MemoryStorage())
 
