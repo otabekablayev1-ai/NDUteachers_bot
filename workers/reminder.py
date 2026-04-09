@@ -33,20 +33,25 @@ async def reminder_worker(bot, session_maker):
 
             for q in questions:
 
-                # ❌ BU QATORNI O‘CHIRDIK (endi eski savollar ham ishlaydi)
-                # if q.created_at < now - timedelta(hours=24):
-                #     continue
+                # ✅ agar javob berilgan bo‘lsa skip
+                if q.answered:
+                    continue
+
+                # 🔒 max 20 reminder
+                if q.remind_count >= 20:
+                    continue
+
+                # ❌ manager yo‘q bo‘lsa skip
+                if not q.manager_id:
+                    continue
 
                 delay = get_delay(q.remind_count or 0)
 
                 should_send = False
 
-                # 1-marta
                 if not q.last_reminded:
-                    if q.created_at and now - q.created_at >= delay:
+                    if now - q.created_at >= delay:
                         should_send = True
-
-                # keyingi martalar
                 else:
                     if now - q.last_reminded >= delay:
                         should_send = True
