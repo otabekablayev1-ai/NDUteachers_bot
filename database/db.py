@@ -559,12 +559,19 @@ async def get_top_managers(limit: int = 5) -> list[dict]:
 # =============================
 async def mark_question_answered(question_id: int):
     async with AsyncSessionLocal() as session:
-        await session.execute(
-            update(Question)
-            .where(Question.id == question_id)
-            .values(answered=True)
-        )
+        q = await session.get(Question, question_id)
+
+        if not q:
+            print("❌ Question topilmadi:", question_id)
+            return
+
+        print("BEFORE:", q.answered)
+
+        q.answered = True
+
         await session.commit()
+
+        print("AFTER:", q.answered)
 
 # =============================
 # 🧾 Javobni saqlash

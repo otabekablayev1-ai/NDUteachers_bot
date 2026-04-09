@@ -225,7 +225,13 @@ async def send_reply(message: Message, state: FSMContext):
     # 2️⃣ DB ga yozish
     try:
         await save_answer(question_id, manager_id, answer_text)
+
+        print("🔥 BEFORE MARK")
+
         await mark_question_answered(question_id)
+
+        print("✅ AFTER MARK")
+
     except Exception as e:
         print("[HEADS] DB error:", e)
 
