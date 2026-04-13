@@ -347,30 +347,29 @@ async def ai_mode(message: Message, state: FSMContext):
         "🧠 BilgichYechim ishga tushdi.\n\n"
         "Savolingizni yozing:\n"
         "Masalan: Aliyev Azamat buyruqlarini top\n\n"
-        "❌ Chiqish: /start"
     )
 
 @router.message(AIState.waiting_for_query)
 async def ai_handler(message: Message, state: FSMContext):
-    if message.from_user.id not in ADMINS:
-        return
+    try:
+        result = await run_agent(message.text)
 
-    result = await run_agent(message.text)
+        if result["tool"]:
+            data = await execute_tool(result["tool"], result["args"])
 
-    tool = result.get("tool")
-    args = result.get("args")
+            if not data:
+                await message.answer("Hech narsa topilmadi")
+                return
 
-    if not tool:
-        return await message.answer("❌ Tushunmadim")
+            text = "📘 Natijalar:\n\n"
 
-    data = await execute_tool(tool, args)
+            for item in data:
+                text += f"{item['name']}\n{item['link']}\n\n"
 
-    if not data:
-        return await message.answer("❌ Hech narsa topilmadi")
+            await message.answer(text)
 
-    text = "📘 Natijalar:\n\n"
+        else:
+            await message.answer("Hech narsa topilmadi")
 
-    for item in data:
-        text += f"{item['name']}\n{item['link']}\n\n"
-
-    await message.answer(text)
+    except Exception as e:
+        await message.answer(f"Xatolik: {e}")
