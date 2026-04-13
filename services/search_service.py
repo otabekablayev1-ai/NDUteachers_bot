@@ -1,27 +1,32 @@
+import os
 import psycopg2
 
-conn = psycopg2.connect(
-    dbname="YOUR_DB",
-    user="YOUR_USER",
-    password="YOUR_PASSWORD",
-    host="localhost"
-)
+
+def get_connection():
+    database_url = os.getenv("DATABASE_URL")
+    if not database_url:
+        raise ValueError("DATABASE_URL topilmadi")
+
+    return psycopg2.connect(database_url)
+
 
 def search_orders(first_name, last_name):
     query = f"{first_name} {last_name}"
 
-    cur = conn.cursor()
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT file_name, drive_link
+            FROM orders
+            WHERE content ILIKE %s
+            LIMIT 10
+            """,
+            (f"%{query}%",)
+        )
+        rows = cur.fetchall()
 
-    cur.execute("""
-        SELECT file_name, drive_link
-        FROM orders
-        WHERE content ILIKE %s
-        LIMIT 10
-    """, (f"%{query}%",))
-
-    rows = cur.fetchall()
-
-    return [
-        {"name": r[0], "link": r[1]}
-        for r in rows
-    ]
+        return [{"name": r[0], "link": r[1]} for r in rows]
+    finally:
+        conn.close()

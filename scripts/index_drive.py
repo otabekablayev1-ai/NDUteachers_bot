@@ -1,4 +1,6 @@
 import io
+import os
+
 import psycopg2
 from PyPDF2 import PdfReader
 from google.oauth2 import service_account
@@ -8,48 +10,42 @@ from googleapiclient.discovery import build
 # 🔐 CONFIG
 # ==============================
 
-DB_CONFIG = {
-    "dbname": "YOUR_DB",
-    "user": "YOUR_USER",
-    "password": "YOUR_PASSWORD",
-    "host": "localhost"
-}
-
 CREDENTIALS_FILE = "credentials.json"
+SCOPES = ["https://www.googleapis.com/auth/drive.readonly"]
 
-SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
 
+def get_connection():
+    database_url = os.getenv("DATABASE_URL")
+    if not database_url:
+        raise ValueError("DATABASE_URL topilmadi")
+    return psycopg2.connect(database_url)
 
-# ==============================
-# 🔌 CONNECT
-# ==============================
-
-conn = psycopg2.connect(**DB_CONFIG)
 
 creds = service_account.Credentials.from_service_account_file(
-    CREDENTIALS_FILE, scopes=SCOPES
+    CREDENTIALS_FILE,
+    scopes=SCOPES,
 )
 
-drive_service = build('drive', 'v3', credentials=creds)
-
+drive_service = build("drive", "v3", credentials=creds)
 
 # ==============================
 # 🧩 HELPERS
 # ==============================
 
+
 def extract_file_id(link: str):
     try:
         return link.split("/d/")[1].split("/")[0]
-    except:
+    except Exception:
         return None
 
 
 def read_pdf(file_id: str):
     try:
         request = drive_service.files().get_media(fileId=file_id)
-        file = io.BytesIO(request.execute())
+        file_data = io.BytesIO(request.execute())
 
-        reader = PdfReader(file)
+        reader = PdfReader(file_data)
 
         text = ""
         for page in reader.pages:
@@ -69,41 +65,45 @@ def clean_text(text: str):
 # 📥 DB FUNCTIONS
 # ==============================
 
+
 def get_links_from_db():
-    """
-    ⚠️ BU YERNI MOSLANG:
-    sizda qaysi tableda linklar borligini yozing
-    """
-
-    cur = conn.cursor()
-
-    # ❗ MISOL (o‘zgartirasiz)
-    cur.execute("""
-        SELECT drive_link
-        FROM orders_links
-        WHERE drive_link IS NOT NULL
-    """)
-
-    rows = cur.fetchall()
-
-    return [r[0] for r in rows]
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT drive_link
+            FROM orders_links
+            WHERE drive_link IS NOT NULL
+            """
+        )
+        rows = cur.fetchall()
+        return [r[0] for r in rows]
+    finally:
+        conn.close()
 
 
 def save_to_orders(file_id, link, text):
-    cur = conn.cursor()
-
-    cur.execute("""
-        INSERT INTO orders (file_id, drive_link, content)
-        VALUES (%s, %s, %s)
-        ON CONFLICT (file_id) DO NOTHING
-    """, (file_id, link, text))
-
-    conn.commit()
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            """
+            INSERT INTO orders (file_id, drive_link, content)
+            VALUES (%s, %s, %s)
+            ON CONFLICT (file_id) DO NOTHING
+            """,
+            (file_id, link, text),
+        )
+        conn.commit()
+    finally:
+        conn.close()
 
 
 # ==============================
 # 🚀 MAIN LOGIC
 # ==============================
+
 
 def run():
     links = get_links_from_db()
@@ -126,7 +126,6 @@ def run():
             continue
 
         text = clean_text(text)
-
         save_to_orders(file_id, link, text)
 
         print("✅ Saqlandi")
