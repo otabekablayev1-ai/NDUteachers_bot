@@ -2,9 +2,9 @@ from aiogram import Router, types,  F
 from aiogram.types import CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from database.db import reject_request
 from loader import dp
+from ai.agent import run_agent
+from services.tools_executor import execute_tool
 from database.models import Teacher, Student
-
-from aiogram import F
 from aiogram.types import Message, BufferedInputFile
 from aiogram import Router
 
@@ -29,7 +29,13 @@ from database.db import (
 )
 from database.db import search_users_by_fio_or_id, delete_user_by_id
 from database.utils import export_activity_excel
+
+
 router = Router()
+
+
+class AIState(StatesGroup):
+    waiting_for_query = State()
 
 # =====================================================
 # 🔐 ADMIN MENYU
@@ -302,8 +308,6 @@ async def backup_db(message: Message):
     )
 
 
-ADMINS = [1017100005]  # <- O'zingizning Telegram ID'ingizni kiriting
-
 @router.message(Command("fix_search"))
 async def fix_search_handler(message: types.Message):
     if message.from_user.id not in ADMINS:
@@ -334,3 +338,39 @@ async def export_activity(message: Message):
     await message.answer_document(
         BufferedInputFile(open(file_path, "rb").read(), filename="activity.xlsx")
     )
+
+@router.message(F.text == "🧠 BilgichYechim")
+async def ai_mode(message: Message, state: FSMContext):
+    await state.set_state(AIState.waiting_for_query)
+
+    await message.answer(
+        "🧠 BilgichYechim ishga tushdi.\n\n"
+        "Savolingizni yozing:\n"
+        "Masalan: Aliyev Azamat buyruqlarini top\n\n"
+        "❌ Chiqish: /start"
+    )
+
+@router.message(AIState.waiting_for_query)
+async def ai_handler(message: Message, state: FSMContext):
+    if message.from_user.id not in ADMINS:
+        return
+
+    result = await run_agent(message.text)
+
+    tool = result.get("tool")
+    args = result.get("args")
+
+    if not tool:
+        return await message.answer("❌ Tushunmadim")
+
+    data = await execute_tool(tool, args)
+
+    if not data:
+        return await message.answer("❌ Hech narsa topilmadi")
+
+    text = "📘 Natijalar:\n\n"
+
+    for item in data:
+        text += f"{item['name']}\n{item['link']}\n\n"
+
+    await message.answer(text)
