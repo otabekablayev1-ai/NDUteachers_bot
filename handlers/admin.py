@@ -361,10 +361,10 @@ async def ai_handler(message: Message, state: FSMContext):
                 await message.answer("Hech narsa topilmadi")
                 return
 
-            text = "📘 Natijalar:\n\n"
+            text = "📘 Topilgan buyruqlar:\n\n"
 
-            for item in data:
-                text += f"{item['name']}\n{item['link']}\n\n"
+            for i, item in enumerate(data, 1):
+                text += f"{i}. 🔗 {item['link']}\n"
 
             await message.answer(text)
 

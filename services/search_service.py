@@ -17,7 +17,7 @@ def search_orders(first_name, last_name):
         cur = conn.cursor()
         cur.execute(
             """
-            SELECT file_name, drive_link
+            SELECT file_id, drive_link
             FROM orders
             WHERE content ILIKE %s
             LIMIT 10
@@ -26,6 +26,6 @@ def search_orders(first_name, last_name):
         )
         rows = cur.fetchall()
 
-        return [{"name": r[0], "link": r[1]} for r in rows]
+        return [{"file_id": r[0], "link": r[1]} for r in rows]
     finally:
         conn.close()
