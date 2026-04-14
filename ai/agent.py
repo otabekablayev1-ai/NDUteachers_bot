@@ -1,7 +1,7 @@
 from openai import OpenAI
 import os
 import json
-
+from scripts.process_excel_orders import process_excel
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 SYSTEM_PROMPT = """
@@ -34,7 +34,7 @@ tools = [
 
 async def run_agent(text: str):
     response = client.chat.completions.create(
-        model="gpt-5-mini",  # ✅ ARZON MODEL
+        model="gpt-4o-mini",
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": text}
@@ -47,10 +47,19 @@ async def run_agent(text: str):
 
     if msg.tool_calls:
         tool_call = msg.tool_calls[0]
-
         return {
             "tool": tool_call.function.name,
             "args": json.loads(tool_call.function.arguments)
         }
 
     return {"tool": None}
+
+def handle_ai_request():
+    links = [
+        "https://drive.google.com/file/d/xxxx/view",
+        "https://drive.google.com/file/d/yyyy/view"
+    ]
+
+    result = process_excel("students.xlsx", links)
+
+    return result
