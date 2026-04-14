@@ -1,15 +1,13 @@
 from openai import OpenAI
-import json
-
 import os
-
+import json
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 SYSTEM_PROMPT = """
 Sen Telegram bot uchun admin yordamchisan.
 
-Agar foydalanuvchi odamga tegishli buyruqlarni qidirsa,
+Agar foydalanuvchi odamga tegishli buyruqlarni qidirmoqchi bo‘lsa,
 search_orders funksiyasini chaqir.
 
 Faqat function chaqir.
@@ -34,9 +32,9 @@ tools = [
 ]
 
 
-async def run_agent(text):
+async def run_agent(text: str):
     response = client.chat.completions.create(
-        model="gpt-4.1",
+        model="gpt-5-mini",  # ✅ ARZON MODEL
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": text}
@@ -55,4 +53,4 @@ async def run_agent(text):
             "args": json.loads(tool_call.function.arguments)
         }
 
-    return {"tool": None, "args": {}}
+    return {"tool": None}
