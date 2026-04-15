@@ -31,7 +31,6 @@ tools = [
     }
 ]
 
-
 async def run_agent(text: str):
     response = client.chat.completions.create(
         model="gpt-4o-mini",
@@ -43,16 +42,21 @@ async def run_agent(text: str):
         tool_choice="auto"
     )
 
-    msg = response.choices[0].message
+    message = response.choices[0].message
 
-    if msg.tool_calls:
-        tool_call = msg.tool_calls[0]
+    if message.tool_calls:
+        tool_call = message.tool_calls[0]
+
         return {
             "tool": tool_call.function.name,
             "args": json.loads(tool_call.function.arguments)
         }
 
-    return {"tool": None}
+    return {
+        "tool": None,
+        "args": None
+    }
+
 
 def handle_ai_request():
     links = [

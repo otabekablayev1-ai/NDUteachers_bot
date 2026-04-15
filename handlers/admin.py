@@ -354,22 +354,24 @@ async def ai_handler(message: Message, state: FSMContext):
     try:
         result = await run_agent(message.text)
 
-        if result["tool"]:
-            data = await execute_tool(result["tool"], result["args"])
+        # ❗ agar AI tool chaqirmasa
+        if not result.get("tool"):
+            await message.answer("❌ Hech narsa topilmadi")
+            return
 
-            if not data:
-                await message.answer("Hech narsa topilmadi")
-                return
+        data = await execute_tool(result["tool"], result["args"])
 
-            text = "📘 Topilgan buyruqlar:\n\n"
+        # ❗ agar DB bo‘sh qaytsa
+        if not data:
+            await message.answer("❌ Natija topilmadi")
+            return
 
-            for i, item in enumerate(data, 1):
-                text += f"{i}. 🔗 {item['link']}\n"
+        text = "📘 Topilgan buyruqlar:\n\n"
 
-            await message.answer(text)
+        for item in data:
+            text += f"🆔 {item['file_id']}\n🔗 {item['link']}\n\n"
 
-        else:
-            await message.answer("Hech narsa topilmadi")
+        await message.answer(text)
 
     except Exception as e:
-        await message.answer(f"Xatolik: {e}")
+        await message.answer(f"❌ Xatolik: {e}")

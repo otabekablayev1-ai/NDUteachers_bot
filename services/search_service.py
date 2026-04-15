@@ -17,15 +17,24 @@ def search_orders(first_name, last_name):
         cur = conn.cursor()
         cur.execute(
             """
-            SELECT file_id, drive_link
-            FROM orders
-            WHERE content ILIKE %s
+            SELECT id, link
+            FROM order_links
+            WHERE students_search ILIKE %s
+               OR students_raw ILIKE %s
+               OR title ILIKE %s
             LIMIT 10
             """,
-            (f"%{query}%",)
+            (f"%{query}%", f"%{query}%", f"%{query}%")
         )
         rows = cur.fetchall()
 
-        return [{"file_id": r[0], "link": r[1]} for r in rows]
+        return [
+            {
+                "file_id": r[0],
+                "link": r[1]
+            }
+            for r in rows
+        ]
+
     finally:
         conn.close()
