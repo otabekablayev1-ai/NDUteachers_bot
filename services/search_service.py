@@ -18,7 +18,7 @@ def search_orders(first_name, last_name):
 
         cur.execute(
             """
-            SELECT file_id, link
+            SELECT id, link
             FROM order_links
             WHERE students_search ILIKE %s
             LIMIT 10
@@ -28,7 +28,7 @@ def search_orders(first_name, last_name):
 
         rows = cur.fetchall()
 
-        return [{"name": r[0], "link": r[1]} for r in rows]
+        return [{"name": f"Buyruq #{r[0]}", "link": r[1]} for r in rows]
 
     finally:
         conn.close()
