@@ -72,7 +72,10 @@ async def main():
 
     await bot.delete_webhook(drop_pending_updates=True)
 
-    await on_startup(bot)  # 🔥 SHU
+    await on_startup(bot)
+
+
+    await asyncio.sleep(3)  # 🔥 conflict fix
 
     await dp.start_polling(bot)
 
