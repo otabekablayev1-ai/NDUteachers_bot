@@ -198,8 +198,6 @@ async def export_activity_excel():
 
     return filename
 
-
-
 UTC = timezone.utc
 
 from datetime import datetime, timedelta
@@ -237,7 +235,10 @@ async def get_users_for_notification(hours=12):
     users = []
 
     for user_id, last_time in last_activity.items():
-        inactive = now - last_time > timedelta(hours=hours)
+        if last_time is None:
+            inactive = True
+        else:
+            inactive = now - last_time > timedelta(hours=hours)
 
         already_notified = False
         if user_id in last_notified and last_notified[user_id]:
