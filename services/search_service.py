@@ -10,31 +10,25 @@ def get_connection():
 
 
 def search_orders(first_name, last_name):
-    query = f"{first_name} {last_name}"
-
     conn = get_connection()
     try:
         cur = conn.cursor()
+
+        search_text = f"{first_name} {last_name}".lower()
+
         cur.execute(
             """
-            SELECT id, link
+            SELECT file_id, link
             FROM order_links
             WHERE students_search ILIKE %s
-               OR students_raw ILIKE %s
-               OR title ILIKE %s
             LIMIT 10
             """,
-            (f"%{query}%", f"%{query}%", f"%{query}%")
+            (f"%{search_text}%",)
         )
+
         rows = cur.fetchall()
 
-        return [
-            {
-                "file_id": r[0],
-                "link": r[1]
-            }
-            for r in rows
-        ]
+        return [{"name": r[0], "link": r[1]} for r in rows]
 
     finally:
         conn.close()
