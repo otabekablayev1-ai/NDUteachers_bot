@@ -3,7 +3,8 @@ from aiogram.types import CallbackQuery, Message
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.context import FSMContext
 from database.utils import send_long_message
-from database.db import search_orders_multi, get_teacher
+from database.db import get_teacher
+from services.search_service import search_orders_multi
 from database.utils import log_activity
 router = Router()
 

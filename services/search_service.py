@@ -1,5 +1,9 @@
 import os
 import psycopg2
+from sqlalchemy import select
+
+from database.models import OrderLink
+from database.session import AsyncSessionLocal
 
 
 def get_connection():
@@ -7,6 +11,10 @@ def get_connection():
     if not database_url:
         raise ValueError("DATABASE_URL topilmadi")
     return psycopg2.connect(database_url)
+
+
+def normalize_text(text: str) -> str:
+    return (text or "").lower().strip()
 
 
 def search_orders(first_name, last_name):
@@ -32,3 +40,52 @@ def search_orders(first_name, last_name):
 
     finally:
         conn.close()
+
+
+async def search_orders_multi(
+    faculty: str | None = None,
+    type: str | None = None,
+    fio: str | None = None,
+):
+    async with AsyncSessionLocal() as session:
+        stmt = select(
+            OrderLink.id,
+            OrderLink.title,
+            OrderLink.link,
+            OrderLink.faculty,
+            OrderLink.type,
+            OrderLink.students_raw,
+            OrderLink.students_search,
+            OrderLink.created_at,
+        )
+
+        if faculty:
+            stmt = stmt.where(OrderLink.faculty == faculty)
+
+        if type:
+            stmt = stmt.where(OrderLink.type == type)
+
+        if fio:
+            search_text = normalize_text(fio)
+            stmt = stmt.where(
+                OrderLink.students_search.ilike(f"%{search_text}%")
+            )
+
+        stmt = stmt.order_by(OrderLink.created_at.desc())
+
+        result = await session.execute(stmt)
+        rows = result.all()
+
+        return [
+            {
+                "id": row[0],
+                "name": row[1] or f"Buyruq #{row[0]}",
+                "link": row[2],
+                "faculty": row[3],
+                "type": row[4],
+                "students_raw": row[5],
+                "students_search": row[6],
+                "created_at": row[7],
+            }
+            for row in rows
+        ]

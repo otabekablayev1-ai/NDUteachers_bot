@@ -991,43 +991,6 @@ async def get_manager_fio(manager_id: int) -> str:
         return fio or "Noma’lum menejer"
 
 # =============================
-# 🔍 OrderLink — PROFESSIONAL qidiruv
-# =============================
-async def search_orders_multi(
-    faculty: str | None = None,
-    type: str | None = None,
-    fio: str | None = None,
-):
-    async with AsyncSessionLocal() as session:
-        stmt = select(
-            OrderLink.id,
-            OrderLink.title,
-            OrderLink.link,
-            OrderLink.faculty,
-            OrderLink.type,
-            OrderLink.students_raw,
-            OrderLink.students_search,
-            OrderLink.created_at,
-        )
-
-        if faculty:
-            stmt = stmt.where(OrderLink.faculty == faculty)
-
-        if type:
-            stmt = stmt.where(OrderLink.type == type)
-
-        if fio:
-            search_text = normalize_text(fio)
-            stmt = stmt.where(
-                OrderLink.students_search.ilike(f"%{search_text}%")
-            )
-
-        stmt = stmt.order_by(OrderLink.created_at.desc())
-
-        result = await session.execute(stmt)
-        return result.all()
-
-# =============================
 # ❌ OrderLink (ADMIN) — o‘chirish
 # =============================
 async def search_order_links_for_delete(query: str):

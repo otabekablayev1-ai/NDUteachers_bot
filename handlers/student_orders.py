@@ -2,9 +2,13 @@ from aiogram import Router, F
 from aiogram.types import CallbackQuery
 from database.utils import send_long_message
 from database.utils import log_activity
+from database.db import get_student
+
+from services.search_service import search_orders_multi
 router = Router()
 
-from database.db import search_orders_multi, get_student
+
+
 
 @router.callback_query(F.data == "student_my_orders")
 async def student_my_orders(call: CallbackQuery):

@@ -16,8 +16,8 @@ from handlers.constants import YEARS, FACULTIES, ORDER_TYPES
 from database.db import (
     add_order_link,
     get_all_order_links,
-    search_orders_multi,
 )
+from services.search_service import search_orders_multi
 
 router = Router()
 

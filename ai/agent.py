@@ -8,8 +8,9 @@ SYSTEM_PROMPT = """
 Sen Telegram bot uchun admin yordamchisan.
 
 Agar foydalanuvchi odamga tegishli buyruqlarni qidirmoqchi bo‘lsa,
-search_orders funksiyasini chaqir.
+search_orders_multi funksiyasini chaqir.
 
+fio ni to‘liq matn sifatida uzat.
 Faqat function chaqir.
 """
 
@@ -17,15 +18,16 @@ tools = [
     {
         "type": "function",
         "function": {
-            "name": "search_orders",
-            "description": "Buyruqlarni topish",
+            "name": "search_orders_multi",
+            "description": "Buyruqlarni qidirish",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "first_name": {"type": "string"},
-                    "last_name": {"type": "string"}
+                    "fio": {"type": "string"},
+                    "faculty": {"type": "string"},
+                    "type": {"type": "string"}
                 },
-                "required": ["first_name", "last_name"]
+                "required": ["fio"]
             }
         }
     }

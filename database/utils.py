@@ -311,3 +311,6 @@ async def get_unanswered_questions(session):
     )
 
     return result.scalars().all()
+
+def normalize_text(text: str) -> str:
+    return (text or "").lower().strip()
