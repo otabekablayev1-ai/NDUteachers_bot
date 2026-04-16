@@ -369,7 +369,7 @@ async def ai_handler(message: Message, state: FSMContext):
         text = "📘 Topilgan buyruqlar:\n\n"
 
         for item in data:
-            text += f"🆔 {item['file_id']}\n🔗 {item['link']}\n\n"
+            text += f"📄 {item['name']}\n🔗 {item['link']}\n\n"
 
         await message.answer(text)
 

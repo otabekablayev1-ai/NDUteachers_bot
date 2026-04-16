@@ -312,5 +312,9 @@ async def get_unanswered_questions(session):
 
     return result.scalars().all()
 
+import re
+
 def normalize_text(text: str) -> str:
-    return (text or "").lower().strip()
+    text = text.lower().strip()
+    text = re.sub(r"\s+", " ", text)
+    return text
