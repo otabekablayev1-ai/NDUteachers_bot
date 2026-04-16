@@ -1,3 +1,4 @@
+#commands_orders.py
 from database.helpers import normalize_text
 import html
 from aiogram import Router, F
@@ -78,27 +79,6 @@ async def orders_filter_menu(call: CallbackQuery):
     )
     await call.message.answer("📘 Buyruqlarni filterlash bo‘limi:", reply_markup=kb)
     await call.answer()
-
-
-# ==========================
-# 📅 YIL DROPDOWN
-# ==========================
-# @router.callback_query(F.data == "open_years")
-# async def dropdown_years(call: CallbackQuery):
-    #kb = InlineKeyboardMarkup(
-        #inline_keyboard=[
-            #[InlineKeyboardButton(text=year, callback_data=f"set_year_{year}")]
-            #for year in YEARS
-        #] + [[InlineKeyboardButton(text="⬅ Orqaga", callback_data="orders_filter")]]
-    #)
-    #await call.message.edit_reply_markup(reply_markup=kb)
-    #await call.answer()
-
-#@router.callback_query(F.data.startswith("set_year_"))
-# async def set_year(call: CallbackQuery, state: FSMContext):
-    #await state.update_data(year=call.data.replace("set_year_", ""))
-    #await call.answer("✔ Yil tanlandi")
-
 
 # ==========================
 # 🏛 FAKULTET DROPDOWN
@@ -212,13 +192,13 @@ async def filter_search(call: CallbackQuery, state: FSMContext):
         return await call.answer()
 
     text = "📋 <b>Natijalar:</b>\n\n"
+
     for row in rows:
-        r = row._mapping
-        link = r.get("link") or "#"
-        title = r.get("title") or "Noma’lum"
+        link = row.get("link") or "#"
+        title = row.get("name") or "Noma’lum"
 
         text += f"👉 <a href=\"{link}\">{html.escape(title)}</a>\n"
-
+        
     await send_long_message(call.message, text)
     await call.answer()
 
