@@ -3,29 +3,40 @@ import os
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-def analyze_orders(students, orders_text):
-    prompt = f"""
-    Sen universitet tizimidagi AI yordamchisan.
+SYSTEM_PROMPT = """
+Sen universitet buyruqlarini analiz qiluvchi AI'san.
 
-    Talabalar:
-    {students}
+Senga PDF matni beriladi.
+Undan quyidagi ma'lumotlarni ajrat:
 
-    Buyruqlar matni:
-    {orders_text}
+- full_name
+- order_type (qabul / stipendiya / akademik tatil / ...)
+- order_number
+- order_date
 
-    Vazifa:
-    - Har bir talabani top
-    - Qaysi buyruqqa tushganini aniqlash
-    - Natijani quyidagi formatda ber:
+Natijani JSON formatda qaytar:
 
-    FIO - BUYRUQ TURI
-    """
+{
+  "students": [
+    {
+      "full_name": "...",
+      "order_type": "...",
+      "order_number": "...",
+      "order_date": "..."
+    }
+  ]
+}
+"""
 
+
+def parse_order(text: str):
     response = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
-            {"role": "user", "content": prompt}
-        ]
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": text[:15000]}  # limit
+        ],
+        temperature=0
     )
 
     return response.choices[0].message.content

@@ -198,7 +198,7 @@ async def filter_search(call: CallbackQuery, state: FSMContext):
         title = row.get("name") or "Noma’lum"
 
         text += f"👉 <a href=\"{link}\">{html.escape(title)}</a>\n"
-        
+
     await send_long_message(call.message, text)
     await call.answer()
 

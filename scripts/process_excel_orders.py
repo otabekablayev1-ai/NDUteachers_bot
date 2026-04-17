@@ -1,33 +1,60 @@
 import pandas as pd
-from services.google_drive import extract_file_id, download_pdf, read_pdf
-from services.ai_service import analyze_orders
+import json
+
+from services.google_drive_service import read_pdf_from_drive
+from services.ai_service import parse_order
+from database.db import get_all_order_links
 
 
-def process_excel(input_file, links):
+def process_excel():
+    # 📥 Excel yuklash
+    df = pd.read_excel("input.xlsx")
 
-    df = pd.read_excel(input_file)
+    # 📥 DB dan linklar
+    orders = get_all_order_links()
 
-    students = df["FIO"].tolist()
+    all_data = []
 
-    texts = []
+    # 📄 PDFlarni o‘qish
+    for order in orders:
+        print("Processing:", order["link"])
 
-    for link in links:
-        file_id = extract_file_id(link)
-        if not file_id:
+        text = read_pdf_from_drive(order["link"])
+
+        print("PDF TEXT LENGTH:", len(text))  # 👈 shu yerga
+
+        if not text:
             continue
 
-        file = download_pdf(file_id)
-        if not file:
-            continue
+        ai_result = parse_order(text)
 
-        text = read_pdf(file)
-        if text:
-            texts.append(text)
+        try:
+            data = json.loads(ai_result)
+            all_data.extend(data.get("students", []))
+        except Exception as e:
+            print("AI parse error:", e)
 
-    orders_text = "\n\n".join(texts)
+    # 📊 Excelga yozish
+    for i, row in df.iterrows():
+        fio = str(row["F.I.O"]).lower()
 
-    result = analyze_orders(students, orders_text)
+        for student in all_data:
+            full_name = student.get("full_name", "").lower()
 
-    print("AI RESULT:\n", result)
+            if fio in full_name:
 
-    return result
+                order_text = f"{student.get('order_number')} ({student.get('order_date')})"
+
+                if student.get("order_type") == "stipendiya":
+                    df.at[i, "Stipendiya buyrug'i"] = order_text
+
+                elif student.get("order_type") == "qabul":
+                    df.at[i, "Qabul buyrug'i"] = order_text
+
+    # 💾 Saqlash
+    df.to_excel("output.xlsx", index=False)
+    print("✅ Tayyor: output.xlsx")
+
+
+if __name__ == "__main__":
+    process_excel()

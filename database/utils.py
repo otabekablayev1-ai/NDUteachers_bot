@@ -314,7 +314,19 @@ async def get_unanswered_questions(session):
 
 import re
 
-def normalize_text(text: str) -> str:
-    text = text.lower().strip()
-    text = re.sub(r"\s+", " ", text)
-    return text
+def normalize_text(text: str):
+    if not text:
+        return ""
+
+    text = text.lower()
+
+    # barcha apostroflarni bir xil qilish
+    text = text.replace("‘", "'").replace("`", "'").replace("ʼ", "'")
+
+    # o‘ -> o, g‘ -> g
+    text = text.replace("o'", "o").replace("g'", "g")
+
+    # ortiqcha belgilarni olib tashlash
+    text = re.sub(r"[^a-z0-9\s]", "", text)
+
+    return text.strip()
