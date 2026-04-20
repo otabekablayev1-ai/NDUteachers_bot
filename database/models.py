@@ -159,6 +159,8 @@ class OrderLink(Base):
     faculty = Column(String)
     type = Column(String)
 
+    file_id = Column(String, unique=True)  # ✅ YANGI
+
     # ❗ MUHIM
     students_raw = Column(Text)       # foydalanuvchi yozgani
     students_search = Column(Text)    # normalize qilingan

@@ -1,5 +1,4 @@
 import io
-import os
 from PyPDF2 import PdfReader
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
@@ -7,20 +6,12 @@ from googleapiclient.discovery import build
 SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
 
 def get_drive_service():
-    creds_json = os.getenv("GOOGLE_CREDENTIALS_JSON")
-
-    if not creds_json:
-        raise ValueError("GOOGLE_CREDENTIALS_JSON topilmadi")
-
-    import json
-    creds_dict = json.loads(creds_json)
-
-    creds = service_account.Credentials.from_service_account_info(
-        creds_dict, scopes=SCOPES
+    creds = service_account.Credentials.from_service_account_file(
+        "ndu-ai-bot-26071a4302e6.json",  # ✅ TO‘G‘RILANDI
+        scopes=SCOPES
     )
 
     return build('drive', 'v3', credentials=creds)
-
 
 def extract_file_id(link: str):
     try:
@@ -46,3 +37,18 @@ def read_pdf_from_drive(link: str):
         text += page.extract_text() or ""
 
     return text
+
+def get_all_files():
+    service = get_drive_service()
+
+    results = service.files().list(
+        pageSize=1000,
+        fields="files(id, name, mimeType)"
+    ).execute()
+
+    files = results.get("files", [])
+
+    # 🔥 faqat PDF
+    pdf_files = [f for f in files if f["mimeType"] == "application/pdf"]
+
+    return pdf_files
