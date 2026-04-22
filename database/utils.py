@@ -163,7 +163,7 @@ async def export_activity_excel():
         user["role"] = r.role
         user["commands"][r.command] += 1
 
-        if not user["last"] or r.created_at > user["last"]:
+        if r.created_at and (not user["last"] or r.created_at > user["last"]):
             user["last"] = r.created_at
 
     # 🔥 EXCEL
@@ -251,7 +251,7 @@ async def get_users_for_notification(hours=12):
 
 async def send_daily_notifications(bot):
     all_users = await get_all_users()
-    inactive_users = await get_users_for_notification(12)
+    inactive_users = await get_users_for_notification(48)
 
     users = [u for u in all_users if u in inactive_users]
 
@@ -261,7 +261,7 @@ async def send_daily_notifications(bot):
                 await bot.send_message(
                     uid,
                     "👋 Assalomu alaykum, NDUteachers_bot foydalanuvchisi!\n\n"
-                    "📌 Siz 12 soatdan beri bot imkoniyatlaridan foydalanmadingiz.\n"
+                    "📌 Siz 2 kundan beri bot imkoniyatlaridan foydalanmadingiz.\n"
                     "AI ko'makchisi yaqin kunlarda ishga tushadi!"
                 )
                 # 🔥 UPDATE

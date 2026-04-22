@@ -8,19 +8,19 @@ from datetime import timedelta
 def get_delay(remind_count: int):
     # 🔹 0–4 → 10 min
     if remind_count < 5:
-        return timedelta(minutes=10)
+        return timedelta(minutes=60)
 
     # 🔹 5–9 → 30 min
     elif remind_count < 10:
-        return timedelta(minutes=30)
+        return timedelta(hours=12)
 
     # 🔹 10–14 → 1 soat
     elif remind_count < 15:
-        return timedelta(hours=1)
+        return timedelta(hours=24)
 
     # 🔹 15+ → 6 soat (cheksiz)
     else:
-        return timedelta(hours=6)
+        return timedelta(hours=48)
 async def reminder_worker(bot, session_maker):
     while True:
         async with session_maker() as session:
@@ -33,7 +33,7 @@ async def reminder_worker(bot, session_maker):
 
             for q in questions:
                 # ❌ eski savollarni skip
-                if q.created_at < now - timedelta(hours=24):
+                if q.created_at < now - timedelta(hours=72):
                     continue
 
                 # ❌ max 2 marta
@@ -43,11 +43,11 @@ async def reminder_worker(bot, session_maker):
                 should_send = False
 
                 if q.remind_count == 0:
-                    if now - q.created_at >= timedelta(minutes=10):
+                    if now - q.created_at >= timedelta(hours=12):
                         should_send = True
 
                 elif q.remind_count == 1:
-                    if q.last_reminded and now - q.last_reminded >= timedelta(minutes=30):
+                    if q.last_reminded and now - q.last_reminded >= timedelta(hours=72):
                         should_send = True
 
                 if not should_send:
