@@ -6,6 +6,8 @@ from database.session import AsyncSessionLocal
 from database.models import OrderLink
 from database.utils import normalize_text
 import os
+import re
+
 # 🔥 KENGAYTIRILGAN MAPPING
 COLUMN_MAP = {
     # Qabul
@@ -22,11 +24,7 @@ COLUMN_MAP = {
     "oqishni tiklash": "o‘qishini tiklashga",
     "o‘qish tiklash": "o‘qish tiklash",
 
-    # Kurs
-    "kurs": "kursdan-kursga o‘tkazish",
-    "kursdan kursga": "kursdan-kursga ko'chirish",
-    "qayta o‘qish": "qayta o‘qish uchun kursda qoldirilgan",
-    "qayta kurs": "qayta o‘qish uchun kursdan-kursga qoldirish",
+    # ❌ KURS BLOK O‘CHIRILDI
 
     # Ta'lim shakli
     "sirtqi": "sirtqi ta’lim shakliga o‘tkazish",
@@ -50,24 +48,47 @@ COLUMN_MAP = {
     "diplom": "diplom berish"
 }
 
+# 🔥 KURSNI AJRATISH
+def extract_course_transition(text: str):
+    if not text:
+        return None
+
+    text = text.lower()
+
+    match = re.search(r'(\d)\s*[-]?\s*kursdan.*?(\d)\s*[-]?\s*kursga', text)
+
+    if match:
+        return int(match.group(1)), int(match.group(2))
+
+    return None
+
+
+# 🔥 USTUN NOMI
+def get_course_column(from_kurs, to_kurs):
+    return f"kurs_{from_kurs}_{to_kurs}"
+
+
+# 🔥 FIO SPLIT
 def split_name(name):
     if not name:
         return "", ""
 
     parts = name.strip().split()
 
-    if len(parts) == 0:
-        return "", ""
+    if len(parts) >= 2:
+        return parts[0], parts[1]
     elif len(parts) == 1:
         return parts[0], ""
-    else:
-        return parts[0], parts[1]
 
+    return "", ""
+
+
+# 🔥 EXCEL LINK
 def make_hyperlink(link, text):
-    # Excel formula (ENG TO‘G‘RI USUL)
     return f'=HYPERLINK("{link}", "{text}")'
 
 
+# 🔥 ASOSIY FUNKSIYA
 async def fill_excel():
     file_path = "files/Talabalar 21.04.2026.xlsx"
     output_path = "files/output_filled.xlsx"
@@ -87,13 +108,14 @@ async def fill_excel():
 
     print("FIO ustuni:", FIO_COLUMN)
 
+    # 🔥 DB dan olish
     async with AsyncSessionLocal() as session:
         result = await session.execute(select(OrderLink))
         orders = result.scalars().all()
 
     print(f"DB orders: {len(orders)}")
 
-    # 🔥 FAST INDEX (familiya → ism → orders)
+    # 🔥 FAST INDEX
     db_map = {}
 
     for order in orders:
@@ -111,12 +133,12 @@ async def fill_excel():
 
             db_map[last][first].append(order)
 
-    # 🔥 COLUMN MAP normalize
+    # 🔥 COLUMN MAP
     normalized_column_map = {
         normalize_text(k): v for k, v in COLUMN_MAP.items()
     }
 
-    # 🔥 Excel bo‘yicha yuramiz
+    # 🔥 EXCEL BO‘YICHA
     for i, row in df.iterrows():
 
         fio = str(row[FIO_COLUMN]).strip()
@@ -124,7 +146,6 @@ async def fill_excel():
 
         fio_last, fio_first = split_name(key)
 
-        # ⚡ O(1) lookup
         student_orders = db_map.get(fio_last, {}).get(fio_first, [])
 
         if not student_orders:
@@ -133,8 +154,28 @@ async def fill_excel():
         latest_map = {}
 
         for order in student_orders:
-            order_type = normalize_text(order.type or "")
 
+            order_type_raw = order.type or ""
+            order_type = normalize_text(order_type_raw)
+
+            # 🔥 1. KURS MAPPING (USTUVOR)
+            kurs = (
+                    extract_course_transition(order.type or "")
+                    or extract_course_transition(order.title or "")
+            )
+
+            if kurs:
+                col = get_course_column(*kurs)
+
+                if col in df.columns:
+                    latest_map.setdefault(
+                        col,
+                        make_hyperlink(order.link, order.title)
+                    )
+
+                continue  # 🔥 MUHIM
+
+            # 🔥 2. ODDIY MAPPING
             for k, col in normalized_column_map.items():
                 if k in order_type:
                     latest_map.setdefault(
@@ -142,7 +183,7 @@ async def fill_excel():
                         make_hyperlink(order.link, order.title)
                     )
 
-        # 🔥 Excelga yozish
+        # 🔥 EXCELGA YOZISH
         for col, val in latest_map.items():
             df.at[i, col] = val
 
