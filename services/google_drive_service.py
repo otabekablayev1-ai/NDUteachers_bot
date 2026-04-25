@@ -41,14 +41,24 @@ def read_pdf_from_drive(link: str):
 def get_all_files():
     service = get_drive_service()
 
-    results = service.files().list(
-        pageSize=1000,
-        fields="files(id, name, mimeType)"
-    ).execute()
+    all_files = []
+    page_token = None
 
-    files = results.get("files", [])
+    while True:
+        results = service.files().list(
+            pageSize=1000,
+            fields="nextPageToken, files(id, name, mimeType)",
+            q="mimeType='application/pdf'",
+            pageToken=page_token
+        ).execute()
 
-    # 🔥 faqat PDF
-    pdf_files = [f for f in files if f["mimeType"] == "application/pdf"]
+        files = results.get("files", [])
+        all_files.extend(files)
 
-    return pdf_files
+        page_token = results.get("nextPageToken")
+
+        if not page_token:
+            break
+
+    return all_files
+

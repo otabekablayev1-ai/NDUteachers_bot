@@ -1,25 +1,35 @@
 import asyncio
 import json
-
+import os
 from sqlalchemy import select
 from database.session import AsyncSessionLocal
 from database.models import OrderLink
 from database.utils import normalize_text
-
+from services.ai_service import parse_image_with_ai, clean_ai_json
+from utils.pdf_to_images import pdf_to_images
+from services.google_drive import download_file
 from services.google_drive_service import get_all_files, read_pdf_from_drive
 from services.ai_service import parse_order
+import os
+import glob
 
+# 🔥 startda temp fayllarni tozalaymiz
+for f in glob.glob("temp_*"):
+    try:
+        os.remove(f)
+    except:
+        pass
 
 async def run_indexer():
     files = get_all_files()
     print(f"Drive dan topilgan fayllar soni: {len(files)}")
 
-    async with AsyncSessionLocal() as session:
-        for file in files:
+    for file in files:
+        async with AsyncSessionLocal() as session:
             try:
                 file_id = file["id"]
 
-                # 🔍 oldin DBda bormi tekshiramiz
+                # 🔍 DB da bormi tekshiramiz
                 existing = await session.execute(
                     select(OrderLink).where(OrderLink.file_id == file_id)
                 )
@@ -28,18 +38,49 @@ async def run_indexer():
                     continue
 
                 print(f"\n🆕 Yangi fayl: {file['name']}")
-
                 link = f"https://drive.google.com/file/d/{file_id}/view"
 
-                # 🔥 PDF o‘qish (xatoni ushlaymiz)
+                text = ""
+
+                # 🔥 PDF o‘qish
                 try:
                     text = read_pdf_from_drive(link)
+
+                    # 🔥 AGAR TEXT BO‘SH BO‘LSA → VISION
+                    if not text:
+                        print("🖼 Rasm PDF, Vision ishlatyapmiz...")
+
+                        local_path = f"temp_{file_id}.pdf"
+                        download_file(file_id, local_path)
+
+                        images = pdf_to_images(local_path)
+                        all_text = ""
+
+                        try:
+                            for i, img in enumerate(images):
+                                img_path = f"temp_{file_id}_{i}.png"
+                                img.save(img_path)
+
+                                print(f"📸 Image {i + 1} AI ga yuborildi")
+
+                                try:
+                                    ai_result = parse_image_with_ai(img_path)
+                                    ai_result = clean_ai_json(ai_result)
+                                    all_text += ai_result
+                                finally:
+                                    # 🔥 PNG har doim o‘chadi
+                                    if os.path.exists(img_path):
+                                        os.remove(img_path)
+
+                            text = all_text
+
+                        finally:
+                            # 🔥 PDF har doim o‘chadi
+                            if os.path.exists(local_path):
+                                os.remove(local_path)
+
                 except Exception as e:
                     print(f"❌ PDF o‘qishda xato: {e}")
-                    continue
-
-                if not text:
-                    print("❌ PDF text bo‘sh")
                     continue
 
                 print(f"📄 PDF uzunligi: {len(text)}")
@@ -47,9 +88,7 @@ async def run_indexer():
                 # 🤖 AI analiz
                 ai_result = parse_order(text)
 
-                # 🔥 FIX: ```json ni tozalash
                 ai_result = ai_result.strip()
-
                 if ai_result.startswith("```"):
                     ai_result = ai_result.replace("```json", "").replace("```", "").strip()
 
@@ -103,6 +142,7 @@ async def run_indexer():
 
             except Exception as e:
                 print(f"💥 Katta xato: {e}")
+                await session.rollback()
                 continue
 
     print("\n✅ Index tugadi")

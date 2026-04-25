@@ -1,6 +1,6 @@
-import os
+
 import io
-import json
+
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from PyPDF2 import PdfReader
@@ -8,14 +8,10 @@ from PyPDF2 import PdfReader
 # 🔐 ENV dan credentials olish
 SCOPES = ["https://www.googleapis.com/auth/drive.readonly"]
 
-creds_dict = json.loads(os.getenv("GOOGLE_CREDENTIALS"))
-
-creds = service_account.Credentials.from_service_account_info(
-    creds_dict,
+creds = service_account.Credentials.from_service_account_file(
+    "ndu-ai-bot-26071a4302e6.json",
     scopes=SCOPES
 )
-
-# 📦 Google Drive service
 drive_service = build("drive", "v3", credentials=creds)
 
 
@@ -51,3 +47,14 @@ def read_pdf(file):
     except Exception as e:
         print("READ PDF ERROR:", e)
         return None
+
+import requests
+
+def download_file(file_id, save_path):
+    url = f"https://drive.google.com/uc?export=download&id={file_id}"
+    r = requests.get(url)
+
+    with open(save_path, "wb") as f:
+        f.write(r.content)
+
+    return save_path

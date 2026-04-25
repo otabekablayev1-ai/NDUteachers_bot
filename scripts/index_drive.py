@@ -103,8 +103,6 @@ def save_to_orders(file_id, link, text):
 # ==============================
 # 🚀 MAIN LOGIC
 # ==============================
-
-
 def run():
     links = get_links_from_db()
 

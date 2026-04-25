@@ -1,3 +1,4 @@
+#export_students_excel.py
 import pandas as pd
 import asyncio
 from sqlalchemy import select
@@ -74,7 +75,7 @@ async def fill_excel():
     df = pd.read_excel(file_path)
     df = df.astype(str)
 
-    # 🔥 FIO ustunni avtomatik topish
+    # 🔍 FIO ustunni topish
     FIO_COLUMN = None
     for col in df.columns:
         if "fio" in col.lower() or "ism" in col.lower():
@@ -90,61 +91,62 @@ async def fill_excel():
         result = await session.execute(select(OrderLink))
         orders = result.scalars().all()
 
-        print(f"DB orders: {len(orders)}")
+    print(f"DB orders: {len(orders)}")
 
-        db_map = {}
+    # 🔥 FAST INDEX (familiya → ism → orders)
+    db_map = {}
 
-        # 🔥 DB ni mapga aylantiramiz
-        for order in orders:
-            students = (order.students_raw or "").split(",")
+    for order in orders:
+        students = (order.students_raw or "").split(",")
 
-            for s in students:
-                key = normalize_text(s)
+        for s in students:
+            key = normalize_text(s)
+            last, first = split_name(key)
 
-                if key not in db_map:
-                    db_map[key] = []
+            if last not in db_map:
+                db_map[last] = {}
 
-                db_map[key].append(order)
+            if first not in db_map[last]:
+                db_map[last][first] = []
 
-        # 🔥 Excel bo‘yicha yuramiz
-        for i, row in df.iterrows():
+            db_map[last][first].append(order)
 
-            fio = str(row[FIO_COLUMN]).strip()
-            key = normalize_text(fio)
+    # 🔥 COLUMN MAP normalize
+    normalized_column_map = {
+        normalize_text(k): v for k, v in COLUMN_MAP.items()
+    }
 
-            fio_last, fio_first = split_name(key)
+    # 🔥 Excel bo‘yicha yuramiz
+    for i, row in df.iterrows():
 
-            student_orders = []
+        fio = str(row[FIO_COLUMN]).strip()
+        key = normalize_text(fio)
 
-            # 🔥 TO‘G‘RI MATCH (familiya + ism)
-            for db_key, orders_list in db_map.items():
-                db_last, db_first = split_name(db_key)
+        fio_last, fio_first = split_name(key)
 
-                if fio_last == db_last and fio_first == db_first:
-                    student_orders.extend(orders_list)
+        # ⚡ O(1) lookup
+        student_orders = db_map.get(fio_last, {}).get(fio_first, [])
 
-            if not student_orders:
-                continue
+        if not student_orders:
+            continue
 
-            latest_map = {}
+        latest_map = {}
 
-            # 🔥 ustunlarga ajratamiz
-            for order in student_orders:
-                order_type = normalize_text(order.type or "")
+        for order in student_orders:
+            order_type = normalize_text(order.type or "")
 
-                for k, col in COLUMN_MAP.items():
-                    if normalize_text(k) in order_type:
+            for k, col in normalized_column_map.items():
+                if k in order_type:
+                    latest_map.setdefault(
+                        col,
+                        make_hyperlink(order.link, order.title)
+                    )
 
-                        latest_map[col] = make_hyperlink(
-                            order.link,
-                            order.title
-                        )
+        # 🔥 Excelga yozish
+        for col, val in latest_map.items():
+            df.at[i, col] = val
 
-            # 🔥 Excelga yozamiz
-            for col, val in latest_map.items():
-                df.at[i, col] = val
-
-    # 🔥 agar fayl ochiq bo‘lsa error bermasin
+    # 🔥 eski faylni o‘chirish
     if os.path.exists(output_path):
         try:
             os.remove(output_path)
@@ -157,7 +159,5 @@ async def fill_excel():
     print("✅ FINAL Excel tayyor!")
 
 
-if __name__ == "__main__":
-    asyncio.run(fill_excel())
 if __name__ == "__main__":
     asyncio.run(fill_excel())
