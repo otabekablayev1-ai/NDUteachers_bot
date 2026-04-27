@@ -307,19 +307,35 @@ async def get_unanswered_questions(session):
 
     return result.scalars().all()
 
+import re
+
+import re
+
 def normalize_text(text: str):
     if not text:
         return ""
 
-    text = text.lower()
+    text = text.lower().strip()
 
-    # barcha apostroflarni bir xil qilish
-    text = text.replace("‘", "'").replace("`", "'").replace("ʼ", "'")
+    # 🔥 barcha apostroflarni bir xil qilish
+    text = text.replace("‘", "'").replace("`", "'").replace("ʼ", "'").replace("ʻ", "'")
 
-    # o‘ -> o, g‘ -> g
-    text = text.replace("o'", "o").replace("g'", "g")
+    # 🔥 O variatsiyalari
+    text = text.replace("o'", "o")
+    text = text.replace("o‘", "o")
+    text = text.replace("oʻ", "o")
+    text = text.replace("ў", "o")
 
-    # ortiqcha belgilarni olib tashlash
+    # 🔥 G variatsiyalari
+    text = text.replace("g'", "g")
+    text = text.replace("g‘", "g")
+    text = text.replace("gʻ", "g")
+    text = text.replace("ғ", "g")
+
+    # 🔥 boshqa apostroflarni olib tashlash
+    text = text.replace("'", "")
+
+    # 🔥 ortiqcha belgilarni olib tashlash
     text = re.sub(r"[^a-z0-9\s]", "", text)
 
-    return text.strip()
+    return re.sub(r"\s+", " ", text).strip()
