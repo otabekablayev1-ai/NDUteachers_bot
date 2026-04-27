@@ -36,35 +36,64 @@ def clean_ai_json(ai_result: str) -> str:
     return ai_result
 
 # 🔥 BIR CHUNK UCHUN AI
-def parse_chunk(text_chunk: str) -> list:
+def parse_chunk(chunk: str):
     prompt = f"""
-Extract ALL students from this text.
+    You are an expert at extracting structured data from university orders.
 
-IMPORTANT RULES:
-- Do NOT skip any student
-- Do NOT summarize
-- Do NOT shorten the list
-- Return ALL students found in the text
-- Output ONLY JSON
+    Extract ALL students from the text.
 
-Format:
-{{
-  "students": [
+    Return ONLY valid JSON in this format:
+
     {{
-      "full_name": "...",
-      "order_type": "...",
-      "order_number": "...",
-      "order_date": "..."
+      "students": [
+        {{
+          "full_name": "string",
+          "order_type": "string",
+          "order_number": "string",
+          "order_date": "YYYY-MM-DD",
+          "course_from": number or null,
+          "course_to": number or null
+        }}
+      ]
     }}
-  ]
-}}
 
-TEXT:
-{text_chunk}
-"""
+    IMPORTANT RULES:
+
+    1. Extract FULL NAME exactly.
+    2. Detect order_type (qabul, kursdan-kursga, tiklash, ko'chirish, etc).
+    3. Extract order_number and order_date if exists.
+
+    4. 🔥 COURSE EXTRACTION (VERY IMPORTANT):
+
+    - Extract course transition ONLY if explicitly written.
+    - DO NOT GUESS.
+
+    Examples:
+    "1-kursdan 2-kursga" → course_from=1, course_to=2  
+    "2 kursdan 3 kursga" → course_from=2, course_to=3  
+    "3-kursdan 4-kursga o'tkazish" → course_from=3, course_to=4  
+
+    - If multiple numbers exist, IGNORE:
+      ❌ order number
+      ❌ dates
+      ❌ document numbers
+
+    - ONLY extract numbers near "kurs"
+
+    - If not clearly found:
+      → course_from = null
+      → course_to = null
+
+    5. Return ONLY JSON. No explanation.
+
+    TEXT:
+    \"\"\"
+    {chunk}
+    \"\"\"
+    """
     try:
         response = client.chat.completions.create(
-            model="gpt-4.1-mini",
+            model="gpt-4.1",
             messages=[{"role": "user", "content": prompt}],
             temperature=0,
             max_tokens=4000,
@@ -92,7 +121,12 @@ TEXT:
 
 # 🔥 ASOSIY FUNKSIYA
 def parse_order(text: str) -> str:
-    chunks = split_text(text)
+
+    # 🔥 SMART CHUNK (SHU YERGA)
+    if len(text) < 8000:
+        chunks = [text]
+    else:
+        chunks = split_text(text, 12000)
 
     print(f"🔪 {len(chunks)} ta chunkga bo‘lindi")
 
@@ -107,7 +141,7 @@ def parse_order(text: str) -> str:
 
         all_students.extend(students)
 
-    # 🔥 DUPLICATE OLIB TASHLASH
+    # duplicate remove
     unique = {}
     for s in all_students:
         name = (s.get("full_name") or "").strip().lower()
@@ -148,18 +182,30 @@ Format:
 }
 """
 
-    response = client.responses.create(
-        model="gpt-4.1",
-        input=[{
+    vision_input = [
+        {
             "role": "user",
             "content": [
                 {"type": "input_text", "text": prompt},
                 {
                     "type": "input_image",
-                    "image_url": f"data:image/png;base64,{image_base64}"
-                }
-            ]
-        }]
+                    "image_url": f"data:image/png;base64,{image_base64}",
+                },
+            ],
+        }
+    ]
+
+    response = client.responses.create(
+        model="gpt-4.1",
+        input=vision_input,  # type: ignore[arg-type]
     )
 
-    return response.output_text
+    # 🔥 STABLE RETURN
+    if hasattr(response, "output_text") and response.output_text:
+        return response.output_text
+
+    # 🔥 fallback
+    try:
+        return response.output[0].content[0].text
+    except (AttributeError, IndexError, KeyError):
+        return ""

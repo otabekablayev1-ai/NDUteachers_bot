@@ -1,4 +1,5 @@
 import io
+import re
 from PyPDF2 import PdfReader
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
@@ -14,10 +15,10 @@ def get_drive_service():
     return build('drive', 'v3', credentials=creds)
 
 def extract_file_id(link: str):
-    try:
-        return link.split("/d/")[1].split("/")[0]
-    except:
-        return None
+    match = re.search(r"/d/([a-zA-Z0-9_-]+)", link)
+    if match:
+        return match.group(1)
+    return None
 
 
 def read_pdf_from_drive(link: str):

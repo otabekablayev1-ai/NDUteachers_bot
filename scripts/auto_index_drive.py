@@ -10,8 +10,10 @@ from utils.pdf_to_images import pdf_to_images
 from services.google_drive import download_file
 from services.google_drive_service import get_all_files, read_pdf_from_drive
 from services.ai_service import parse_order
-import os
 import glob
+import re   # 👈 shu ham bo‘lishi kerak
+from utils.json_utils import safe_json_load
+# 🔥 SHU YERGA QO‘SHASIZ
 
 # 🔥 startda temp fayllarni tozalaymiz
 for f in glob.glob("temp_*"):
@@ -34,8 +36,21 @@ async def run_indexer():
                     select(OrderLink).where(OrderLink.file_id == file_id)
                 )
 
-                if existing.scalar():
-                    continue
+                existing_obj = existing.scalar()
+
+                # 🔥 SAFE MODE LOGIC
+                if existing_obj:
+                    order_type = (existing_obj.type or "").lower()
+
+                    # agar kursga oid bo'lmasa → skip
+                    if "kurs" not in order_type and "kursdan-kursga" not in order_type:
+                        continue
+
+                    # agar kurs bor va allaqachon parse qilingan bo‘lsa → skip
+                    if existing_obj.course_from is not None:
+                        continue
+
+                    print("♻️ Qayta ishlayapmiz (kurs yetishmaydi)")
 
                 print(f"\n🆕 Yangi fayl: {file['name']}")
                 link = f"https://drive.google.com/file/d/{file_id}/view"
@@ -46,9 +61,13 @@ async def run_indexer():
                 try:
                     text = read_pdf_from_drive(link)
 
-                    # 🔥 AGAR TEXT BO‘SH BO‘LSA → VISION
-                    if not text:
+                    # 🔥 SMART FILTER
+                    if text and len(text.strip()) > 1000:
+                        print("📄 Oddiy PDF, text ishlatyapmiz")
+                    else:
                         print("🖼 Rasm PDF, Vision ishlatyapmiz...")
+
+                        # Vision block
 
                         local_path = f"temp_{file_id}.pdf"
                         download_file(file_id, local_path)
@@ -93,7 +112,7 @@ async def run_indexer():
                     ai_result = ai_result.replace("```json", "").replace("```", "").strip()
 
                 try:
-                    data = json.loads(ai_result)
+                    data = safe_json_load(ai_result)
                 except Exception as e:
                     print("❌ AI parse xato:", e)
                     print("AI RESULT:", ai_result)
@@ -111,6 +130,9 @@ async def run_indexer():
                 order_number = None
                 order_date = None
 
+                course_from = None
+                course_to = None
+
                 for student in students:
                     name = (student.get("full_name") or "").strip()
                     if name:
@@ -118,26 +140,51 @@ async def run_indexer():
 
                     if not order_type:
                         order_type = student.get("order_type")
+
                     if not order_number:
                         order_number = student.get("order_number")
+
                     if not order_date:
                         order_date = student.get("order_date")
+
+                    if not course_from:
+                        course_from = student.get("course_from")
+
+                    if not course_to:
+                        course_to = student.get("course_to")
 
                 students_raw = ", ".join(full_names)
                 students_search = normalize_text(students_raw)
 
-                new_order = OrderLink(
-                    title=file["name"],
-                    link=link,
-                    file_id=file_id,
-                    type=order_type,
-                    students_raw=students_raw,
-                    students_search=students_search,
-                )
+                # 🔥 ENG MUHIM QISM (UPDATE vs INSERT)
+                if existing_obj:
+                    # 🔄 FAQAT KURSNI YANGILAYMIZ (SAFE)
+                    if existing_obj.course_from is None and course_from is not None:
+                        existing_obj.course_from = course_from
+                        existing_obj.course_to = course_to
 
-                session.add(new_order)
+                        print("🔄 Kurs yangilandi (UPDATE)")
+
+                    else:
+                        print("⏭ O‘tkazildi (kurs allaqachon bor)")
+
+                else:
+                    # 🆕 YANGI YOZUV
+                    new_order = OrderLink(
+                        title=file["name"],
+                        link=link,
+                        file_id=file_id,
+                        type=order_type,
+                        students_raw=students_raw,
+                        students_search=students_search,
+                        course_from=course_from,
+                        course_to=course_to,
+                    )
+
+                    session.add(new_order)
+                    print("🆕 Yangi yozildi (INSERT)")
+
                 await session.commit()
-
                 print(f"✅ Saqlandi: {file['name']}")
 
             except Exception as e:

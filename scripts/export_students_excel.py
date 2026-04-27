@@ -108,7 +108,6 @@ async def fill_excel():
 
     print("FIO ustuni:", FIO_COLUMN)
 
-    # 🔥 DB dan olish
     async with AsyncSessionLocal() as session:
         result = await session.execute(select(OrderLink))
         orders = result.scalars().all()
@@ -125,20 +124,9 @@ async def fill_excel():
             key = normalize_text(s)
             last, first = split_name(key)
 
-            if last not in db_map:
-                db_map[last] = {}
+            db_map.setdefault(last, {}).setdefault(first, []).append(order)
 
-            if first not in db_map[last]:
-                db_map[last][first] = []
-
-            db_map[last][first].append(order)
-
-    # 🔥 COLUMN MAP
-    normalized_column_map = {
-        normalize_text(k): v for k, v in COLUMN_MAP.items()
-    }
-
-    # 🔥 EXCEL BO‘YICHA
+    # 🔥 Excel bo‘yicha yuramiz
     for i, row in df.iterrows():
 
         fio = str(row[FIO_COLUMN]).strip()
@@ -155,35 +143,24 @@ async def fill_excel():
 
         for order in student_orders:
 
-            order_type_raw = order.type or ""
-            order_type = normalize_text(order_type_raw)
+            # 🔥 1. KURS MAPPING (ENG MUHIM)
+            # 🔥 KURS FILTER (ENG MUHIM FIX)
+            if (
+                    order.course_from
+                    and order.course_to
+                    and 1 <= order.course_from <= 5
+                    and 1 <= order.course_to <= 5
+                    and order.course_to == order.course_from + 1
+            ):
+                col_name = f"kurs_{order.course_from}_{order.course_to}"
 
-            # 🔥 1. KURS MAPPING (USTUVOR)
-            kurs = (
-                    extract_course_transition(order.type or "")
-                    or extract_course_transition(order.title or "")
-            )
-
-            if kurs:
-                col = get_course_column(*kurs)
-
-                if col in df.columns:
-                    latest_map.setdefault(
-                        col,
-                        make_hyperlink(order.link, order.title)
+                if col_name in df.columns:
+                    latest_map[col_name] = make_hyperlink(
+                        order.link,
+                        order.title
                     )
 
-                continue  # 🔥 MUHIM
-
-            # 🔥 2. ODDIY MAPPING
-            for k, col in normalized_column_map.items():
-                if k in order_type:
-                    latest_map.setdefault(
-                        col,
-                        make_hyperlink(order.link, order.title)
-                    )
-
-        # 🔥 EXCELGA YOZISH
+        # 🔥 Excelga yozish
         for col, val in latest_map.items():
             df.at[i, col] = val
 
@@ -198,7 +175,6 @@ async def fill_excel():
     df.to_excel(output_path, index=False, engine="openpyxl")
 
     print("✅ FINAL Excel tayyor!")
-
 
 if __name__ == "__main__":
     asyncio.run(fill_excel())

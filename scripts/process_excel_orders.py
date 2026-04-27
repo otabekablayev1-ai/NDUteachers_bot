@@ -1,12 +1,11 @@
 import pandas as pd
-import json
-
+from utils.json_utils import safe_json_load
 from services.google_drive_service import read_pdf_from_drive
 from services.ai_service import parse_order
 from database.db import get_all_order_links
 
 
-def process_excel():
+async def process_excel():
     # 📥 Excel yuklash
     df = pd.read_excel("input.xlsx")
 
@@ -26,10 +25,10 @@ def process_excel():
         if not text:
             continue
 
-        ai_result = parse_order(text)
+        ai_result = await parse_order(text)
 
         try:
-            data = json.loads(ai_result)
+            data = safe_json_load(ai_result)
             all_data.extend(data.get("students", []))
         except Exception as e:
             print("AI parse error:", e)

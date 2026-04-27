@@ -164,6 +164,9 @@ class OrderLink(Base):
     # ❗ MUHIM
     students_raw = Column(Text)       # foydalanuvchi yozgani
     students_search = Column(Text)    # normalize qilingan
+    # 🔥 YANGI QATORLAR (SHU YERGA)
+    course_from = Column(Integer, nullable=True)
+    course_to = Column(Integer, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
 

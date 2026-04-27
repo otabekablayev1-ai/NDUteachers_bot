@@ -1,19 +1,18 @@
 # handlers/utils.py
 
-import os
-
+from database.models import Student, Teacher, Manager
+import re
 from .models import Question  # yoki sizda qayerda bo‘lsa
 from io import BytesIO
 from data.config import RAHBARLAR, MANAGERS_BY_FACULTY
-from database.db import get_student, get_teacher
+from database.db import get_teacher
 from openpyxl import Workbook
-from loguru import logger
 from datetime import datetime, timedelta, timezone
-from sqlalchemy import select, func
+from sqlalchemy import select
 from database.db import AsyncSessionLocal
 from database.models import UserActivity
-from database.models import User
 from collections import defaultdict
+
 
 async def send_long_message(message, text, chunk=4000):
     for i in range(0, len(text), chunk):
@@ -200,8 +199,6 @@ async def export_activity_excel():
 
 UTC = timezone.utc
 
-from datetime import datetime, timedelta
-
 async def get_users_for_notification(hours=12):
     async with AsyncSessionLocal() as session:
         result = await session.execute(select(UserActivity))
@@ -278,8 +275,6 @@ async def send_daily_notifications(bot):
 
         await session.commit()
 
-from database.models import Student, Teacher, Manager
-from sqlalchemy import select
 
 async def get_all_users():
     async with AsyncSessionLocal() as session:
@@ -301,7 +296,7 @@ async def get_all_users():
 
 
 async def get_unanswered_questions(session):
-    time_limit = datetime.utcnow() - timedelta(minutes=10)
+    time_limit = datetime.now(timezone.utc)
 
     result = await session.execute(
         select(Question).where(
@@ -311,8 +306,6 @@ async def get_unanswered_questions(session):
     )
 
     return result.scalars().all()
-
-import re
 
 def normalize_text(text: str):
     if not text:
