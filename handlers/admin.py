@@ -1,11 +1,8 @@
-from aiogram import Router, types,  F
+from aiogram import types,  F
 from aiogram.types import CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from database.db import reject_request
-from loader import dp
-from ai.agent import run_agent
-from services.tools_executor import execute_tool
-from database.models import Teacher, Student
-from aiogram.types import Message, BufferedInputFile
+from database.models import Student
+from aiogram.types import BufferedInputFile
 from aiogram import Router
 
 from database.utils import generate_excel
@@ -49,12 +46,12 @@ async def admin_menu(message: Message):
         keyboard=[
             [KeyboardButton(text="📥 Ro‘yxat so‘rovlari")],
             [KeyboardButton(text="📊 Statistika"), KeyboardButton(text="🏆 Menejerlar reytingi")],
-            [KeyboardButton(text="📝 Savol–Javoblar (Excel)")],
-            [KeyboardButton(text="🔍 Qidirish"), KeyboardButton(text="❌ Foydalanuvchini o‘chirish")],
-            [KeyboardButton(text="📂 Backup (DB)")],
-            [KeyboardButton(text="⬅️ Chiqish")],
+            #[KeyboardButton(text="📝 Savol–Javoblar (Excel)")],
+            #[KeyboardButton(text="🔍 Qidirish"), KeyboardButton(text="❌ Foydalanuvchini o‘chirish")],
+            #[KeyboardButton(text="📂 Backup (DB)")],
+            #[KeyboardButton(text="⬅️ Chiqish")],
         ],
-        resize_keyboard=True
+        #resize_keyboard=True
 
     await message.answer(
         "🔐 <b>Admin panel</b>:\nKerakli bo‘limni tanlang ⤵️",
@@ -349,29 +346,3 @@ async def ai_mode(message: Message, state: FSMContext):
         "Masalan: Aliyev Azamat buyruqlarini top\n\n"
     )
 
-@router.message(AIState.waiting_for_query)
-async def ai_handler(message: Message, state: FSMContext):
-    try:
-        result = await run_agent(message.text)
-
-        # ❗ agar AI tool chaqirmasa
-        if not result.get("tool"):
-            await message.answer("❌ Hech narsa topilmadi")
-            return
-
-        data = await execute_tool(result["tool"], result["args"])
-
-        # ❗ agar DB bo‘sh qaytsa
-        if not data:
-            await message.answer("❌ Natija topilmadi")
-            return
-
-        text = "📘 Topilgan buyruqlar:\n\n"
-
-        for item in data:
-            text += f"📄 {item['name']}\n🔗 {item['link']}\n\n"
-
-        await message.answer(text)
-
-    except Exception as e:
-        await message.answer(f"❌ Xatolik: {e}")

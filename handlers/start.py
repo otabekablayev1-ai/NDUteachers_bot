@@ -24,7 +24,6 @@ async def start_handler(message: Message, state: FSMContext):   # 👈 state qo�
     if user_id in ADMINS:
         kb = ReplyKeyboardMarkup(
             keyboard=[
-                [KeyboardButton(text="🧠 BilgichYechim")],
                 [KeyboardButton(text="📥 Ro‘yxat so‘rovlari")],
                 [KeyboardButton(text="🏆 Menejerlar reytingi")],
                 [KeyboardButton(text="📊 Statistika")],
