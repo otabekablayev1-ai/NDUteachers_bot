@@ -194,8 +194,8 @@ async def filter_search(call: CallbackQuery, state: FSMContext):
     text = "📋 <b>Natijalar:</b>\n\n"
 
     for row in rows:
-        link = row.get("link") or "#"
-        title = row.get("name") or "Noma’lum"
+        link = row.link or "#"
+        title = row.title or f"Buyruq #{row.id}"
 
         text += f"👉 <a href=\"{link}\">{html.escape(title)}</a>\n"
 
