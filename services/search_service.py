@@ -67,31 +67,11 @@ async def search_orders_multi(
 
         if fio:
             search_text = normalize_text(fio)
-            parts = search_text.split()
+            stmt = stmt.where(
+                OrderLink.students_search.ilike(f"%{search_text}%")
+            )
 
-            conditions = []
+        stmt = stmt.order_by(OrderLink.created_at.desc())
 
-            for p in parts:
-                if len(p) >= 3:
-                    conditions.append(
-                        OrderLink.students_search.ilike(f"%{p}%")
-                    )
-
-            stmt = stmt.where(or_(*conditions))
-            
         result = await session.execute(stmt)
-        rows = result.all()
-
-        return [
-            {
-                "id": row[0],
-                "name": row[1] or f"Buyruq #{row[0]}",
-                "link": row[2],
-                "faculty": row[3],
-                "type": row[4],
-                "students_raw": row[5],
-                "students_search": row[6],
-                "created_at": row[7],
-            }
-            for row in rows
-        ]
+        return result.all()
