@@ -48,7 +48,16 @@ async def search_orders_multi(
     fio: str | None = None,
 ):
     async with AsyncSessionLocal() as session:
-        stmt = select(OrderLink)
+        stmt = select(
+            OrderLink.id,
+            OrderLink.title,
+            OrderLink.link,
+            OrderLink.faculty,
+            OrderLink.type,
+            OrderLink.students_raw,
+            OrderLink.students_search,
+            OrderLink.created_at,
+        )
 
         if faculty:
             stmt = stmt.where(OrderLink.faculty == faculty)
@@ -58,26 +67,31 @@ async def search_orders_multi(
 
         if fio:
             search_text = normalize_text(fio)
-            parts = [p for p in search_text.split() if len(p) >= 3]
+            parts = search_text.split()
 
-            stmt = stmt.where(
-                or_(*[
-                    OrderLink.students_search.ilike(f"%{p}%")
-                    for p in parts
-                ])
-            )
+            conditions = []
 
+            for p in parts:
+                if len(p) >= 3:
+                    conditions.append(
+                        OrderLink.students_search.ilike(f"%{p}%")
+                    )
+
+            stmt = stmt.where(or_(*conditions))
+            
         result = await session.execute(stmt)
-        rows = result.scalars().all()
+        rows = result.all()
 
-        # 🔥 Python tarafda filter qilamiz
-        filtered = []
-
-        for row in rows:
-            text = row.students_search or ""
-            count = sum(1 for p in parts if p in text)
-
-            if count >= max(2, len(parts) - 1):  # kamida 2 yoki deyarli hammasi
-                filtered.append(row)
-
-        rows = filtered
+        return [
+            {
+                "id": row[0],
+                "name": row[1] or f"Buyruq #{row[0]}",
+                "link": row[2],
+                "faculty": row[3],
+                "type": row[4],
+                "students_raw": row[5],
+                "students_search": row[6],
+                "created_at": row[7],
+            }
+            for row in rows
+        ]
