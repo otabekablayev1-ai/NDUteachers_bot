@@ -19,7 +19,7 @@ from database.db import (
     get_all_order_links,
 )
 from services.search_service import search_orders_multi
-
+from database.utils import normalize_text
 router = Router()
 
 # ==========================

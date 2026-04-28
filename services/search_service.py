@@ -69,11 +69,19 @@ async def search_orders_multi(
             search_text = normalize_text(fio)
             parts = search_text.split()
 
+            print("USER:", fio)
+            print("NORMALIZED:", search_text)
+
+            # 🔥 DB dan bitta sample ko‘ramiz
+            test = await session.execute(select(OrderLink.students_search).limit(3))
+            print("DB SAMPLE:")
+            for row in test:
+                print(row[0])
+
             for p in parts:
-                if len(p) >= 2:  # juda qisqa so‘zlarni skip
-                    stmt = stmt.where(
-                        OrderLink.students_search.ilike(f"%{p}%")
-                    )
+                stmt = stmt.where(
+                    OrderLink.students_search.ilike(f"%{p}%")
+                )
 
         stmt = stmt.order_by(OrderLink.created_at.desc())
 
