@@ -309,8 +309,6 @@ async def get_unanswered_questions(session):
 
 import re
 
-import re
-
 def normalize_text(text: str):
     if not text:
         return ""
@@ -339,3 +337,5 @@ def normalize_text(text: str):
     text = re.sub(r"[^a-z0-9\s]", "", text)
 
     return re.sub(r"\s+", " ", text).strip()
+
+

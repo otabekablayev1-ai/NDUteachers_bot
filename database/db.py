@@ -1286,4 +1286,3 @@ async def get_question_by_id(q_id: int):
         )
         return result.scalar_one_or_none()
 
-

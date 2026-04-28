@@ -67,9 +67,13 @@ async def search_orders_multi(
 
         if fio:
             search_text = normalize_text(fio)
-            stmt = stmt.where(
-                OrderLink.students_search.ilike(f"%{search_text}%")
-            )
+            parts = search_text.split()
+
+            for p in parts:
+                if len(p) >= 2:  # juda qisqa so‘zlarni skip
+                    stmt = stmt.where(
+                        OrderLink.students_search.ilike(f"%{p}%")
+                    )
 
         stmt = stmt.order_by(OrderLink.created_at.desc())
 
