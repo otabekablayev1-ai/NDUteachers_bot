@@ -47,6 +47,7 @@ class Student(Base):
     passport = Column(String)
     created_at = Column(DateTime, default=datetime.utcnow)
 
+
 class RegisterRequest(Base):
     __tablename__ = "register_requests"
 

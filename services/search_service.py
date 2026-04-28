@@ -67,31 +67,26 @@ async def search_orders_multi(
 
         if fio:
             search_text = normalize_text(fio)
-            parts = search_text.split()
+            parts = [p for p in search_text.split() if len(p) >= 3]
 
-            conditions = []
+            stmt = stmt.where(
+                or_(*[
+                    OrderLink.students_search.ilike(f"%{p}%")
+                    for p in parts
+                ])
+            )
 
-            for p in parts:
-                if len(p) >= 3:
-                    conditions.append(
-                        OrderLink.students_search.ilike(f"%{p}%")
-                    )
-
-            stmt = stmt.where(or_(*conditions))
-            
         result = await session.execute(stmt)
-        rows = result.all()
+        rows = result.scalars().all()
 
-        return [
-            {
-                "id": row[0],
-                "name": row[1] or f"Buyruq #{row[0]}",
-                "link": row[2],
-                "faculty": row[3],
-                "type": row[4],
-                "students_raw": row[5],
-                "students_search": row[6],
-                "created_at": row[7],
-            }
-            for row in rows
-        ]
+        # 🔥 Python tarafda filter qilamiz
+        filtered = []
+
+        for row in rows:
+            text = row.students_search or ""
+            count = sum(1 for p in parts if p in text)
+
+            if count >= max(2, len(parts) - 1):  # kamida 2 yoki deyarli hammasi
+                filtered.append(row)
+
+        rows = filtered
