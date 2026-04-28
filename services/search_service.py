@@ -4,7 +4,7 @@ from sqlalchemy import select
 
 from database.models import OrderLink
 from database.session import AsyncSessionLocal
-
+from sqlalchemy import or_
 
 def get_connection():
     database_url = os.getenv("DATABASE_URL")
@@ -69,22 +69,16 @@ async def search_orders_multi(
             search_text = normalize_text(fio)
             parts = search_text.split()
 
-            print("USER:", fio)
-            print("NORMALIZED:", search_text)
-
-            # 🔥 DB dan bitta sample ko‘ramiz
-            test = await session.execute(select(OrderLink.students_search).limit(3))
-            print("DB SAMPLE:")
-            for row in test:
-                print(row[0])
+            conditions = []
 
             for p in parts:
-                stmt = stmt.where(
-                    OrderLink.students_search.ilike(f"%{p}%")
-                )
+                if len(p) >= 3:
+                    conditions.append(
+                        OrderLink.students_search.ilike(f"%{p}%")
+                    )
 
-        stmt = stmt.order_by(OrderLink.created_at.desc())
-
+            stmt = stmt.where(or_(*conditions))
+            
         result = await session.execute(stmt)
         rows = result.all()
 
