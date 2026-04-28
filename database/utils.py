@@ -315,27 +315,23 @@ def normalize_text(text: str):
 
     text = text.lower().strip()
 
-    # 🔥 barcha apostroflarni bir xil qilish
-    text = text.replace("‘", "'").replace("`", "'").replace("ʼ", "'").replace("ʻ", "'")
+    # 🔥 barcha apostrof variantlari
+    apostrophes = ["‘", "’", "`", "ʼ", "ʻ", "ʿ", "ˈ"]
+    for ch in apostrophes:
+        text = text.replace(ch, "'")
 
-    # 🔥 O variatsiyalari
-    text = text.replace("o'", "o")
-    text = text.replace("o‘", "o")
-    text = text.replace("oʻ", "o")
-    text = text.replace("ў", "o")
+    # 🔥 o‘ → o
+    text = re.sub(r"o['’`ʼʻʿˈ]", "o", text)
 
-    # 🔥 G variatsiyalari
-    text = text.replace("g'", "g")
-    text = text.replace("g‘", "g")
-    text = text.replace("gʻ", "g")
-    text = text.replace("ғ", "g")
+    # 🔥 g‘ → g
+    text = re.sub(r"g['’`ʼʻʿˈ]", "g", text)
 
-    # 🔥 boshqa apostroflarni olib tashlash
+    # 🔥 qolgan ' ni o‘chiramiz
     text = text.replace("'", "")
 
-    # 🔥 ortiqcha belgilarni olib tashlash
+    # 🔥 boshqa belgilarni tozalash
     text = re.sub(r"[^a-z0-9\s]", "", text)
 
+    # 🔥 ortiqcha probellar
     return re.sub(r"\s+", " ", text).strip()
-
 
