@@ -48,16 +48,7 @@ async def search_orders_multi(
     fio: str | None = None,
 ):
     async with AsyncSessionLocal() as session:
-        stmt = select(
-            OrderLink.id,
-            OrderLink.title,
-            OrderLink.link,
-            OrderLink.faculty,
-            OrderLink.type,
-            OrderLink.students_raw,
-            OrderLink.students_search,
-            OrderLink.created_at,
-        )
+        stmt = select(OrderLink)
 
         if faculty:
             stmt = stmt.where(OrderLink.faculty == faculty)
