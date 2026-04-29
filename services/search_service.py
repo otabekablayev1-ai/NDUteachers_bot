@@ -17,31 +17,6 @@ def normalize_text(text: str) -> str:
     return (text or "").lower().strip()
 
 
-def search_orders(first_name, last_name):
-    conn = get_connection()
-    try:
-        cur = conn.cursor()
-
-        search_text = f"{first_name} {last_name}".lower()
-
-        cur.execute(
-            """
-            SELECT id, link
-            FROM order_links
-            WHERE students_search ILIKE %s
-            LIMIT 10
-            """,
-            (f"%{search_text}%",)
-        )
-
-        rows = cur.fetchall()
-
-        return [{"name": f"Buyruq #{r[0]}", "link": r[1]} for r in rows]
-
-    finally:
-        conn.close()
-
-
 async def search_orders_multi(
     faculty: str | None = None,
     type: str | None = None,

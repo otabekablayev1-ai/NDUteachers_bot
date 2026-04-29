@@ -161,29 +161,24 @@ async def set_lastname(message: Message, state: FSMContext):
 async def filter_search(call: CallbackQuery, state: FSMContext):
     data = await state.get_data()
 
+    # 🔥 1. UMUMIY STATISTIKA
+    await log_activity(
+        call.from_user.id,
+        "user",
+        "filter_search"
+    )
+
+    # 🔥 2. ANIQ QIDIRUV
+    await log_activity(
+        call.from_user.id,
+        "user",
+        f"search:{data.get('lastname')}"
+    )
+    data = await state.get_data()
+
     if not data.get("lastname"):
         await call.message.answer("❗ Avval familiyani kiriting.")
         return await call.answer()
-
-    # 🔴 MUHIM: await BOR
-    rows = await search_orders_multi(
-        faculty=data.get("faculty"),
-        type=data.get("type"),
-        fio=data.get("lastname")   # 👈 familiya shu yerda uzatiladi
-    )
-
-    if not rows:
-        await call.message.answer("❌ Hech narsa topilmadi.")
-        return await call.answer()
-
-    text = "📄 <b>Natijalar:</b>\n\n"
-    for row in rows:
-        r = row._mapping
-        text += f"👉 <a href=\"{r['link']}\">{r['title']}</a>\n"
-
-    await send_long_message(call.message, text)
-    await call.answer()
-
 
     # 🔴 MUHIM: await BOR
     rows = await search_orders_multi(
