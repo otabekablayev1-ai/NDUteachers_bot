@@ -21,6 +21,15 @@ async def send_long_message(message, text, chunk=4000):
             parse_mode="HTML"
         )
 
+def normalize_text(text: str) -> str:
+    if not text:
+        return ""
+
+    text = text.lower()
+    text = re.sub(r"[‘’ʻʼ`´]", "'", text)
+    text = re.sub(r"\s+", " ", text)
+    return text.strip()
+
 async def get_sender_info(user_id: int, full_name: str):
     """
     Rahbar yoki menejer lavozimini aniqlaydi
@@ -306,32 +315,4 @@ async def get_unanswered_questions(session):
     )
 
     return result.scalars().all()
-
-import re
-
-def normalize_text(text: str):
-    if not text:
-        return ""
-
-    text = text.lower().strip()
-
-    # 🔥 barcha apostrof variantlari
-    apostrophes = ["‘", "’", "`", "ʼ", "ʻ", "ʿ", "ˈ"]
-    for ch in apostrophes:
-        text = text.replace(ch, "'")
-
-    # 🔥 o‘ → o
-    text = re.sub(r"o['’`ʼʻʿˈ]", "o", text)
-
-    # 🔥 g‘ → g
-    text = re.sub(r"g['’`ʼʻʿˈ]", "g", text)
-
-    # 🔥 qolgan ' ni o‘chiramiz
-    text = text.replace("'", "")
-
-    # 🔥 boshqa belgilarni tozalash
-    text = re.sub(r"[^a-z0-9\s]", "", text)
-
-    # 🔥 ortiqcha probellar
-    return re.sub(r"\s+", " ", text).strip()
 
