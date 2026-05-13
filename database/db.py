@@ -351,7 +351,6 @@ async def get_manager_rating_table() -> list[dict]:
     EXCLUDED_MANAGER_IDS = {
         1040796931,
         8722281391,
-        810299183,
         1017100005, # 🔥 siz aytgan admin ID
     }
 
