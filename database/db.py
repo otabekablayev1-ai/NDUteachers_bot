@@ -346,6 +346,7 @@ async def get_manager_rating_table() -> list[dict]:
         3232323222: "Buxgalter",
         1043877684: "Buxgalter",
         376399142: "Buxgalter",
+        8722281391, "Adminstrator",
         1608446045: "Buxgalter"
     }
     EXCLUDED_MANAGER_IDS = {
